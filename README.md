@@ -10,13 +10,13 @@
 	- O(ln(d) / ln(d)) for updating the queue when the priority of an item increases
 
 - This C++ 17 implementation
-	- d-Heap is both made of an array of the items and a dictionary of their positions in the queue
+	- [d-Heap](https://en.wikipedia.org/wiki/D-ary_heap) data structure is both made of an array of the items and a dictionary of their positions in the queue
 	- d is set once for all when declaring the queue
 	- std::less will implement min-cost priority queue (default)
 	- std::greater will implement max-cost priority queue
 	- The position of an item can be dynamically updated in the queue according to its priority 
 	- Only the highest priority item can be removed from the queue
 	- The content of the array supporting the priority queue can be exported to a stream
-        - No C++ 20 feature used; however, Visual C++ project successfully compiled with C++ 20 standard
+	- No C++ 20 feature used; however, Visual C++ project successfully compiled with C++ 20 standard
 
 - Reference: Section A.3, d-Heaps, pp. 773-778 of Ravindra Aruja, Thomas Magnanti & James Orlin, [Network Flows](https://mitmgmtfaculty.mit.edu/jorlin/network-flows/), Prentice Hall (1993), 846 pages.
