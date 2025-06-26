@@ -3,7 +3,7 @@
 - Root node is the highest priority node (either min or max cost)
 - Children nodes have lower priority than their parent node
 - Children nodes are unordered
-- Time complexities of basic operations over n items in a d-Heap are (cf. Network Flows, page 778):
+- Time complexities of basic operations over n items in a [d-Heap](https://en.wikipedia.org/wiki/D-ary_heap) are (cf. [Network Flows](https://mitmgmtfaculty.mit.edu/jorlin/network-flows/), page 778):
 	- $O(1)$ for finding the item with highest priority
 	- $O(d\times log_d(n))$ for deleting the item with highest priority
  	- $O(log_d(n))$ for inserting an item
