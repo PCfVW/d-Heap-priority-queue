@@ -3,7 +3,7 @@
 - Root node is the highest priority node (either min or max cost)
 - Children nodes have lower priority than their parent node
 - Children nodes are unordered
-- Time complexities of basic operations over n items in a [d-Heap](https://en.wikipedia.org/wiki/D-ary_heap) are (cf. [Network Flows](https://mitmgmtfaculty.mit.edu/jorlin/network-flows/), page 778):
+- Time complexities of basic operations over $n$ items in a [d-Heap](https://en.wikipedia.org/wiki/D-ary_heap) are (cf. [Network Flows](https://mitmgmtfaculty.mit.edu/jorlin/network-flows/), page 778):
 	- $O(1)$ for finding the item with highest priority
 	- $O(d\times log_d(n))$ for deleting the item with highest priority
  	- $O(log_d(n))$ for inserting an item
@@ -12,7 +12,8 @@
 
 - This C++ 17 implementation
 	- [d-Heap](https://en.wikipedia.org/wiki/D-ary_heap) data structure is made of an array of the items and a dictionary of their positions in the queue
-	- d is set once for all when declaring the queue
+	- d is set once for all when declaring the queue until this queue is emptied with a call to clear/1
+ 	- clear/1 can optionally receive a new value for d
 	- std::less will implement min-cost priority queue (default)
 	- std::greater will implement max-cost priority queue
 	- The position of an item can be dynamically updated in the queue according to its priority 
