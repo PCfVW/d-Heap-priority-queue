@@ -11,7 +11,7 @@
  	- $O(log_d(n)$ for updating the queue when the priority of an item decreases
 
 - This C++ 17 implementation
-	- [d-Heap](https://en.wikipedia.org/wiki/D-ary_heap) data structure is both made of an array of the items and a dictionary of their positions in the queue
+	- [d-Heap](https://en.wikipedia.org/wiki/D-ary_heap) data structure is made of an array of the items and a dictionary of their positions in the queue
 	- d is set once for all when declaring the queue
 	- std::less will implement min-cost priority queue (default)
 	- std::greater will implement max-cost priority queue
