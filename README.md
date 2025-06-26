@@ -3,11 +3,12 @@
 - Root node is the highest priority node (either min or max cost)
 - Children nodes have lower priority than their parent node
 - Children nodes are unordered
-- Time complexities of basic operations over n items in a d-Heap are:
+- Time complexities of basic operations over n items in a d-Heap are (cf. Network Flows, page 778):
 	- O(1) for finding the item with highest priority
 	- O(d x ln(n) / ln(d)) for deleting the item with highest priority
- 	- O(ln(d) / ln(d)) for inserting an item
-	- O(ln(d) / ln(d)) for updating the queue when the priority of an item increases
+ 	- O(ln(n) / ln(d)) for inserting an item
+	- O(d x ln(n) / ln(d)) for updating the queue when the priority of an item increases
+ 	- O(log(n) / log(d)) for updating the queue when the priority of an item decreases
 
 - This C++ 17 implementation
 	- [d-Heap](https://en.wikipedia.org/wiki/D-ary_heap) data structure is both made of an array of the items and a dictionary of their positions in the queue
