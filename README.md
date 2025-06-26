@@ -5,9 +5,9 @@
 - Children nodes are unordered
 - Time complexities of basic operations over n items in a d-Heap are (cf. Network Flows, page 778):
 	- $O(1)$ for finding the item with highest priority
-	- $O(d x ln_d(n))$ for deleting the item with highest priority
+	- $O(d log_d(n))$ for deleting the item with highest priority
  	- $O(log_d(n))$ for inserting an item
-	- $O(d x log_d(n))$ for updating the queue when the priority of an item increases
+	- $O(d log_d(n))$ for updating the queue when the priority of an item increases
  	- $O(log_d(n)$ for updating the queue when the priority of an item decreases
 
 - This C++ 17 implementation
