@@ -21,4 +21,4 @@
 	- The content of the array supporting the priority queue can be exported to a stream
 	- No C++ 20 feature used; however, Visual C++ project successfully compiled with C++ 20 standard
 
-- Reference: Section A.3, d-Heaps, pp. 773-778 of Ravindra Aruja, Thomas Magnanti & James Orlin, [Network Flows](https://mitmgmtfaculty.mit.edu/jorlin/network-flows/), Prentice Hall (1993), 846 pages.
+- Reference: Section A.3, **$d$-Heaps**, pp. 773-778 of Ravindra Aruja, Thomas Magnanti & James Orlin, [Network Flows](https://mitmgmtfaculty.mit.edu/jorlin/network-flows/), Prentice Hall (1993), 846 pages.
