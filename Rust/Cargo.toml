@@ -1,0 +1,20 @@
+[package]
+name = "rust_priority_queue"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "priority_queue"
+path = "src/lib.rs"
+
+[[bin]]
+name = "demo"
+path = "src/main.rs"
+
+authors = ["Eric Jacopin"]
+license = "Apache-2.0"
+repository = ""
+keywords = ["heap", "priority-queue", "d-ary-heap"]
+categories = ["data-structures"]
+
+description = "Generic d-ary heap priority queue supporting min/max via comparator, with O(1) item lookup for updates."
