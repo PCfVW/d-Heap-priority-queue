@@ -18,8 +18,25 @@
 ///
 /// =================================================================================================================== File history
 ///
-/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/06/18]
+/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/08/13]
 ///
+/// [DEV 4] Comments -------------------------------------------------------------------------------------------------- 2025/08/13
+///     - Added checking negative depth of the heap in both constructors and clear/0
+///		- Change: float arithmetic to integer arithmetic in parent/1
+///		- Added checking negative depth of the heap and negative item positions in parent/1
+///		- MoveDownTheQueue() loop no longer uses parent(n-1)
+///			- Stops when the current node has no children by checking
+///				first_child = i * depth + 1 against Container.size().
+///			- Avoids calling parent() with i == 0 in loop conditions
+///			- Directly reflects "has children" logic,
+///			- Avoids "tricky" off-by-one math
+///		- Change:
+///			From: typename THash = std::hash<size_t>
+///			To : typename THash = std::hash<T>
+///		  This aligns the default hash with the actual key type used by T2PositionInContainer(which is T),
+///		  preventing surprises or compilation issues for custom types.
+///		- Added function identifiers before each time complexity in [DEV 1] section
+/// 
 ///	[DEV 3] Comments -------------------------------------------------------------------------------------------------- 2025/06/18
 ///		- Comments improved
 ///		- Web references:
@@ -37,10 +54,10 @@
 ///		- Children nodes have lower priority than their parent node
 ///		- Children nodes are unordered
 ///		- Time complexities of basic operations over n items in a d-Heap are:
-///				- O(1) for finding the item with highest priority
-///				- O(d x ln(n) / ln(d)) for deleting the item with highest priority
-///				- O(ln(d) / ln(d)) for inserting an item
-///				- O(ln(d) / ln(d)) for updating the queue when the priority of an item increases
+///			front/0				- O(1) for finding the item with highest priority
+///			pop/0				- O(d x ln(n) / ln(d)) for deleting the item with highest priority
+///			insert/1			- O(ln(n) / ln(d)) for inserting an item
+///			increase_priority/1	- O(ln(n) / ln(d)) for updating the queue when the priority of an item increases
 ///
 ///		- This C++ 17 file
 ///				- d-Heap is both made of an array of the items and a dictionary of their positions in the queue
@@ -79,7 +96,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Class declaration
 	///
 	template <	class T,										/* items in the queue */
-				typename THash = std::hash<size_t>,				/* O(1) access to positions */
+				typename THash = std::hash<T>,					/* O(1) access to positions */
 				typename TComparisonPredicate = std::less<T>,	/* std::less by default implements min cost priority queues: is the priority of one item less than the priority of another item? */
 				typename TEqual = std::equal_to<T>				/* O(1) access to items */
 			 > class PriorityQueue
@@ -97,11 +114,14 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		PriorityQueue(const ItemPositionInPriorityQueue d) : depth(d)
 		{
 			// Nothing initialized but the depth of the heap
+			if (TOOLS::INCLUDE_ASSERT) assert(d > 0);			// (d > 0) is a precondition for the d-Heap to be valid
 		}
 
 		// ----- Cherry on the cake constructor setting the depth of the heap while inserting the very first item in the queue
 		PriorityQueue(const ItemPositionInPriorityQueue d, T& t) : depth(d)
 		{
+			if (TOOLS::INCLUDE_ASSERT) assert(d > 0);			// (d > 0) is a precondition for the d-Heap to be valid
+
 			// Make t the very first item in the queue
 			Container.emplace_back(t);
 			T2PositionInContainer[Container[0]] = 0;
@@ -123,6 +143,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 			Container.clear();
 			T2PositionInContainer.clear();
 			if (d) depth = *d;
+			if (TOOLS::INCLUDE_ASSERT) assert(depth > 0);		// (d > 0) is a precondition for the d-Heap to be valid
 		}
 
 		// ----- Insert item t in the queue according to its priority
@@ -215,7 +236,9 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		// ----- Return the position of the parent of the item at the position i in the queue
 		/* inline */ ItemPositionInPriorityQueue parent(ItemPositionInPriorityQueue i) const
 		{
-			return static_cast<ItemPositionInPriorityQueue>(std::floor(static_cast<float>(i - 1) / static_cast<float>(depth)));
+			// Precondition: i > 0 and depth > 0
+			if (TOOLS::INCLUDE_ASSERT) assert(depth > 0 && i >= 0);
+			return static_cast<ItemPositionInPriorityQueue>((i - 1) / depth);
 		}
 
 		// ----- Return the position of the child of the item at the position i in the queue which has the highest priority
@@ -267,9 +290,12 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		// ----- Move the item currently at position i in the queue to a lower priority position
 		void MoveDownTheQueue(ItemPositionInPriorityQueue i)
 		{
-			// Keep swapping down the item initially at position i until its minimum child has lower priority
-			while (i <= parent(static_cast<ItemPositionInPriorityQueue>(Container.size() - 1)))
+			while (true)
 			{
+				ItemPositionInPriorityQueue first_child = static_cast<ItemPositionInPriorityQueue>(i * depth + 1);
+				if (first_child >= Container.size())
+					break; // i has no children
+
 				ItemPositionInPriorityQueue position_of_minimum_child = GetMinimumChildPositionInTheQueue(i);
 				if (HigherPriority(Container[position_of_minimum_child], Container[i]))
 				{
