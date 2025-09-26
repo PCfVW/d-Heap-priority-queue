@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::hash::Hash;
 
+/// Unified type alias for cross-language consistency
+pub type Position = usize;
+
 /// Trait to abstract the notion of "higher priority" between two items.
 /// If `higher_priority(a, b)` returns true, then `a` should be placed before `b` in the queue.
 pub trait PriorityCompare<T> {
@@ -17,8 +20,8 @@ where
     T: Eq + Hash + Clone,
 {
     container: Vec<T>,
-    positions: HashMap<T, usize>,
-    cmp: C,
+    positions: HashMap<T, Position>,
+    comparator: C,
     depth: usize,
 }
 
@@ -27,20 +30,20 @@ where
     T: Eq + Hash + Clone,
     C: PriorityCompare<T>,
 {
-    /// Create a new empty priority queue with arity `d` and comparator `cmp`.
-    pub fn new(d: usize, cmp: C) -> Self {
+    /// Create a new empty priority queue with arity `d` and comparator `comparator`.
+    pub fn new(d: usize, comparator: C) -> Self {
         assert!(d > 0, "heap depth (d) must be > 0");
-        Self { container: Vec::new(), positions: HashMap::new(), cmp, depth: d }
+        Self { container: Vec::new(), positions: HashMap::new(), comparator, depth: d }
     }
 
-    /// Create a new priority queue with arity `d`, comparator `cmp`, inserting the first item `t`.
-    pub fn with_first(d: usize, cmp: C, t: T) -> Self {
+    /// Create a new priority queue with arity `d`, comparator `comparator`, inserting the first item `t`.
+    pub fn with_first(d: usize, comparator: C, t: T) -> Self {
         assert!(d > 0, "heap depth (d) must be > 0");
         let mut container = Vec::with_capacity(1);
         container.push(t.clone());
         let mut positions = HashMap::with_capacity(1);
         positions.insert(t, 0);
-        Self { container, positions, cmp, depth: d }
+        Self { container, positions, comparator, depth: d }
     }
 
     #[inline]
@@ -86,9 +89,9 @@ where
 
     /// Increase the priority of item `t` currently in the queue. The identity of `t` is
     /// determined by its Eq/Hash implementation.
-    pub fn increase_priority(&mut self, t_with_new_higher_priority: &T) {
+    pub fn increase_priority(&mut self, updated_item: &T) {
         let &i = self.positions
-            .get(t_with_new_higher_priority)
+            .get(updated_item)
             .expect("item must exist in the queue to increase priority");
 
         // Update positions: remove old key (equal identity) and insert the new (updated) item
@@ -96,11 +99,32 @@ where
         // Since T: Eq+Hash, using the provided identity.
         let old_key = self.container[i].clone();
         self.positions.remove(&old_key);
-        self.positions.insert(t_with_new_higher_priority.clone(), i);
-        self.container[i] = t_with_new_higher_priority.clone();
+        self.positions.insert(updated_item.clone(), i);
+        self.container[i] = updated_item.clone();
 
         // Move up after priority increase
         self.move_up(i);
+    }
+
+    /// Decrease the priority value of item `t` currently in the queue. The identity of `t` is
+    /// determined by its Eq/Hash implementation.
+    pub fn decrease_priority(&mut self, updated_item: &T) {
+        let &i = self.positions
+            .get(updated_item)
+            .expect("item must exist in the queue to decrease priority");
+
+        // Update positions: remove old key (equal identity) and insert the new (updated) item
+        // Then update the container slot.
+        // Since T: Eq+Hash, using the provided identity.
+        let old_key = self.container[i].clone();
+        self.positions.remove(&old_key);
+        self.positions.insert(updated_item.clone(), i);
+        self.container[i] = updated_item.clone();
+
+        // After priority update, the item may need to move up or down to maintain heap property
+        // We need to check both directions since we don't know if priority actually decreased
+        self.move_up(i);
+        self.move_down(i);
     }
 
     /// Remove the highest-priority item from the queue. No-op if empty.
@@ -116,7 +140,8 @@ where
     }
 
     /// Produce a string rendering of the queue contents in array layout.
-    pub fn put_string(&self) -> String
+    /// Unified method name for cross-language consistency.
+    pub fn to_string(&self) -> String
     where
         T: Display,
     {
@@ -135,14 +160,14 @@ where
         (i - 1) / self.depth
     }
 
-    fn best_child_pos(&self, i: usize) -> usize {
+    fn best_child_position(&self, i: usize) -> usize {
         let n = self.container.len();
         let left = i * self.depth + 1;
         if left >= n { return left; }
         let right = ((i + 1) * self.depth).min(n - 1);
         let mut best = left;
         for p in (left + 1)..=right {
-            if self.cmp.higher_priority(&self.container[p], &self.container[best]) {
+            if self.comparator.higher_priority(&self.container[p], &self.container[best]) {
                 best = p;
             }
         }
@@ -161,7 +186,7 @@ where
     fn move_up(&mut self, mut i: usize) {
         while i > 0 {
             let p = self.parent(i);
-            if self.cmp.higher_priority(&self.container[i], &self.container[p]) {
+            if self.comparator.higher_priority(&self.container[i], &self.container[p]) {
                 self.swap(i, p);
                 i = p;
             } else {
@@ -175,8 +200,8 @@ where
         loop {
             let first_child = i * self.depth + 1;
             if first_child >= n { break; }
-            let best = self.best_child_pos(i);
-            if self.cmp.higher_priority(&self.container[best], &self.container[i]) {
+            let best = self.best_child_position(i);
+            if self.comparator.higher_priority(&self.container[best], &self.container[i]) {
                 self.swap(i, best);
                 i = best;
             } else {

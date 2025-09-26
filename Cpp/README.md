@@ -1,7 +1,7 @@
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (C++17)
+# d-Heap Priority Queue (C++17) v1.0.0
 
 This is a generic d-ary heap priority queue supporting both min-queue and max-queue behavior through a comparator.
 
@@ -14,6 +14,7 @@ This is a generic d-ary heap priority queue supporting both min-queue and max-qu
   - O(d · log_d n): delete-top (`pop()`), and child selection per level in a d-ary heap.
 - **O(1) item lookup**: an internal dictionary maps each item to its position, enabling efficient priority updates by item identity.
 - **Practical API**: `insert`, `front`, `pop`, `empty`, `size`, `clear(optional new d)`, stream output via `put(std::ostream&)`.
+- **Unified API**: Cross-language standardized methods: `len()`, `is_empty()`, `d()`, `to_string()`, `decrease_priority()`, and `Position` type alias.
 
 ## How to use (basic example)
 
@@ -23,6 +24,9 @@ Define your item type `T` and provide:
 - **Comparator** on priority (e.g., by `cost`) determining min- or max-queue.
 
 ```cpp
+#include "PriorityQueue.h"
+using namespace TOOLS;
+
 struct Item {
     uint32_t id;
     uint32_t cost; // priority
@@ -43,9 +47,28 @@ auto top = pq.front();      // highest priority (lowest cost here)
 Item i{.id=1, .cost=3};     // same identity, new priority
 pq.increase_priority(i);    // repositions item upward
 
+// Decrease priority of an existing item (e.g., increase cost in a min-queue)
+Item j{.id=2, .cost=8};     // same identity, new priority
+pq.decrease_priority(j);    // repositions item downward
+
 pq.pop();                   // remove current highest-priority item
 
 pq.clear(/* optional new d */);
+
+// Unified API methods (cross-language consistency)
+std::cout << "Size: " << pq.len() << std::endl;           // Same as pq.size()
+std::cout << "Empty: " << pq.is_empty() << std::endl;     // Same as pq.empty()
+std::cout << "Arity: " << pq.d() << std::endl;            // Get d value
+std::cout << "Contents: " << pq.to_string() << std::endl; // String output
+```
+
+## Compilation
+
+```bash
+# Compile with C++17 support
+g++ -std=c++17 -O2 your_program.cpp -o your_program
+# or with MSVC
+cl /std:c++17 /EHsc /O2 your_program.cpp
 ```
 
 Notes:

@@ -1,7 +1,7 @@
 ![Rust Edition 2021](https://img.shields.io/badge/Rust-Edition_2021-orange.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (Rust, Edition 2021)
+# d-Heap Priority Queue (Rust, Edition 2021) v1.0.0
 
 This is a generic d-ary heap priority queue supporting both min-queue and max-queue behavior through a comparator wrapper.
 
@@ -14,6 +14,7 @@ This is a generic d-ary heap priority queue supporting both min-queue and max-qu
   - O(d · log_d n): delete-top (`pop()`), with up to d children examined per level.
 - **O(1) item lookup**: internal hash map tracks positions by item identity, enabling efficient priority updates for existing items.
 - **Practical API**: `insert`, `front`, `pop`, `increase_priority`, `is_empty`, `len`.
+- **Unified API**: Cross-language standardized methods including `d()`, `to_string()`, `decrease_priority()`, and `Position` type alias.
 
 ## How to use (basic example)
 
@@ -26,6 +27,13 @@ use priority_queue::{PriorityQueue, MinBy, MaxBy};
 
 #[derive(Clone, Eq, PartialEq, Hash)]
 struct Item { id: u32, cost: u32 } // identity by id; priority by cost
+
+// For to_string() method, implement Display
+impl std::fmt::Display for Item {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Item(id: {}, cost: {})", self.id, self.cost)
+    }
+}
 
 // Min-queue by "cost"
 let mut pq: PriorityQueue<Item, MinBy<_>> =
@@ -40,7 +48,27 @@ let top = pq.front().clone(); // highest priority (lowest cost here)
 let updated = Item { id: 1, cost: 3 }; // same identity, new priority
 pq.increase_priority(&updated);        // repositions item upward as needed
 
+// Decrease priority of an existing item (e.g., increase cost in a min-queue)
+let decreased = Item { id: 2, cost: 8 }; // same identity, new priority
+pq.decrease_priority(&decreased);       // repositions item downward as needed
+
 pq.pop(); // remove current highest-priority item
+
+// Unified API methods (cross-language consistency)
+println!("Size: {}", pq.len());           // Get number of items
+println!("Empty: {}", pq.is_empty());     // Check if empty
+println!("Arity: {}", pq.d());            // Get d value
+println!("Contents: {}", pq.to_string()); // String output (was put_string())
+```
+
+## Usage
+
+```bash
+# Run tests
+cargo test
+
+# Run the demo
+cargo run
 ```
 
 Notes:

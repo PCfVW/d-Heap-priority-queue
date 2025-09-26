@@ -1,2 +1,9 @@
 ﻿Rust/target
 Cpp/.vs
+
+# Ignore executable files and object files
+*.exe
+*.obj
+
+# Ignore gitignore directory
+gitignore/

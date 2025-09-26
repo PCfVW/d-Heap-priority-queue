@@ -25,7 +25,7 @@ where
     T: Display + Eq + Hash + Clone,
     C: PriorityCompare<T>,
 {
-    println!("{}", pq.put_string());
+    println!("{}", pq.to_string());
 }
 
 fn main() {

@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// PriorityQueue.h
 ///
-/// C++ 17 implementation of a d-Heap priority queue
+/// C++ 17 implementation of a d-ary heap priority queue
 /// 
 /// Copyright (c) 2023-2025 Eric Jacopin
 /// 
@@ -10,15 +10,30 @@
 ///
 /// This file is divided as follows:
 ///	- File History					(Line 19)
-/// - Inclusion of files			(Line 81)
-///	- Namespace declaration			(Line 89)
-///	- Class declaration				(Line 98)
+/// - Inclusion of files			(Line 91)
+///	- Namespace declaration			(Line 104)
+///	- Class declaration				(Line 113)
 ///
-///	- End of file					(line 319)
+///	- End of file					(line 380)
 ///
 /// =================================================================================================================== File history
 ///
-/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/08/13]
+/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/09/26]
+/// Version: 1.0.0
+///
+/// [v1.0.0] Stable Release - Complete d-ary Priority Queue ----------------------------------------------------------- 2025/09/26
+///     - Feature-complete implementation with decrease_priority() method
+///     - Comprehensive test suite with 6 test categories covering all edge cases
+///     - Production-ready with robust error handling and O(1) item lookup
+///     - Cross-language API parity with Rust implementation
+///     - Professional documentation with usage examples and design explanations
+///
+/// [DEV 5] Unified API with Rust ------------------------------------------------------------------------------------- 2025/09/25
+///     - Unified API methods added so that both C++ and Rust implementations have the same method names:
+///			- size() -> len()
+///			- empty() -> is_empty()
+///			- getd() -> d()
+///			- put_string() -> to_string()
 ///
 /// [DEV 4] Comments -------------------------------------------------------------------------------------------------- 2025/08/13
 ///		- Fixed line numbers in comments
@@ -82,6 +97,7 @@
 #include <cassert>          // Visibility for assert
 #include <iostream>			// Visibility for std::ostream
 #include <optional>			// Visibility for std::optional
+#include <string>			// Visibility for std::string and std::to_string
 #include <unordered_map>	// Visibility for std::unordered_map implementing the dictionary of item positions
 #include <vector>			// Visibility for std::vector implementing the queue itself
 ///
@@ -107,6 +123,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 	// --------------------------
 	public:
 		typedef typename std::vector<T>::size_type ItemPositionInPriorityQueue;
+		using Position = size_t;  // Unified type alias for cross-language consistency
 
 		// ----- Default constructor deleted; appropriate constructor must set the depth of the heap; see next two constructors
 		PriorityQueue() = delete;
@@ -115,117 +132,160 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		PriorityQueue(const ItemPositionInPriorityQueue d) : depth(d)
 		{
 			// Nothing initialized but the depth of the heap
-			if (TOOLS::INCLUDE_ASSERT) assert(d > 0);			// (d > 0) is a precondition for the d-Heap to be valid
+			if (TOOLS::INCLUDE_ASSERT) assert(d > 0);			// (d > 0) is a precondition for the d-ary heap to be valid
 		}
 
 		// ----- Cherry on the cake constructor setting the depth of the heap while inserting the very first item in the queue
 		PriorityQueue(const ItemPositionInPriorityQueue d, T& t) : depth(d)
 		{
-			if (TOOLS::INCLUDE_ASSERT) assert(d > 0);			// (d > 0) is a precondition for the d-Heap to be valid
+			if (TOOLS::INCLUDE_ASSERT) assert(d > 0);			// (d > 0) is a precondition for the d-ary heap to be valid
 
 			// Make t the very first item in the queue
-			Container.emplace_back(t);
-			T2PositionInContainer[Container[0]] = 0;
+			container.emplace_back(t);
+			positions[container[0]] = 0;
 		}
 
 		/* inline */ ItemPositionInPriorityQueue getd() const { return depth; }
-		/* inline */ ItemPositionInPriorityQueue size() const { return Container.size(); }
-		/* inline */ bool empty() const { return Container.empty(); }
+		/* inline */ ItemPositionInPriorityQueue size() const { return container.size(); }
+		/* inline */ bool empty() const { return container.empty(); }
 
-		// ----- Return the highest priority item of the queue; calling this function on an empty Container causes undefined behavior.
+		/// Unified API methods for cross-language consistency
+		/* inline */ size_t len() const { return container.size(); }
+		/* inline */ bool is_empty() const { return container.empty(); }
+		/* inline */ size_t d() const { return depth; }
+
+		// ----- Return the highest priority item of the queue; calling this function on an empty container causes undefined behavior.
 		typename std::vector<T>::const_reference front() const
 		{
-			return Container.front();
+			return container.front();
 		}
 
 		// ----- Clear the internal data structures of the queue, optionally resetting the depth of the heap
 		void clear(const std::optional<ItemPositionInPriorityQueue>& d = std::nullopt)
 		{
-			Container.clear();
-			T2PositionInContainer.clear();
+			container.clear();
+			positions.clear();
 			if (d) depth = *d;
-			if (TOOLS::INCLUDE_ASSERT) assert(depth > 0);		// (d > 0) is a precondition for the d-Heap to be valid
+			if (TOOLS::INCLUDE_ASSERT) assert(depth > 0);		// (d > 0) is a precondition for the d-ary heap to be valid
 		}
 
 		// ----- Insert item t in the queue according to its priority
 		void insert(const T& t)
 		{
 			// First insert item t at the very end of the queue container
-			Container.push_back(t);
-			ItemPositionInPriorityQueue last_position_in_the_queue = static_cast<ItemPositionInPriorityQueue>(Container.size() - 1);
-			T2PositionInContainer[Container.back()] = last_position_in_the_queue;
+			container.push_back(t);
+			ItemPositionInPriorityQueue last_position_in_the_queue = static_cast<ItemPositionInPriorityQueue>(container.size() - 1);
+			positions[container.back()] = last_position_in_the_queue;
 
 			// Make item t crawl up to a position corresponding to its priority
-			MoveUpTheQueue(last_position_in_the_queue);
+			move_up(last_position_in_the_queue);
 		}
 
 		// ----- Move item at position i up in the queue according to its priority
 		void increase_priority(ItemPositionInPriorityQueue i)
 		{
-			MoveUpTheQueue(i);
+			move_up(i);
 		}
 
 		// ----- Move item t up in the queue according to its priority
-		void increase_priority(T& t_with_new_higher_priority)
+		void increase_priority(T& updated_item)
 		{
 			// Get the position of the item in the queue container
-			QueueIterator it = T2PositionInContainer.find(t_with_new_higher_priority);		// Find the position of item t in the queue
-			if (TOOLS::INCLUDE_ASSERT) assert(T2PositionInContainer.end() != it);			// t is expected to be in the queue and this should not be included
+			QueueIterator it = positions.find(updated_item);		// Find the position of item t in the queue
+			if (TOOLS::INCLUDE_ASSERT) assert(positions.end() != it);			// t is expected to be in the queue and this should not be included
 			ItemPositionInPriorityQueue position_of_t_in_the_queue = it->second;			// Remember current-priority t's position in the queue
 
 			// Erase the item with previous priority and immediately insert it (with new higher priority) as no item in the queue can be modified directly
-			T2PositionInContainer.erase(it->first);
-			T2PositionInContainer.insert({ t_with_new_higher_priority, position_of_t_in_the_queue });
-			
+			positions.erase(it->first);
+			positions.insert({ updated_item, position_of_t_in_the_queue });
+
 			// Update the priority of item t in the queue
-			Container[position_of_t_in_the_queue] = t_with_new_higher_priority;
+			container[position_of_t_in_the_queue] = updated_item;
 
 			// t in the queue now has a higher priority than before: move t up the queue
-			MoveUpTheQueue(position_of_t_in_the_queue);
+			move_up(position_of_t_in_the_queue);
+		}
+
+		// ----- Decrease the priority value of item t (increase its priority rank in min-heap)
+		void decrease_priority(T& updated_item)
+		{
+			// Get the position of the item in the queue container
+			QueueIterator it = positions.find(updated_item);		// Find the position of item t in the queue
+			if (TOOLS::INCLUDE_ASSERT) assert(positions.end() != it);			// t is expected to be in the queue and this should not be included
+			ItemPositionInPriorityQueue position_of_t_in_the_queue = it->second;			// Remember current-priority t's position in the queue
+
+			// Erase the item with previous priority and immediately insert it (with new priority) as no item in the queue can be modified directly
+			positions.erase(it->first);
+			positions.insert({ updated_item, position_of_t_in_the_queue });
+
+			// Update the priority of item t in the queue
+			container[position_of_t_in_the_queue] = updated_item;
+
+			// After priority update, the item may need to move up or down to maintain heap property
+			// We need to check both directions since we don't know if priority actually decreased
+			move_up(position_of_t_in_the_queue);
+			move_down(position_of_t_in_the_queue);
 		}
 
 		// ----- Remove the highest priority item from the queue
 		void pop()
 		{
 			// First exchange the very first (highest priority) item and the very last item in the queue container
-			swap(0, static_cast<ItemPositionInPriorityQueue>(Container.size() - 1));
+			swap(0, static_cast<ItemPositionInPriorityQueue>(container.size() - 1));
 
 			// Forget the position of the very first item
-			T2PositionInContainer.erase(Container.back());
+			positions.erase(container.back());
 
 			// Eventually remove the (highest priority) item from the queue container
-			Container.pop_back();
+			container.pop_back();
 
 			// IF the queue contained only one item THEN we're done!
-			if (!Container.empty())
+			if (!container.empty())
 				// Else adjust the position (in the queue container) of what was the very last item in the container and now is the very first item
-				MoveDownTheQueue(0);
+				move_down(0);
 		}
 
 		// ----- Output the queue in a stream
 		void put(std::ostream& os) const
 		{
 			os << "{";
-			if (!Container.empty())
+			if (!container.empty())
 			{
-				for (auto it = Container.begin(); it != Container.end() - 1; ++it)
+				for (auto it = container.begin(); it != container.end() - 1; ++it)
 				{
 					os << (*it) << ", ";
 				}
-				if (0 <= Container.size() - 1)
-					os << Container[Container.size() - 1];
+				if (0 <= container.size() - 1)
+					os << container[container.size() - 1];
 			}
 			os << "}";
+		}
+
+		/// Unified string output method for cross-language consistency
+		std::string to_string() const
+		{
+			std::string result = "{";
+			if (!container.empty())
+			{
+				for (auto it = container.begin(); it != container.end() - 1; ++it)
+				{
+					result += std::to_string(*it) + ", ";
+				}
+				if (0 <= container.size() - 1)
+					result += std::to_string(container[container.size() - 1]);
+			}
+			result += "}";
+			return result;
 		}
 
 	// ---------------------------
 	// ----- PRIVATE CONTENT -----
 	// ---------------------------
 	private:
-		std::vector<T> Container;																					// d-Heap warehouse where item are stored according to their prorities; highest priority item is at the very first position
-		std::unordered_map<T, ItemPositionInPriorityQueue, THash, TEqual> T2PositionInContainer;					// Positions of each item in the queue
+		std::vector<T> container;																					// d-ary heap warehouse where items are stored according to their priorities; highest priority item is at the very first position
+		std::unordered_map<T, ItemPositionInPriorityQueue, THash, TEqual> positions;								// Positions of each item in the queue
 		typedef typename std::unordered_map<T, ItemPositionInPriorityQueue, THash, TEqual>::iterator QueueIterator;	// Easy typing
-		TComparisonPredicate HigherPriority;																		// Comparing the priority of two items in the queue
+		TComparisonPredicate comparator;																			// Comparing the priority of two items in the queue
 		ItemPositionInPriorityQueue depth;																			// What is the maximum number of children per node? Set when a queue is declared; once set, cannot be modified.
 
 		// ----- Return the smallest of 2 item positions
@@ -243,16 +303,16 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		}
 
 		// ----- Return the position of the child of the item at the position i in the queue which has the highest priority
-		/* inline */ ItemPositionInPriorityQueue GetMinimumChildPositionInTheQueue(const ItemPositionInPriorityQueue i) const
+		/* inline */ ItemPositionInPriorityQueue best_child_position(const ItemPositionInPriorityQueue i) const
 		{
 			// Where should we look in the container?
-			ItemPositionInPriorityQueue left = min(static_cast<ItemPositionInPriorityQueue>(Container.size() - 1), i * depth + 1);
-			ItemPositionInPriorityQueue right = min(static_cast<ItemPositionInPriorityQueue>(Container.size() - 1), (i + 1) * depth);
+			ItemPositionInPriorityQueue left = min(static_cast<ItemPositionInPriorityQueue>(container.size() - 1), i * depth + 1);
+			ItemPositionInPriorityQueue right = min(static_cast<ItemPositionInPriorityQueue>(container.size() - 1), (i + 1) * depth);
 
 			// Scan all items in the [left, right] interval of the container to find the position of the minimum child
 			ItemPositionInPriorityQueue position_of_minimum_child = left;
 			for (ItemPositionInPriorityQueue p = left + 1; p <= right; ++p)
-				if (HigherPriority(Container[p], Container[position_of_minimum_child]))
+				if (comparator(container[p], container[position_of_minimum_child]))
 					position_of_minimum_child = p;
 
 			return position_of_minimum_child;
@@ -262,23 +322,23 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		void swap(const ItemPositionInPriorityQueue i, const ItemPositionInPriorityQueue j)
 		{
 			// Classical swapping of item i and item j
-			T temp = Container[i];
-			Container[i] = Container[j];
-			Container[j] = temp;
+			T temp = container[i];
+			container[i] = container[j];
+			container[j] = temp;
 
 			// Don't forget to update the dictionary to allow later access of the items just swapped
-			T2PositionInContainer[Container[j]] = j;
-			T2PositionInContainer[Container[i]] = i;
+			positions[container[j]] = j;
+			positions[container[i]] = i;
 		}
 
 		// ----- Move the item currently at position i in the queue to a higher priority position
-		void MoveUpTheQueue(ItemPositionInPriorityQueue i)
+		void move_up(ItemPositionInPriorityQueue i)
 		{
 			// Keep swapping up the item initially at position i until its parent has higher priority
 			while (0 < i)
 			{
 				ItemPositionInPriorityQueue higher_priority_position = parent(i);
-				if (HigherPriority(Container[i], Container[higher_priority_position]))
+				if (comparator(container[i], container[higher_priority_position]))
 				{
 					swap(i, higher_priority_position);
 					i = higher_priority_position;
@@ -289,16 +349,16 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		}
 
 		// ----- Move the item currently at position i in the queue to a lower priority position
-		void MoveDownTheQueue(ItemPositionInPriorityQueue i)
+		void move_down(ItemPositionInPriorityQueue i)
 		{
 			while (true)
 			{
 				ItemPositionInPriorityQueue first_child = static_cast<ItemPositionInPriorityQueue>(i * depth + 1);
-				if (first_child >= Container.size())
+				if (first_child >= container.size())
 					break; // i has no children
 
-				ItemPositionInPriorityQueue position_of_minimum_child = GetMinimumChildPositionInTheQueue(i);
-				if (HigherPriority(Container[position_of_minimum_child], Container[i]))
+				ItemPositionInPriorityQueue position_of_minimum_child = best_child_position(i);
+				if (comparator(container[position_of_minimum_child], container[i]))
 				{
 					swap(i, position_of_minimum_child);
 					i = position_of_minimum_child;
