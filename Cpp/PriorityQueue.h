@@ -19,7 +19,13 @@
 /// =================================================================================================================== File history
 ///
 /// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/09/26]
-/// Version: 1.0.0
+/// Version: 1.1.0
+///
+/// [v1.1.0] Enhanced Release - Three-Language Implementation ---------------------------------------------------------- 2025/09/26
+///     - Complete Zig implementation added with full API parity
+///     - All three languages (C++, Rust, Zig) now provide identical functionality
+///     - Enhanced documentation with cross-language comparison and usage guides
+///     - Synchronized version numbering across all implementations
 ///
 /// [v1.0.0] Stable Release - Complete d-ary Priority Queue ----------------------------------------------------------- 2025/09/26
 ///     - Feature-complete implementation with decrease_priority() method
