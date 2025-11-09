@@ -1,9 +1,18 @@
-﻿Rust/target
+﻿# IDE and build system directories
 Cpp/.vs
+Rust/target
+zig/.zig-cache
+zig/zig-out
 
-# Ignore executable files and object files
+# Compiled binaries and libraries
 *.exe
 *.obj
+*.lib
+*.pdb
+*.dll
+*.so
+*.dylib
+*.a
 
-# Ignore gitignore directory
+# Ignore gitignore directory (documentation/notes)
 gitignore/

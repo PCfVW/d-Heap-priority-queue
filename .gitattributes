@@ -1,8 +1,9 @@
-# Force GitHub to detect both C++ and Rust
-*.rs linguist-language=Rust
+# Force GitHub to detect C++, Rust, and Zig
 *.cpp linguist-language=C++
 *.h linguist-language=C++
 *.hpp linguist-language=C++
+*.rs linguist-language=Rust
+*.zig linguist-language=Zig
 
 # Ensure consistent line endings
 * text=auto eol=lf
