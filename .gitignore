@@ -3,6 +3,8 @@ Cpp/.vs
 Rust/target
 zig/.zig-cache
 zig/zig-out
+TypeScript/node_modules
+TypeScript/dist
 
 # Compiled binaries and libraries
 *.exe
@@ -13,6 +15,12 @@ zig/zig-out
 *.so
 *.dylib
 *.a
+
+# Node.js / TypeScript
+node_modules/
+*.tsbuildinfo
+.npm
+.eslintcache
 
 # Ignore gitignore directory (documentation/notes)
 gitignore/
