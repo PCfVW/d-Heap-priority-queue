@@ -1,4 +1,4 @@
-# Min/Max d-Heap Priority Queues (C++, Rust, and Zig) v1.1.0
+# Min/Max d-Heap Priority Queues (C++, Rust, and Zig) v2.0.0
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
 
@@ -7,7 +7,7 @@ This repository contains generic d-ary heap (d-heap) priority queue implementati
 - Examples and unit tests included in each language subproject
 - All three implementations provide the exact same set of operations (API parity across C++, Rust, and Zig).
 - **Unified API**: Cross-language method names standardized for consistent usage across all implementations.
-- <u>Provided</u>: access top (front), insert, update priority of existing item, delete-top (pop), size/length, emptiness check.
+- <u>Provided</u>: access top (front), insert, update priority of existing item, delete-top (pop), size/length, emptiness check, membership test (contains).
 - <u>Not provided</u>: erase/remove arbitrary item by identity, meld/merge of heaps, stable ordering for equal priorities, or iterators supporting removal during traversal.
 
 ## Unified API Methods
@@ -17,6 +17,7 @@ All three implementations (C++, Rust, and Zig) provide these standardized method
 | Method | Description | C++ | Rust | Zig |
 |--------|-------------|-----|------|-----|
 | `clear()` | Clear all items, optionally reset arity | ✅ | ✅ | ✅ |
+| `contains()` | Check if item exists in queue (O(1)) | ✅ | ✅ | ✅ |
 | `d()` | Get arity (number of children per node) | ✅ | ✅ | ✅ |
 | `decrease_priority()` | Decrease priority of existing item | ✅ | ✅ | ✅ |
 | `front()` | Get reference to highest-priority item | ✅ | ✅ | ✅ |
@@ -25,7 +26,7 @@ All three implementations (C++, Rust, and Zig) provide these standardized method
 | `is_empty()` | Check if queue is empty | ✅ | ✅ | ✅ |
 | `len()` | Get number of items | ✅ | ✅ | ✅ |
 | `pop()` | Remove highest-priority item | ✅ | ✅ | ✅ |
-| `to_string()` | String representation of queue contents | ✅ | ✅ | ✅ |
+| `to_string()` | String representation of queue contents | ✅ | ✅* | ✅ |
 | `Position` | Type alias for position indices | ✅ | ✅ | ✅ |
 
 ### **Priority Update Method Design**
@@ -47,6 +48,8 @@ The `increase_priority()` and `decrease_priority()` methods have an intentionall
 This asymmetric design reflects real-world usage patterns: `increase_priority()` is performance-critical in algorithms like Dijkstra's shortest path, while `decrease_priority()` is used less frequently and benefits from defensive programming that prevents heap corruption even when users accidentally call the wrong method.
 
 *Note: Original methods (`size()`, `empty()`, etc.) remain available in C++ for backward compatibility.*
+
+*\* Rust also implements the `Display` trait, allowing `format!("{}", pq)` in addition to `pq.to_string()`.*
 
 ## Language Comparison
 
@@ -74,19 +77,23 @@ All three implementations provide identical functionality—choose based on your
 
 ## Version Information
 
-**Current Version: 1.1.0** - Stable Release
+**Current Version: 2.0.0** - Major Release
 
-**What's New in 1.1.0:**
-- ✨ **New**: Complete Zig implementation with full API parity
-- 📚 **Enhanced**: Comprehensive documentation across all implementations
-- 🔄 **Improved**: Unified API method names for cross-language consistency
+**What's New in 2.0.0:**
+- 🚀 **Zig 0.15.2**: Updated Zig implementation for latest Zig version with API changes
+- ✨ **Generic Zig**: Zig implementation now fully generic (use your own item types)
+- 🧪 **Comprehensive Tests**: 20+ tests in Zig matching Rust coverage
+- 📦 **Module Export**: Zig can now be used as a dependency in other projects
+- 🔧 **Better Error Handling**: Removed `unreachable` from Zig error paths
+- ➕ **New Methods**: Added `peek()` alias and `initCapacity()` in Zig
 
 This version represents a feature-complete, production-ready implementation with:
-- ✅ **Complete API**: All 11 core methods implemented across all three languages
-- ✅ **Comprehensive Testing**: 14 test functions covering all functionality and edge cases
+- ✅ **Complete API**: All 12 core methods implemented across all three languages
+- ✅ **Comprehensive Testing**: 20+ test functions covering all functionality and edge cases
 - ✅ **Cross-Language Parity**: Identical API and behavior across C++, Rust, and Zig
 - ✅ **Professional Documentation**: Detailed usage guides and design explanations
 - ✅ **Performance Optimized**: O(1) item lookup, template specialization, memory efficiency
+- ✅ **Truly Generic**: All implementations support user-defined item types
 
 All three implementations share synchronized version numbers to ensure feature compatibility and consistent user experience.
 

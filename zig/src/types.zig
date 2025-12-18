@@ -38,16 +38,11 @@ pub const Item = struct {
 
     /// Format the item for printing.
     ///
-    /// Implements the std.fmt.format interface to enable printing with `{any}`.
+    /// Implements the std.fmt interface to enable printing with `{f}`.
     /// Output format: `(number, cost)`
     ///
     /// Example output: `(42, 100)`
-    pub fn format(
-        self: Item,
-        comptime _: []const u8,
-        _: std.fmt.FormatOptions,
-        writer: anytype,
-    ) !void {
+    pub fn format(self: Item, writer: anytype) !void {
         try writer.print("({}, {})", .{ self.number, self.cost });
     }
 

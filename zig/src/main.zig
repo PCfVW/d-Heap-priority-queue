@@ -4,15 +4,18 @@
 //! including dynamic priority updates and order verification.
 
 const std = @import("std");
-const DHeap = @import("d_heap.zig").DHeap;
-const Item = @import("types.zig").Item;
-const MinByCost = @import("d_heap.zig").MinByCost;
-const MaxByCost = @import("d_heap.zig").MaxByCost;
+const d_heap = @import("d_heap.zig");
+
+// Use the pre-configured types from d_heap module
+const DHeapItem = d_heap.DHeapItem;
+const MinByCost = d_heap.MinByCost;
+const MaxByCost = d_heap.MaxByCost;
+const Item = d_heap.Item;
 
 /// Helper function to print the current state of a priority queue.
-fn printPQ(pq: *DHeap) !void {
+fn printPQ(pq: *DHeapItem, allocator: std.mem.Allocator) !void {
     const str = try pq.toString();
-    defer pq.allocator.free(str);
+    defer allocator.free(str);
     std.debug.print("{s}\n", .{str});
 }
 
@@ -25,8 +28,8 @@ pub fn main() !void {
 
     std.debug.print("=== Min-Heap Test (by cost) ===\n", .{});
 
-    // Create min-heap
-    var pq_less = try DHeap.init(3, MinByCost, allocator);
+    // Create min-heap using the pre-configured DHeapItem type
+    var pq_less = try DHeapItem.init(3, MinByCost, allocator);
     defer pq_less.deinit();
 
     const input = [_]u32{ 20, 5, 22, 16, 18, 17, 12, 9, 42, 27, 48, 36, 32, 13, 14, 28, 52, 10, 21, 8, 39, 29, 15, 38, 31, 41 };
@@ -34,14 +37,14 @@ pub fn main() !void {
     // Insert items and print queue state
     for (input) |n| {
         try pq_less.insert(Item{ .number = n, .cost = n });
-        try printPQ(&pq_less);
+        try printPQ(&pq_less, allocator);
     }
 
     // Test dynamic update - insert new item
     const item1 = Item{ .number = 19, .cost = 19 };
     try pq_less.insert(item1);
     std.debug.print("After inserting (19, 19):\n", .{});
-    try printPQ(&pq_less);
+    try printPQ(&pq_less, allocator);
 
     // Get front element
     if (pq_less.front()) |front| {
@@ -52,7 +55,7 @@ pub fn main() !void {
     const item1_new = Item{ .number = 19, .cost = 3 };
     try pq_less.increasePriority(item1_new);
     std.debug.print("After increasing priority of 19 to cost 3:\n", .{});
-    try printPQ(&pq_less);
+    try printPQ(&pq_less, allocator);
 
     if (pq_less.front()) |front| {
         std.debug.print("new front: {any}\n", .{front});
@@ -75,31 +78,31 @@ pub fn main() !void {
             last_cost_min = top.cost;
         }
         _ = pq_less.pop();
-        try printPQ(&pq_less);
+        try printPQ(&pq_less, allocator);
     }
 
     std.debug.print("\n=== Max-Heap Test (by cost) ===\n", .{});
 
-    // Create max-heap
-    var pq_greater = try DHeap.init(3, MaxByCost, allocator);
+    // Create max-heap using the pre-configured DHeapItem type
+    var pq_greater = try DHeapItem.init(3, MaxByCost, allocator);
     defer pq_greater.deinit();
 
     // Insert items
     for (input) |n| {
         try pq_greater.insert(Item{ .number = n, .cost = n });
-        try printPQ(&pq_greater);
+        try printPQ(&pq_greater, allocator);
     }
 
     // Test dynamic update
     const item2 = Item{ .number = 40, .cost = 40 };
     try pq_greater.insert(item2);
     std.debug.print("After inserting (40, 40):\n", .{});
-    try printPQ(&pq_greater);
+    try printPQ(&pq_greater, allocator);
 
     const item2_new = Item{ .number = 40, .cost = 50 };
     try pq_greater.increasePriority(item2_new);
     std.debug.print("After increasing priority of 40 to cost 50:\n", .{});
-    try printPQ(&pq_greater);
+    try printPQ(&pq_greater, allocator);
 
     // Verify non-increasing order on pops
     std.debug.print("\nPopping all elements (should be in non-increasing order):\n", .{});
@@ -118,7 +121,7 @@ pub fn main() !void {
             last_cost_max = top.cost;
         }
         _ = pq_greater.pop();
-        try printPQ(&pq_greater);
+        try printPQ(&pq_greater, allocator);
     }
 
     std.debug.print("\n=== All tests passed! ===\n", .{});

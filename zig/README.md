@@ -1,167 +1,261 @@
 ![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-f7a41d.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (Zig 0.15.2) v1.1.0
+# d-Heap Priority Queue (Zig 0.15.2) v2.0.0
 
-This is a generic d-ary heap priority queue supporting both min-queue and max-queue behavior through a comparator.
+A **generic** d-ary heap priority queue supporting both min-queue and max-queue behavior through comparator functions.
+
+## What's New in v2.0.0
+
+- **Generic implementation**: Use your own item types (not limited to built-in `Item`)
+- **Improved API**: Added `peek()` alias, `initCapacity()` for pre-allocation
+- **Better error handling**: Removed `unreachable` from error paths
+- **Comprehensive tests**: 20+ tests covering all functionality
+- **Module export**: Can be used as a dependency in other Zig projects
+- **Zig 0.15.2 compatibility**: Updated for latest Zig API changes
 
 ## Strengths
 
-- **Flexible behavior**: min-heap or max-heap via comparator functions, and configurable arity `d` at construction time.
-- **Efficient operations** on n items (see reference below):
-  - O(1): access the highest-priority item (`front()`).
-  - O(log_d n): `insert()` and upward reheapification.
-  - O(d · log_d n): delete-top (`pop()`), with up to d children examined per level.
-- **O(1) item lookup**: internal hash map tracks positions by item identity, enabling efficient priority updates for existing items.
-- **Practical API**: `insert`, `front`, `pop`, `increasePriority`, `decreasePriority`, `isEmpty`, `len`, `clear`, `d`, `toString`.
-- **Unified API**: Cross-language standardized methods matching C++ and Rust implementations for consistent usage patterns.
-- **Memory safety**: Explicit allocator management following Zig best practices.
+- **Truly generic**: Define your own item types with custom hash/equality
+- **Flexible behavior**: min-heap or max-heap via comparator functions, configurable arity `d`
+- **Efficient operations** on n items:
+  - O(1): access highest-priority item (`front()`/`peek()`), membership test (`contains()`)
+  - O(log_d n): `insert()` and `increasePriority()`
+  - O(d · log_d n): `pop()` and `decreasePriority()`
+- **O(1) item lookup**: internal hash map tracks positions by item identity
+- **Unified API**: Cross-language standardized methods matching C++ and Rust implementations
+- **Memory safety**: Explicit allocator management following Zig best practices
 
-## How to use (basic example)
-
-Define your item type and provide:
-- **Hash** for identity (e.g., by stable id/number),
-- **Equality** for identity (same identity as hash),
-- **Comparator** on priority (e.g., by `cost`) determining min- or max-queue.
+## Quick Start (Using Built-in Item Type)
 
 ```zig
 const std = @import("std");
-const DHeap = @import("d_heap.zig").DHeap;
-const MinByCost = @import("d_heap.zig").MinByCost;
-const MaxByCost = @import("d_heap.zig").MaxByCost;
-const Item = @import("types.zig").Item;
+const d_heap = @import("d_heap.zig");
+
+// Use pre-configured type for the built-in Item type
+const DHeapItem = d_heap.DHeapItem;
+const MinByCost = d_heap.MinByCost;
+const Item = d_heap.Item;
 
 pub fn main() !void {
-    // Setup allocator
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    // Create min-queue by cost (lower cost = higher priority)
-    var pq = try DHeap.init(3, MinByCost, allocator);
+    // Create min-heap (lower cost = higher priority)
+    var pq = try DHeapItem.init(3, MinByCost, allocator);
     defer pq.deinit();
 
     // Insert items
-    try pq.insert(Item{ .number = 1, .cost = 10 });
-    try pq.insert(Item{ .number = 2, .cost = 5 });
+    try pq.insert(Item.init(1, 10));
+    try pq.insert(Item.init(2, 5));
 
-    // Get highest priority item (lowest cost here)
+    // Get highest priority item
     if (pq.front()) |top| {
-        std.debug.print("Top: {any}\n", .{top});
+        std.debug.print("Top: {any}\n", .{top});  // (2, 5)
     }
 
-    // Increase priority of an existing item (e.g., decrease cost in a min-queue)
-    const updated = Item{ .number = 1, .cost = 3 }; // same identity, new priority
-    try pq.increasePriority(updated);               // repositions item upward
+    // Update priority
+    try pq.increasePriority(Item.init(1, 3));  // Item 1 now has cost 3
 
-    // Decrease priority of an existing item (e.g., increase cost in a min-queue)
-    const decreased = Item{ .number = 2, .cost = 8 }; // same identity, new priority
-    try pq.decreasePriority(decreased);               // repositions item downward
+    // Check membership
+    if (pq.contains(Item.init(1, 0))) {  // cost doesn't matter for lookup
+        std.debug.print("Item 1 exists\n", .{});
+    }
 
-    // Remove current highest-priority item
-    _ = pq.pop();
-
-    // Clear the queue (optionally reset arity)
-    try pq.clear(null); // or pq.clear(4) to change d to 4
-
-    // Unified API methods (cross-language consistency)
-    std.debug.print("Size: {}\n", .{pq.len()});       // Get number of items
-    std.debug.print("Empty: {}\n", .{pq.isEmpty()});  // Check if empty
-    std.debug.print("Arity: {}\n", .{pq.d()});        // Get d value
-    const str = try pq.toString();                    // String output
-    defer allocator.free(str);
-    std.debug.print("Contents: {s}\n", .{str});
+    // Pop items in priority order
+    while (pq.pop()) |item| {
+        std.debug.print("Popped: {any}\n", .{item});
+    }
 }
 ```
 
-## Compilation
+## Using Custom Item Types (Generic API)
+
+```zig
+const std = @import("std");
+const d_heap = @import("d_heap.zig");
+
+// Define your custom item type
+const Task = struct {
+    id: u64,
+    name: []const u8,
+    priority: i32,
+
+    // Required: hash function for identity
+    pub fn hash(self: Task) u64 {
+        var hasher = std.hash.Wyhash.init(0);
+        std.hash.autoHash(&hasher, self.id);
+        return hasher.final();
+    }
+
+    // Required: equality function for identity
+    pub fn eql(a: Task, b: Task) bool {
+        return a.id == b.id;
+    }
+};
+
+// Create comparator for min-heap by priority
+fn taskLessThan(a: Task, b: Task) bool {
+    return a.priority < b.priority;
+}
+
+// Create the heap type
+const TaskHeap = d_heap.DHeap(
+    Task,
+    d_heap.HashContext(Task),
+    d_heap.Comparator(Task),
+);
+
+const TaskComparator = d_heap.Comparator(Task){ .cmp = taskLessThan };
+
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    var heap = try TaskHeap.init(4, TaskComparator, allocator);
+    defer heap.deinit();
+
+    try heap.insert(.{ .id = 1, .name = "Build", .priority = 10 });
+    try heap.insert(.{ .id = 2, .name = "Test", .priority = 5 });
+
+    if (heap.front()) |task| {
+        std.debug.print("Next task: {s}\n", .{task.name});  // "Test"
+    }
+}
+```
+
+## Building and Testing
 
 ```bash
-# Compile and run the demo
-zig build-exe src/main.zig
-./main
+# Build the demo executable
+zig build
 
-# Or use the build system
+# Run the demo
 zig build run
 
-# Run tests (if available)
+# Run all tests
 zig build test
 
 # Check formatting
 zig fmt --check src/
 ```
 
-## Requirements
+## Using as a Dependency
 
-- **Zig 0.15.2** or compatible version
-- No external dependencies (uses only Zig standard library)
+Add to your `build.zig.zon`:
 
-Notes:
-- Identity (hash/equality) should be stable; priority values may change over time.
-- Only the highest-priority item can be removed directly (`pop()`).
-- Memory management uses explicit allocators - always call `deinit()` to free resources.
+```zig
+.dependencies = .{
+    .d_heap = .{
+        .url = "https://github.com/your-repo/priority-queues/archive/refs/heads/main.tar.gz",
+        .hash = "...",
+    },
+},
+```
 
-## What is a d-Heap?
+Then in your `build.zig`:
 
-- A [d-ary heap](https://en.wikipedia.org/wiki/D-ary_heap) is a tree where each node has up to d children, the root holds the highest priority, children are unordered, and priorities decrease along any root-to-leaf path.
-- Time complexities over n items (cf. reference):
-  - O(1): access top
-  - O(d · log_d n): delete-top
-  - O(log_d n): insert and upward update
+```zig
+const d_heap = b.dependency("d_heap", .{});
+exe.root_module.addImport("d-heap", d_heap.module("d-heap"));
+```
 
 ## API Reference
 
-### Types
+### Generic Type Construction
 
-- **`DHeap`**: Main priority queue structure
-- **`Comparator`**: Struct containing a `higher_priority` function pointer
-- **`MinByCost`**: Pre-defined comparator for min-heap by cost
-- **`MaxByCost`**: Pre-defined comparator for max-heap by cost
-- **`Item`**: Example item type with `number` (identity) and `cost` (priority)
+```zig
+// Create a heap type for your item type T
+const MyHeap = d_heap.DHeap(
+    T,                        // Your item type
+    d_heap.HashContext(T),    // Hash context (uses T.hash() and T.eql())
+    d_heap.Comparator(T),     // Comparator wrapper
+);
+```
+
+### Pre-configured Types
+
+| Type | Description |
+|------|-------------|
+| `DHeapItem` | Pre-configured heap for built-in `Item` type |
+| `Item` | Built-in item with `number` (identity) and `cost` (priority) |
+| `MinByCost` | Comparator for min-heap by cost |
+| `MaxByCost` | Comparator for max-heap by cost |
+| `HashContext(T)` | Generic hash context for types with `hash()`/`eql()` methods |
+| `Comparator(T)` | Generic comparator wrapper |
 
 ### Methods
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `init()` | `fn init(depth: usize, comparator: Comparator, allocator: Allocator) !DHeap` | Create new heap with arity d |
-| `deinit()` | `fn deinit(self: *Self) void` | Free all resources |
-| `len()` | `fn len(self: Self) usize` | Get number of items |
-| `isEmpty()` | `fn isEmpty(self: Self) bool` | Check if queue is empty |
-| `d()` | `fn d(self: Self) usize` | Get arity (children per node) |
-| `front()` | `fn front(self: *Self) ?Item` | Get highest-priority item |
-| `insert()` | `fn insert(self: *Self, item: Item) !void` | Add new item to queue |
-| `increasePriority()` | `fn increasePriority(self: *Self, updated_item: Item) !void` | Make item more important |
-| `decreasePriority()` | `fn decreasePriority(self: *Self, updated_item: Item) !void` | Make item less important |
-| `pop()` | `fn pop(self: *Self) ?Item` | Remove highest-priority item |
-| `clear()` | `fn clear(self: *Self, new_depth: ?usize) !void` | Clear all items, optionally reset arity |
-| `toString()` | `fn toString(self: Self) ![]const u8` | Get string representation (caller owns memory) |
+| Method | Complexity | Description |
+|--------|------------|-------------|
+| `init(d, cmp, alloc)` | O(1) | Create heap with arity d |
+| `initCapacity(d, cmp, alloc, cap)` | O(1) | Create with pre-allocated capacity |
+| `deinit()` | O(n) | Free all resources |
+| `len()` | O(1) | Get number of items |
+| `isEmpty()` | O(1) | Check if empty |
+| `d()` | O(1) | Get arity |
+| `contains(item)` | O(1) | Check if item exists by identity |
+| `front()` / `peek()` | O(1) | Get highest-priority item (null if empty) |
+| `insert(item)` | O(log_d n) | Add new item |
+| `increasePriority(item)` | O(log_d n) | Update item to higher priority |
+| `decreasePriority(item)` | O(d·log_d n) | Update item to lower priority |
+| `pop()` | O(d·log_d n) | Remove and return highest-priority item |
+| `clear(new_d)` | O(1) | Clear all items, optionally change arity |
+| `toString()` | O(n) | Get string representation (caller owns memory) |
 
 ### Error Types
 
-- `DepthMustBePositive`: Arity d must be at least 1
-- `ItemNotFound`: Item not found in queue during priority update
-- `AllocatorError`: Memory allocation failed
+| Error | Cause |
+|-------|-------|
+| `DepthMustBePositive` | Arity d must be ≥ 1 |
+| `ItemNotFound` | Priority update on non-existent item |
 
-## Zig-Specific Implementation Details
+## Item Type Requirements
 
-### Memory Management
-- Uses explicit allocators passed at initialization
-- All allocations go through the provided allocator
-- `toString()` returns owned memory that must be freed by caller
-- Always call `deinit()` to prevent memory leaks
+Your custom item type must provide:
 
-### Naming Conventions
-- Functions use camelCase: `isEmpty()`, `increasePriority()`
-- Types use PascalCase: `DHeap`, `Comparator`
-- Constants use PascalCase: `MinByCost`, `MaxByCost`
+1. **Hash function**: `pub fn hash(self: T) u64`
+   - Returns hash based on item identity (not priority)
 
-**Note**: Zig uses camelCase for functions (e.g., `isEmpty`, `increasePriority`) following Zig conventions, while C++ and Rust use snake_case (e.g., `is_empty`, `increase_priority`). The functionality is identical across all implementations.
+2. **Equality function**: `pub fn eql(a: T, b: T) bool` or `pub fn eq(a: T, b: T) bool`
+   - Compares items by identity (not priority)
 
-### Error Handling
-- Functions that can fail return error unions (`!Type`)
-- Use `try` to propagate errors or `catch` to handle them
-- `front()` and `pop()` return optional types (`?Item`) for empty queue case
+3. **Comparator function**: `fn(a: T, b: T) bool`
+   - Returns true if `a` has higher priority than `b`
+   - For min-heap: `a.priority < b.priority`
+   - For max-heap: `a.priority > b.priority`
+
+## Cross-Language API Parity
+
+| Operation | Zig | C++ | Rust |
+|-----------|-----|-----|------|
+| Create | `init(d, cmp, alloc)` | `PriorityQueue(d)` | `PriorityQueue::new(d)` |
+| Size | `len()` | `len()` | `len()` |
+| Empty check | `isEmpty()` | `is_empty()` | `is_empty()` |
+| Arity | `d()` | `d()` | `d()` |
+| Membership | `contains(item)` | `contains(item)` | `contains(&item)` |
+| Top item | `front()` / `peek()` | `front()` | `front()` |
+| Insert | `insert(item)` | `insert(item)` | `insert(item)` |
+| Increase priority | `increasePriority(item)` | `increase_priority(item)` | `increase_priority(item)` |
+| Decrease priority | `decreasePriority(item)` | `decrease_priority(item)` | `decrease_priority(item)` |
+| Remove top | `pop()` | `pop()` | `pop()` |
+| Clear | `clear(new_d)` | `clear(new_d)` | `clear(new_d)` |
+| String | `toString()` | `to_string()` | `to_string()` |
+
+**Note**: Zig uses camelCase for functions following Zig conventions, while C++ and Rust use snake_case.
+
+## What is a d-Heap?
+
+A [d-ary heap](https://en.wikipedia.org/wiki/D-ary_heap) is a generalization of a binary heap where each node has up to d children instead of 2. This provides:
+
+- **Shallower tree**: Height is log_d(n) instead of log_2(n)
+- **Faster inserts**: O(log_d n) comparisons
+- **Trade-off**: Pop operations examine up to d children per level
+
+Optimal d depends on your workload. For insert-heavy workloads, larger d (3-4) often performs better.
 
 ## Reference
 
-Section A.3, [d-Heaps](https://en.wikipedia.org/wiki/D-ary_heap), pp. 773–778 of Ravindra Ahuja, Thomas Magnanti & James Orlin, **Network Flows** (Prentice Hall, 1993). Book info: https://mitmgmtfaculty.mit.edu/jorlin/network-flows/
+Section A.3, [d-Heaps](https://en.wikipedia.org/wiki/D-ary_heap), pp. 773–778 of Ravindra Ahuja, Thomas Magnanti & James Orlin, **Network Flows** (Prentice Hall, 1993).

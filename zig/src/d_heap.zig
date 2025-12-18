@@ -1,4 +1,4 @@
-//! D-ary heap priority queue implementation.
+//! Generic d-ary heap priority queue implementation.
 //!
 //! This module provides a generic d-ary heap (d-heap) priority queue with:
 //! - Configurable arity (d): number of children per node
@@ -8,46 +8,109 @@
 //! - O(log_d n) insert and priority increase operations
 //! - O(d · log_d n) pop and priority decrease operations
 //!
-//! The implementation maintains heap invariants where each parent has higher
-//! priority than all its children, enabling efficient priority queue operations.
+//! The implementation is generic over the item type T, allowing users to
+//! define their own item types with custom hash and equality functions.
+//!
+//! ## Example Usage
+//!
+//! ```zig
+//! const std = @import("std");
+//! const d_heap = @import("d_heap.zig");
+//!
+//! // Define your item type
+//! const MyItem = struct {
+//!     id: u32,
+//!     priority: i32,
+//!
+//!     pub fn hash(self: MyItem) u64 {
+//!         var hasher = std.hash.Wyhash.init(0);
+//!         std.hash.autoHash(&hasher, self.id);
+//!         return hasher.final();
+//!     }
+//!
+//!     pub fn eql(a: MyItem, b: MyItem) bool {
+//!         return a.id == b.id;
+//!     }
+//! };
+//!
+//! // Create comparator
+//! fn lessByPriority(a: MyItem, b: MyItem) bool {
+//!     return a.priority < b.priority;
+//! }
+//!
+//! // Create heap type
+//! const MyHeap = d_heap.DHeap(MyItem, d_heap.HashContext(MyItem), d_heap.Comparator(MyItem));
+//!
+//! // Use it
+//! var heap = try MyHeap.init(3, .{ .cmp = lessByPriority }, allocator);
+//! defer heap.deinit();
+//! ```
 
 const std = @import("std");
-const Item = @import("types.zig").Item;
 
-/// Priority comparator function type.
+// Re-export the default Item type for convenience and backward compatibility
+pub const Item = @import("types.zig").Item;
+
+/// Generic hash context for types that implement hash() and eql() methods.
 ///
-/// Defines how to compare two items to determine which has higher priority.
-/// Used to configure min-heap vs max-heap behavior.
+/// This context can be used with any type T that has:
+/// - `pub fn hash(self: T) u64`
+/// - `pub fn eql(a: T, b: T) bool` (or `pub fn eq(a: T, b: T) bool`)
 ///
-/// Example for min-heap (lower cost = higher priority):
+/// Example:
 /// ```zig
-/// fn minByCost(a: Item, b: Item) bool {
-///     return a.cost < b.cost;
-/// }
-/// const comparator = Comparator{ .higher_priority = minByCost };
+/// const MyContext = HashContext(MyItem);
+/// const MyHeap = DHeap(MyItem, MyContext, Comparator(MyItem));
 /// ```
-pub const Comparator = struct {
-    /// Function pointer that returns true if `a` has higher priority than `b`
-    higher_priority: *const fn (a: Item, b: Item) bool,
-};
+pub fn HashContext(comptime T: type) type {
+    return struct {
+        const Self = @This();
 
-/// Context for HashMap operations.
+        /// Compute hash for an item using its hash() method.
+        pub fn hash(_: Self, key: T) u64 {
+            return T.hash(key);
+        }
+
+        /// Check equality using the item's eql() or eq() method.
+        pub fn eql(_: Self, a: T, b: T) bool {
+            // Support both eql() and eq() method names
+            if (@hasDecl(T, "eql")) {
+                return T.eql(a, b);
+            } else if (@hasDecl(T, "eq")) {
+                return T.eq(a, b);
+            } else {
+                @compileError("Type " ++ @typeName(T) ++ " must have eql() or eq() method");
+            }
+        }
+    };
+}
+
+/// Generic comparator wrapper for priority comparison functions.
 ///
-/// Provides hash and equality functions required by std.HashMap.
-/// This is an internal implementation detail.
-const ItemContext = struct {
-    /// Compute hash for an item (delegates to Item.hash)
-    pub fn hash(_: ItemContext, key: Item) u64 {
-        return Item.hash(key);
-    }
+/// Wraps a comparison function that determines priority ordering.
+/// The function should return true if `a` has higher priority than `b`.
+///
+/// Example:
+/// ```zig
+/// fn minByPriority(a: MyItem, b: MyItem) bool {
+///     return a.priority < b.priority;  // Lower value = higher priority
+/// }
+///
+/// const cmp = Comparator(MyItem){ .cmp = minByPriority };
+/// ```
+pub fn Comparator(comptime T: type) type {
+    return struct {
+        /// Function pointer that returns true if `a` has higher priority than `b`
+        cmp: *const fn (a: T, b: T) bool,
 
-    /// Check equality between items (delegates to Item.eq)
-    pub fn eql(_: ItemContext, a: Item, b: Item) bool {
-        return Item.eq(a, b);
-    }
-};
+        /// Check if a has higher priority than b.
+        pub fn higherPriority(self: @This(), a: T, b: T) bool {
+            return self.cmp(a, b);
+        }
+    };
+}
 
-/// D-ary heap priority queue.
+/// Generic d-ary heap priority queue.
 ///
 /// A d-ary heap is a tree structure where:
 /// - Each node has at most d children
@@ -58,412 +121,459 @@ const ItemContext = struct {
 /// This implementation uses an array-based representation with O(1) item lookup
 /// via a HashMap that tracks each item's position in the heap.
 ///
-/// Time complexities:
+/// ## Type Parameters
+///
+/// - `T`: Item type. Must provide `hash(self: T) u64` method for identity.
+/// - `Context`: HashMap context type providing hash() and eql() for T.
+///              Use `HashContext(T)` for types with standard hash/eql methods.
+/// - `ComparatorType`: Comparator type with `higherPriority(a: T, b: T) bool`.
+///                     Use `Comparator(T)` wrapper for function pointers.
+///
+/// ## Time Complexities
+///
 /// - front(): O(1)
 /// - insert(): O(log_d n)
 /// - pop(): O(d · log_d n)
 /// - increasePriority(): O(log_d n)
 /// - decreasePriority(): O(d · log_d n)
+/// - contains(): O(1)
 /// - len(), isEmpty(), d(): O(1)
 ///
-/// Memory: O(n) for n items
-pub const DHeap = struct {
-    const Self = @This();
-    const ArrayList = std.ArrayList(Item);
-    const HashMap = std.HashMap(Item, usize, ItemContext, std.hash_map.default_max_load_percentage);
+/// ## Memory
+///
+/// O(n) for n items, plus HashMap overhead.
+pub fn DHeap(
+    comptime T: type,
+    comptime Context: type,
+    comptime ComparatorType: type,
+) type {
+    return struct {
+        const Self = @This();
+        // Zig 0.15.2: ArrayList is now unmanaged - allocator passed to methods
+        const ArrayList = std.ArrayList(T);
+        const HashMap = std.HashMap(T, usize, Context, std.hash_map.default_max_load_percentage);
 
-    /// Number of children per node (arity of the heap)
-    depth: usize,
-
-    /// Array-based heap storage (complete tree representation)
-    container: ArrayList,
-
-    /// Maps each item to its position in the container for O(1) lookup
-    positions: HashMap,
-
-    /// Comparator function determining heap order (min vs max)
-    comparator: Comparator,
-
-    /// Allocator used for all dynamic memory allocations
-    allocator: std.mem.Allocator,
-
-    /// Initialize a new d-ary heap.
-    ///
-    /// Creates an empty priority queue with the specified arity and comparator.
-    ///
-    /// Parameters:
-    /// - `depth`: Number of children per node (must be >= 1)
-    /// - `comparator`: Function determining priority order
-    /// - `allocator`: Memory allocator for heap operations
-    ///
-    /// Returns: Initialized heap or error if depth is 0
-    ///
-    /// Example:
-    /// ```zig
-    /// var heap = try DHeap.init(3, MinByCost, allocator);
-    /// defer heap.deinit();
-    /// ```
-    pub fn init(
+        /// Number of children per node (arity of the heap)
         depth: usize,
-        comparator: Comparator,
+
+        /// Array-based heap storage (complete tree representation)
+        container: ArrayList,
+
+        /// Maps each item to its position in the container for O(1) lookup
+        positions: HashMap,
+
+        /// Comparator determining heap order (min vs max)
+        comparator: ComparatorType,
+
+        /// Allocator used for all dynamic memory allocations
         allocator: std.mem.Allocator,
-    ) !Self {
-        if (depth == 0) return error.DepthMustBePositive;
-        return Self{
-            .depth = depth,
-            .container = .empty,
-            .positions = HashMap.init(allocator),
-            .comparator = comparator,
-            .allocator = allocator,
-        };
-    }
 
-    /// Free all resources used by the heap.
-    ///
-    /// Must be called to prevent memory leaks. After calling deinit(),
-    /// the heap should not be used again.
-    ///
-    /// Example:
-    /// ```zig
-    /// var heap = try DHeap.init(3, MinByCost, allocator);
-    /// defer heap.deinit(); // Ensures cleanup even on error
-    /// ```
-    pub fn deinit(self: *Self) void {
-        self.container.deinit(self.allocator);
-        self.positions.deinit();
-    }
+        // =====================================================================
+        // Initialization and Cleanup
+        // =====================================================================
 
-    // --- Public API ---
-
-    /// Get the number of items in the heap.
-    ///
-    /// Returns: Count of items currently in the heap
-    ///
-    /// Time complexity: O(1)
-    pub fn len(self: Self) usize {
-        return self.container.items.len;
-    }
-
-    /// Check if the heap is empty.
-    ///
-    /// Returns: true if heap contains no items, false otherwise
-    ///
-    /// Time complexity: O(1)
-    pub fn isEmpty(self: Self) bool {
-        return self.container.items.len == 0;
-    }
-
-    /// Get the arity (number of children per node) of the heap.
-    ///
-    /// Returns: The d value specified at initialization
-    ///
-    /// Time complexity: O(1)
-    pub fn d(self: Self) usize {
-        return self.depth;
-    }
-
-    /// Get the highest-priority item without removing it.
-    ///
-    /// Returns: The item at the root of the heap, or null if empty
-    ///
-    /// Time complexity: O(1)
-    ///
-    /// Example:
-    /// ```zig
-    /// if (heap.front()) |item| {
-    ///     std.debug.print("Top priority: {any}\n", .{item});
-    /// }
-    /// ```
-    pub fn front(self: *Self) ?Item {
-        if (self.container.items.len == 0) return null;
-        return self.container.items[0];
-    }
-
-    /// Insert a new item into the heap.
-    ///
-    /// The item is added to the heap and repositioned to maintain heap invariants.
-    /// If an item with the same identity already exists, behavior is undefined.
-    ///
-    /// Parameters:
-    /// - `item`: The item to insert
-    ///
-    /// Returns: Error if allocation fails
-    ///
-    /// Time complexity: O(log_d n)
-    ///
-    /// Example:
-    /// ```zig
-    /// try heap.insert(Item{ .number = 42, .cost = 100 });
-    /// ```
-    pub fn insert(self: *Self, item: Item) !void {
-        try self.container.append(self.allocator, item);
-        const index = self.container.items.len - 1;
-        try self.positions.put(item, index);
-        self.moveUp(index);
-    }
-
-    /// Increase the priority of an existing item (move toward root).
-    ///
-    /// Updates an item's priority and repositions it upward in the heap.
-    /// The item is identified by its identity (number field), and its priority
-    /// (cost field) is updated to the new value.
-    ///
-    /// For a min-heap: decreasing cost increases priority
-    /// For a max-heap: increasing cost increases priority
-    ///
-    /// This method only moves items upward for performance. If the new priority
-    /// is actually lower, use decreasePriority() instead.
-    ///
-    /// Parameters:
-    /// - `updated_item`: Item with same identity but new priority
-    ///
-    /// Returns: Error if item not found or allocation fails
-    ///
-    /// Time complexity: O(log_d n)
-    ///
-    /// Example:
-    /// ```zig
-    /// // For min-heap: lower cost = higher priority
-    /// try heap.increasePriority(Item{ .number = 42, .cost = 50 });
-    /// ```
-    pub fn increasePriority(self: *Self, updated_item: Item) !void {
-        const index = self.positions.getPtr(updated_item) orelse {
-            return error.ItemNotFound;
-        };
-        self.container.items[index.*] = updated_item;
-        self.moveUp(index.*);
-    }
-
-    /// Decrease the priority of an existing item (move toward leaves).
-    ///
-    /// Updates an item's priority and repositions it in the heap, checking both
-    /// upward and downward directions. This is more defensive than increasePriority()
-    /// and handles cases where the caller might use the wrong method.
-    ///
-    /// For a min-heap: increasing cost decreases priority
-    /// For a max-heap: decreasing cost decreases priority
-    ///
-    /// Parameters:
-    /// - `updated_item`: Item with same identity but new priority
-    ///
-    /// Returns: Error if item not found or allocation fails
-    ///
-    /// Time complexity: O(d · log_d n)
-    ///
-    /// Example:
-    /// ```zig
-    /// // For min-heap: higher cost = lower priority
-    /// try heap.decreasePriority(Item{ .number = 42, .cost = 150 });
-    /// ```
-    pub fn decreasePriority(self: *Self, updated_item: Item) !void {
-        const index = self.positions.getPtr(updated_item) orelse {
-            return error.ItemNotFound;
-        };
-        self.container.items[index.*] = updated_item;
-        self.moveUp(index.*);
-        self.moveDown(index.*);
-    }
-
-    /// Remove and return the highest-priority item.
-    ///
-    /// Removes the root item and restructures the heap to maintain invariants.
-    ///
-    /// Returns: The highest-priority item, or null if heap is empty
-    ///
-    /// Time complexity: O(d · log_d n)
-    ///
-    /// Example:
-    /// ```zig
-    /// while (heap.pop()) |item| {
-    ///     std.debug.print("Processing: {any}\n", .{item});
-    /// }
-    /// ```
-    pub fn pop(self: *Self) ?Item {
-        if (self.container.items.len == 0) return null;
-        const top = self.container.items[0];
-        self.swap(0, self.container.items.len - 1);
-        _ = self.positions.remove(self.container.items[self.container.items.len - 1]);
-        _ = self.container.pop();
-        if (self.container.items.len > 0) {
-            self.moveDown(0);
+        /// Initialize a new d-ary heap.
+        ///
+        /// Creates an empty priority queue with the specified arity and comparator.
+        ///
+        /// Parameters:
+        /// - `depth`: Number of children per node (must be >= 1)
+        /// - `comparator`: Comparator determining priority order
+        /// - `allocator`: Memory allocator for heap operations
+        ///
+        /// Returns: Initialized heap or error if depth is 0
+        ///
+        /// Example:
+        /// ```zig
+        /// var heap = try MyHeap.init(3, .{ .cmp = minByPriority }, allocator);
+        /// defer heap.deinit();
+        /// ```
+        pub fn init(
+            depth: usize,
+            comparator: ComparatorType,
+            allocator: std.mem.Allocator,
+        ) !Self {
+            if (depth == 0) return error.DepthMustBePositive;
+            return Self{
+                .depth = depth,
+                .container = ArrayList.empty,
+                .positions = HashMap.init(allocator),
+                .comparator = comparator,
+                .allocator = allocator,
+            };
         }
-        return top;
-    }
 
-    /// Clear all items from the heap, optionally changing the arity.
-    ///
-    /// Removes all items while retaining allocated capacity for efficiency.
-    /// Can optionally change the heap's arity (d value).
-    ///
-    /// Parameters:
-    /// - `new_depth`: Optional new arity value (must be >= 1 if provided)
-    ///
-    /// Returns: Error if new_depth is 0
-    ///
-    /// Time complexity: O(1)
-    ///
-    /// Example:
-    /// ```zig
-    /// try heap.clear(null);      // Clear, keep same d
-    /// try heap.clear(4);          // Clear and change d to 4
-    /// ```
-    pub fn clear(self: *Self, new_depth: ?usize) !void {
-        self.container.clearRetainingCapacity();
-        self.positions.clearRetainingCapacity();
-        if (new_depth) |new_d| {
-            if (new_d == 0) return error.DepthMustBePositive;
-            self.depth = new_d;
+        /// Initialize a new d-ary heap with pre-allocated capacity.
+        ///
+        /// Use this when you know the approximate number of items to avoid
+        /// reallocations during insertion.
+        ///
+        /// Parameters:
+        /// - `depth`: Number of children per node (must be >= 1)
+        /// - `comparator`: Comparator determining priority order
+        /// - `allocator`: Memory allocator for heap operations
+        /// - `capacity`: Initial capacity to pre-allocate
+        ///
+        /// Returns: Initialized heap or error
+        pub fn initCapacity(
+            depth: usize,
+            comparator: ComparatorType,
+            allocator: std.mem.Allocator,
+            capacity: usize,
+        ) !Self {
+            if (depth == 0) return error.DepthMustBePositive;
+            const container = try ArrayList.initCapacity(allocator, capacity);
+            var positions = HashMap.init(allocator);
+            try positions.ensureTotalCapacity(@intCast(capacity));
+            return Self{
+                .depth = depth,
+                .container = container,
+                .positions = positions,
+                .comparator = comparator,
+                .allocator = allocator,
+            };
         }
-    }
 
-    /// Get a string representation of the heap contents.
-    ///
-    /// Returns a formatted string showing all items in heap order.
-    /// The caller owns the returned memory and must free it.
-    ///
-    /// Returns: Allocated string containing heap contents
-    ///
-    /// Time complexity: O(n)
-    ///
-    /// Example:
-    /// ```zig
-    /// const str = try heap.toString();
-    /// defer allocator.free(str);
-    /// std.debug.print("Heap: {s}\n", .{str});
-    /// ```
-    pub fn toString(self: Self) ![]const u8 {
-        var buffer: std.ArrayList(u8) = .empty;
-        defer buffer.deinit(self.allocator);
-        try buffer.appendSlice(self.allocator, "{");
-        for (self.container.items, 0..) |item, i| {
-            if (i != 0) try buffer.appendSlice(self.allocator, ", ");
-            const item_str = try std.fmt.allocPrint(self.allocator, "{any}", .{item});
-            defer self.allocator.free(item_str);
-            try buffer.appendSlice(self.allocator, item_str);
+        /// Free all resources used by the heap.
+        ///
+        /// Must be called to prevent memory leaks. After calling deinit(),
+        /// the heap should not be used again.
+        pub fn deinit(self: *Self) void {
+            self.container.deinit(self.allocator);
+            self.positions.deinit();
         }
-        try buffer.appendSlice(self.allocator, "}");
-        return buffer.toOwnedSlice(self.allocator);
-    }
 
-    // --- Private methods ---
+        // =====================================================================
+        // Public API - Query Operations
+        // =====================================================================
 
-    /// Calculate the parent index of a node.
-    ///
-    /// In a d-ary heap stored as an array, the parent of node i is at (i-1)/d.
-    ///
-    /// Parameters:
-    /// - `i`: Index of the child node
-    ///
-    /// Returns: Index of the parent node
-    fn parent(self: Self, i: usize) usize {
-        return (i - 1) / self.depth;
-    }
+        /// Get the number of items in the heap.
+        ///
+        /// Time complexity: O(1)
+        pub fn len(self: Self) usize {
+            return self.container.items.len;
+        }
 
-    /// Find the child with highest priority among all children of node i.
-    ///
-    /// Examines all children of the given node and returns the index of the
-    /// child with the highest priority according to the comparator.
-    ///
-    /// Parameters:
-    /// - `i`: Index of the parent node
-    ///
-    /// Returns: Index of the best child, or an out-of-bounds index if no children exist
-    fn bestChildPosition(self: *Self, i: usize) usize {
-        const left = i * self.depth + 1;
-        if (left >= self.container.items.len) return left;
-        var best = left;
-        const right = @min((i + 1) * self.depth, self.container.items.len - 1);
-        var j: usize = left + 1;
-        while (j <= right) : (j += 1) {
-            if (self.comparator.higher_priority(self.container.items[j], self.container.items[best])) {
-                best = j;
+        /// Check if the heap is empty.
+        ///
+        /// Time complexity: O(1)
+        pub fn isEmpty(self: Self) bool {
+            return self.container.items.len == 0;
+        }
+
+        /// Get the arity (number of children per node) of the heap.
+        ///
+        /// Time complexity: O(1)
+        pub fn d(self: Self) usize {
+            return self.depth;
+        }
+
+        /// Check if an item with the given identity exists in the heap.
+        ///
+        /// The item is looked up by identity (hash/equality), not by
+        /// priority value. You can pass an item with any priority value
+        /// as long as the identity fields match.
+        ///
+        /// Time complexity: O(1)
+        ///
+        /// Example:
+        /// ```zig
+        /// if (heap.contains(Item{ .number = 42, .cost = 0 })) {
+        ///     // Item with number=42 exists (cost doesn't matter for lookup)
+        /// }
+        /// ```
+        pub fn contains(self: *const Self, item: T) bool {
+            return self.positions.contains(item);
+        }
+
+        /// Get the highest-priority item without removing it.
+        ///
+        /// Returns null if the heap is empty.
+        ///
+        /// Time complexity: O(1)
+        pub fn front(self: *const Self) ?T {
+            if (self.container.items.len == 0) return null;
+            return self.container.items[0];
+        }
+
+        /// Alias for front() - get highest-priority item without removing.
+        ///
+        /// Provided for API consistency with other priority queue implementations.
+        pub fn peek(self: *const Self) ?T {
+            return self.front();
+        }
+
+        // =====================================================================
+        // Public API - Modification Operations
+        // =====================================================================
+
+        /// Insert a new item into the heap.
+        ///
+        /// The item is added to the heap and repositioned to maintain heap invariants.
+        ///
+        /// **Important**: If an item with the same identity already exists,
+        /// behavior is undefined. Use `contains()` to check first, or use
+        /// `increasePriority()`/`decreasePriority()` to update existing items.
+        ///
+        /// Time complexity: O(log_d n)
+        ///
+        /// Returns: Error if allocation fails
+        pub fn insert(self: *Self, item: T) !void {
+            try self.container.append(self.allocator, item);
+            const index = self.container.items.len - 1;
+            try self.positions.put(item, index);
+            try self.moveUp(index);
+        }
+
+        /// Increase the priority of an existing item (move toward root).
+        ///
+        /// Updates an item's priority and repositions it upward in the heap.
+        /// The item is identified by its identity (hash/equality), and its
+        /// priority is updated to the new value.
+        ///
+        /// For a min-heap: decreasing the priority value increases importance
+        /// For a max-heap: increasing the priority value increases importance
+        ///
+        /// This method only moves items upward for performance. If the new
+        /// priority is actually lower, use `decreasePriority()` instead.
+        ///
+        /// Time complexity: O(log_d n)
+        ///
+        /// Returns: Error if item not found
+        pub fn increasePriority(self: *Self, updated_item: T) !void {
+            const index_ptr = self.positions.getPtr(updated_item) orelse {
+                return error.ItemNotFound;
+            };
+            const index = index_ptr.*;
+
+            // Update the item in the container
+            // Note: HashMap key doesn't need updating because hash/equality
+            // are based on identity, not priority value.
+            self.container.items[index] = updated_item;
+
+            try self.moveUp(index);
+        }
+
+        /// Decrease the priority of an existing item (move toward leaves).
+        ///
+        /// Updates an item's priority and repositions it in the heap, checking
+        /// both upward and downward directions. This is more defensive than
+        /// `increasePriority()` and handles cases where the caller might use
+        /// the wrong method.
+        ///
+        /// For a min-heap: increasing the priority value decreases importance
+        /// For a max-heap: decreasing the priority value decreases importance
+        ///
+        /// Time complexity: O(d · log_d n)
+        ///
+        /// Returns: Error if item not found
+        pub fn decreasePriority(self: *Self, updated_item: T) !void {
+            const index_ptr = self.positions.getPtr(updated_item) orelse {
+                return error.ItemNotFound;
+            };
+            const index = index_ptr.*;
+
+            // Update the item in the container
+            self.container.items[index] = updated_item;
+
+            // Check both directions since we don't know if priority actually decreased
+            try self.moveUp(index);
+            try self.moveDown(index);
+        }
+
+        /// Remove and return the highest-priority item.
+        ///
+        /// Removes the root item and restructures the heap to maintain invariants.
+        /// Returns null if the heap is empty.
+        ///
+        /// Time complexity: O(d · log_d n)
+        pub fn pop(self: *Self) ?T {
+            if (self.container.items.len == 0) return null;
+
+            const top = self.container.items[0];
+            const last_index = self.container.items.len - 1;
+
+            if (last_index > 0) {
+                // Swap root with last element
+                self.swapItems(0, last_index);
+            }
+
+            // Remove the last element (which is now the old root)
+            _ = self.positions.remove(self.container.items[last_index]);
+            _ = self.container.pop();
+
+            // Restore heap property if there are remaining items
+            if (self.container.items.len > 0) {
+                // moveDown can't fail here because we're not adding items
+                self.moveDown(0) catch {};
+            }
+
+            return top;
+        }
+
+        /// Clear all items from the heap, optionally changing the arity.
+        ///
+        /// Removes all items while retaining allocated capacity for efficiency.
+        ///
+        /// Parameters:
+        /// - `new_depth`: Optional new arity value (must be >= 1 if provided)
+        ///
+        /// Time complexity: O(1) (capacity retained)
+        pub fn clear(self: *Self, new_depth: ?usize) !void {
+            self.container.clearRetainingCapacity();
+            self.positions.clearRetainingCapacity();
+            if (new_depth) |new_d| {
+                if (new_d == 0) return error.DepthMustBePositive;
+                self.depth = new_d;
             }
         }
-        return best;
-    }
 
-    /// Swap two items in the heap and update their position mappings.
-    ///
-    /// Exchanges the items at indices i and j in the container array and
-    /// updates the position HashMap to reflect the new locations.
-    ///
-    /// Parameters:
-    /// - `i`: Index of first item
-    /// - `j`: Index of second item
-    fn swap(self: *Self, i: usize, j: usize) void {
-        if (i == j) return;
-        std.mem.swap(Item, &self.container.items[i], &self.container.items[j]);
-        self.positions.put(self.container.items[i], i) catch unreachable;
-        self.positions.put(self.container.items[j], j) catch unreachable;
-    }
+        /// Get a string representation of the heap contents.
+        ///
+        /// Returns a formatted string showing all items in heap order.
+        /// The caller owns the returned memory and must free it.
+        ///
+        /// **Note**: Requires T to implement the `format` function for std.fmt.
+        ///
+        /// Time complexity: O(n)
+        pub fn toString(self: Self) ![]const u8 {
+            var buffer = std.ArrayList(u8).empty;
+            errdefer buffer.deinit(self.allocator);
 
-    /// Move an item upward in the heap to restore heap property.
-    ///
-    /// Repeatedly swaps the item with its parent while it has higher priority
-    /// than the parent, stopping when heap property is satisfied or root is reached.
-    ///
-    /// Parameters:
-    /// - `i_param`: Starting index of the item to move up
-    fn moveUp(self: *Self, i_param: usize) void {
-        var i = i_param;
-        while (i > 0) {
-            const p = self.parent(i);
-            if (self.comparator.higher_priority(self.container.items[i], self.container.items[p])) {
-                self.swap(i, p);
-                i = p;
-            } else {
-                break;
+            const writer = buffer.writer(self.allocator);
+            try writer.writeAll("{");
+            for (self.container.items, 0..) |item, i| {
+                if (i != 0) try writer.writeAll(", ");
+                // Use {f} to invoke the item's format method
+                try writer.print("{f}", .{item});
+            }
+            try writer.writeAll("}");
+            return buffer.toOwnedSlice(self.allocator);
+        }
+
+        // =====================================================================
+        // Private Methods - Heap Operations
+        // =====================================================================
+
+        /// Calculate the parent index of a node.
+        /// In a d-ary heap stored as an array, the parent of node i is at (i-1)/d.
+        fn parent(self: Self, i: usize) usize {
+            return (i - 1) / self.depth;
+        }
+
+        /// Find the child with highest priority among all children of node i.
+        fn bestChildPosition(self: *Self, i: usize) usize {
+            const left = i * self.depth + 1;
+            if (left >= self.container.items.len) return left;
+
+            var best = left;
+            const right = @min((i + 1) * self.depth, self.container.items.len - 1);
+
+            var j: usize = left + 1;
+            while (j <= right) : (j += 1) {
+                if (self.comparator.higherPriority(self.container.items[j], self.container.items[best])) {
+                    best = j;
+                }
+            }
+            return best;
+        }
+
+        /// Swap two items in the heap and update their position mappings.
+        ///
+        /// This is a low-level operation that updates both the container and
+        /// the position HashMap.
+        fn swapItems(self: *Self, i: usize, j: usize) void {
+            if (i == j) return;
+
+            // Swap in container
+            std.mem.swap(T, &self.container.items[i], &self.container.items[j]);
+
+            // Update positions in HashMap
+            // SAFETY: These items are already in the HashMap (inserted during insert()).
+            // We're only updating the position values, not adding new keys.
+            // The put() operation for existing keys should not require allocation
+            // in most cases, but we handle potential errors gracefully.
+            self.positions.put(self.container.items[i], i) catch {
+                // This should not happen for existing keys, but if it does,
+                // the heap invariants may be violated. In debug builds, we panic.
+                if (std.debug.runtime_safety) {
+                    @panic("Failed to update position in HashMap during swap");
+                }
+            };
+            self.positions.put(self.container.items[j], j) catch {
+                if (std.debug.runtime_safety) {
+                    @panic("Failed to update position in HashMap during swap");
+                }
+            };
+        }
+
+        /// Move an item upward in the heap to restore heap property.
+        fn moveUp(self: *Self, i_param: usize) !void {
+            var i = i_param;
+            while (i > 0) {
+                const p = self.parent(i);
+                if (self.comparator.higherPriority(self.container.items[i], self.container.items[p])) {
+                    self.swapItems(i, p);
+                    i = p;
+                } else {
+                    break;
+                }
             }
         }
-    }
 
-    /// Move an item downward in the heap to restore heap property.
-    ///
-    /// Repeatedly swaps the item with its highest-priority child while any child
-    /// has higher priority, stopping when heap property is satisfied or a leaf is reached.
-    ///
-    /// Parameters:
-    /// - `i_param`: Starting index of the item to move down
-    fn moveDown(self: *Self, i_param: usize) void {
-        var i = i_param;
-        while (true) {
-            const first_child = i * self.depth + 1;
-            if (first_child >= self.container.items.len) break;
-            const best = self.bestChildPosition(i);
-            if (self.comparator.higher_priority(self.container.items[best], self.container.items[i])) {
-                self.swap(i, best);
-                i = best;
-            } else {
-                break;
+        /// Move an item downward in the heap to restore heap property.
+        fn moveDown(self: *Self, i_param: usize) !void {
+            var i = i_param;
+            while (true) {
+                const first_child = i * self.depth + 1;
+                if (first_child >= self.container.items.len) break;
+
+                const best = self.bestChildPosition(i);
+                if (self.comparator.higherPriority(self.container.items[best], self.container.items[i])) {
+                    self.swapItems(i, best);
+                    i = best;
+                } else {
+                    break;
+                }
             }
         }
-    }
-};
+    };
+}
 
-// --- Pre-defined Comparators ---
+// =============================================================================
+// Convenience Types for Default Item
+// =============================================================================
+
+/// Default hash context for the built-in Item type.
+/// Provided for backward compatibility and convenience.
+pub const ItemContext = HashContext(Item);
+
+/// Default comparator type for the built-in Item type.
+pub const ItemComparator = Comparator(Item);
+
+/// Pre-configured DHeap type using the default Item type.
+/// This provides backward compatibility with the non-generic API.
+///
+/// Example:
+/// ```zig
+/// var heap = try DHeapItem.init(3, MinByCost, allocator);
+/// ```
+pub const DHeapItem = DHeap(Item, ItemContext, ItemComparator);
+
+// =============================================================================
+// Pre-defined Comparators for Default Item Type
+// =============================================================================
 
 /// Min-heap comparator based on cost field.
 ///
 /// Lower cost values have higher priority (appear closer to root).
-/// Use this for algorithms like Dijkstra's shortest path where you want
-/// to process items with smallest cost first.
-///
-/// Example:
-/// ```zig
-/// var heap = try DHeap.init(3, MinByCost, allocator);
-/// ```
-pub const MinByCost = Comparator{ .higher_priority = minByCost };
+/// Use this for algorithms like Dijkstra's shortest path.
+pub const MinByCost = ItemComparator{ .cmp = minByCost };
 
 /// Max-heap comparator based on cost field.
 ///
 /// Higher cost values have higher priority (appear closer to root).
-/// Use this when you want to process items with largest cost first.
-///
-/// Example:
-/// ```zig
-/// var heap = try DHeap.init(3, MaxByCost, allocator);
-/// ```
-pub const MaxByCost = Comparator{ .higher_priority = maxByCost };
+pub const MaxByCost = ItemComparator{ .cmp = maxByCost };
 
 /// Comparator function for min-heap: lower cost = higher priority.
 fn minByCost(a: Item, b: Item) bool {
@@ -475,15 +585,17 @@ fn maxByCost(a: Item, b: Item) bool {
     return a.cost > b.cost;
 }
 
-// --- Type Aliases ---
+// =============================================================================
+// Type Aliases
+// =============================================================================
 
 /// Type alias for position indices in the heap.
-///
-/// Used internally by the HashMap to track item positions.
 /// Provided for API parity with C++ and Rust implementations.
 pub const Position = usize;
 
-// --- Error Types ---
+// =============================================================================
+// Error Types
+// =============================================================================
 
 /// Errors that can occur during heap operations.
 pub const Error = error{
