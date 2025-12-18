@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-12-18
+
+### Added
+- **TypeScript Tooling**: Complete ESLint configuration with TypeScript support
+- **Module Type**: Added `"type": "module"` to package.json for better Node.js compatibility
+- **Publishing Pipeline**: Complete NPM publishing setup with automated build process
+
+### Fixed
+- **ESLint Configuration**: Updated to ESLint v9 flat config format
+- **Build Warnings**: Eliminated module type warnings during build process
+
+### Technical Details
+- Added ESLint v9 with `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser`
+- Created `eslint.config.js` with modern flat configuration
+- Updated package.json with proper module type declaration
+- All linting, type checking, and build processes now pass cleanly
+
 ## [2.0.0] - 2025-12-18
 
 ### Added
@@ -59,6 +76,7 @@ For existing Zig users upgrading from v1.x:
 - Comprehensive test suites
 - Professional documentation
 
+[2.1.1]: https://github.com/your-username/priority-queues/compare/v2.0.0...v2.1.1
 [2.0.0]: https://github.com/your-username/priority-queues/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/your-username/priority-queues/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/your-username/priority-queues/releases/tag/v1.0.0
