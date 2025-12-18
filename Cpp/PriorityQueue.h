@@ -10,16 +10,26 @@
 ///
 /// This file is divided as follows:
 ///	- File History					(Line 19)
-/// - Inclusion of files			(Line 91)
-///	- Namespace declaration			(Line 104)
-///	- Class declaration				(Line 113)
+/// - Inclusion of files			(Line 107)
+///	- Namespace declaration			(Line 120)
+///	- Class declaration				(Line 129)
 ///
-///	- End of file					(line 380)
+///	- End of file					(line 399)
 ///
 /// =================================================================================================================== File history
 ///
-/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/09/26]
-/// Version: 1.1.0
+/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/12/18]
+/// Version: 2.0.0
+///
+/// [v2.0.0] Major Release - Zig 0.15.2 Support & Generic Implementation ---------------------------------------------- 2025/12/18
+///     - Zig implementation updated for Zig 0.15.2 compatibility with API changes
+///     - Zig now fully generic: supports user-defined item types with HashContext(T) and Comparator(T)
+///     - Added contains(const T& item) method for O(1) membership testing in C++
+///     - Comprehensive test coverage: 20+ tests in Zig matching Rust implementation
+///     - Zig can now be used as a dependency in other projects via build.zig.zon
+///     - Enhanced error handling: removed unreachable from Zig error paths
+///     - Added peek() alias and initCapacity() methods in Zig for API completeness
+///     - All three implementations maintain synchronized version numbers and API parity
 ///
 /// [v1.1.0] Enhanced Release - Three-Language Implementation ---------------------------------------------------------- 2025/09/26
 ///     - Complete Zig implementation added with full API parity
@@ -159,6 +169,9 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		/* inline */ size_t len() const { return container.size(); }
 		/* inline */ bool is_empty() const { return container.empty(); }
 		/* inline */ size_t d() const { return depth; }
+
+		// ----- Check if an item with the given identity exists in the queue. O(1) time complexity.
+		bool contains(const T& item) const { return positions.find(item) != positions.end(); }
 
 		// ----- Return the highest priority item of the queue; calling this function on an empty container causes undefined behavior.
 		typename std::vector<T>::const_reference front() const
