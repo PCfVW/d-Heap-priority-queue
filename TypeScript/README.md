@@ -1,7 +1,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (TypeScript) v2.0.0
+# d-Heap Priority Queue (TypeScript) v2.1.1
 
 A high-performance, generic d-ary heap priority queue with O(1) item lookup, supporting both min-heap and max-heap behavior.
 
