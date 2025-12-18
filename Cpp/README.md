@@ -1,7 +1,7 @@
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (C++17) v2.0.0
+# d-Heap Priority Queue (C++17) v2.1.1
 
 This is a generic d-ary heap priority queue supporting both min-queue and max-queue behavior through a comparator.
 

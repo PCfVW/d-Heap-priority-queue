@@ -1,7 +1,7 @@
 ![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-f7a41d.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (Zig 0.15.2) v2.0.0
+# d-Heap Priority Queue (Zig 0.15.2) v2.1.1
 
 A **generic** d-ary heap priority queue supporting both min-queue and max-queue behavior through comparator functions.
 
