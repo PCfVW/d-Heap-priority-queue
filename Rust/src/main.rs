@@ -25,7 +25,8 @@ where
     T: Display + Eq + Hash + Clone,
     C: PriorityCompare<T>,
 {
-    println!("{}", pq.to_string());
+    // Using Display trait directly (pq implements Display when T: Display)
+    println!("{}", pq);
 }
 
 fn main() {

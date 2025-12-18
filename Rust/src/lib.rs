@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::Display;
+use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::hash::Hash;
 
 /// Unified type alias for cross-language consistency
@@ -55,6 +55,11 @@ where
     #[inline]
     pub fn is_empty(&self) -> bool { self.container.is_empty() }
 
+    /// Check if an item with the given identity exists in the queue.
+    /// O(1) time complexity.
+    #[inline]
+    pub fn contains(&self, item: &T) -> bool { self.positions.contains_key(item) }
+
     /// Clear the queue, optionally resetting the arity `d`.
     pub fn clear(&mut self, d: Option<usize>) {
         self.container.clear();
@@ -94,11 +99,10 @@ where
             .get(updated_item)
             .expect("item must exist in the queue to increase priority");
 
-        // Update positions: remove old key (equal identity) and insert the new (updated) item
-        // Then update the container slot.
-        // Since T: Eq+Hash, using the provided identity.
-        let old_key = self.container[i].clone();
-        self.positions.remove(&old_key);
+        // Update positions: remove old key and insert the new (updated) item.
+        // Since Hash/Eq are based on identity (not priority), updated_item can be used
+        // directly to remove the old entry — no need to clone the old item.
+        self.positions.remove(updated_item);
         self.positions.insert(updated_item.clone(), i);
         self.container[i] = updated_item.clone();
 
@@ -113,11 +117,10 @@ where
             .get(updated_item)
             .expect("item must exist in the queue to decrease priority");
 
-        // Update positions: remove old key (equal identity) and insert the new (updated) item
-        // Then update the container slot.
-        // Since T: Eq+Hash, using the provided identity.
-        let old_key = self.container[i].clone();
-        self.positions.remove(&old_key);
+        // Update positions: remove old key and insert the new (updated) item.
+        // Since Hash/Eq are based on identity (not priority), updated_item can be used
+        // directly to remove the old entry — no need to clone the old item.
+        self.positions.remove(updated_item);
         self.positions.insert(updated_item.clone(), i);
         self.container[i] = updated_item.clone();
 
@@ -137,21 +140,6 @@ where
         if !self.container.is_empty() {
             self.move_down(0);
         }
-    }
-
-    /// Produce a string rendering of the queue contents in array layout.
-    /// Unified method name for cross-language consistency.
-    pub fn to_string(&self) -> String
-    where
-        T: Display,
-    {
-        let mut s = String::from("{");
-        for (idx, item) in self.container.iter().enumerate() {
-            if idx > 0 { s.push_str(", "); }
-            s.push_str(&format!("{}", item));
-        }
-        s.push('}');
-        s
     }
 
     #[inline]
@@ -208,6 +196,38 @@ where
                 break;
             }
         }
+    }
+}
+
+/// Display implementation for PriorityQueue.
+/// Renders the queue contents in array layout: `{item1, item2, ...}`.
+impl<T, C> Display for PriorityQueue<T, C>
+where
+    T: Eq + Hash + Clone + Display,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "{{")?;
+        for (idx, item) in self.container.iter().enumerate() {
+            if idx > 0 { write!(f, ", ")?; }
+            write!(f, "{}", item)?;
+        }
+        write!(f, "}}")
+    }
+}
+
+/// Additional methods available when T implements Display.
+impl<T, C> PriorityQueue<T, C>
+where
+    T: Eq + Hash + Clone + Display,
+{
+    /// Produce a string rendering of the queue contents in array layout.
+    /// Unified method name for cross-language consistency (C++, Rust, Zig).
+    ///
+    /// This method provides the same functionality as the `Display` trait implementation,
+    /// but is provided explicitly for API parity with C++ and Zig implementations.
+    #[inline]
+    pub fn to_string(&self) -> String {
+        format!("{}", self)
     }
 }
 

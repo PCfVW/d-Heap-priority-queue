@@ -81,11 +81,15 @@ fn unified_api_methods() {
     // Test is_empty() after insertions
     assert!(!pq.is_empty());
 
-    // Test to_string() method (unified API)
+    // Test to_string() method (unified API for cross-language consistency)
     let output = pq.to_string();
     assert!(output.starts_with('{'));
     assert!(output.ends_with('}'));
     assert!(output.contains("Item"));
+
+    // Test Display trait implementation (Rust-idiomatic)
+    let display_output = format!("{}", pq);
+    assert_eq!(output, display_output);  // Both should produce identical output
 }
 
 #[test]

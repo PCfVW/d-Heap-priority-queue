@@ -1,7 +1,7 @@
 ![Rust Edition 2021](https://img.shields.io/badge/Rust-Edition_2021-orange.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (Rust, Edition 2021) v1.1.0
+# d-Heap Priority Queue (Rust, Edition 2021) v2.0.0
 
 This is a generic d-ary heap priority queue supporting both min-queue and max-queue behavior through a comparator wrapper.
 
@@ -13,8 +13,9 @@ This is a generic d-ary heap priority queue supporting both min-queue and max-qu
   - O(log_d n): `insert()` and upward reheapification.
   - O(d · log_d n): delete-top (`pop()`), with up to d children examined per level.
 - **O(1) item lookup**: internal hash map tracks positions by item identity, enabling efficient priority updates for existing items.
-- **Practical API**: `insert`, `front`, `pop`, `increase_priority`, `is_empty`, `len`.
-- **Unified API**: Cross-language standardized methods including `d()`, `to_string()`, `decrease_priority()`, and `Position` type alias.
+- **Practical API**: `insert`, `front`, `pop`, `increase_priority`, `is_empty`, `len`, `contains`.
+- **Unified API**: Cross-language standardized methods including `d()`, `contains()`, `to_string()`, `decrease_priority()`, and `Position` type alias.
+- **Rust-idiomatic**: Implements `Display` trait for formatting; `to_string()` provided for cross-language API parity.
 
 ## How to use (basic example)
 
@@ -58,7 +59,9 @@ pq.pop(); // remove current highest-priority item
 println!("Size: {}", pq.len());           // Get number of items
 println!("Empty: {}", pq.is_empty());     // Check if empty
 println!("Arity: {}", pq.d());            // Get d value
-println!("Contents: {}", pq.to_string()); // String output (was put_string())
+println!("Contains: {}", pq.contains(&Item { id: 1, cost: 0 })); // O(1) membership test
+println!("Contents: {}", pq.to_string()); // String output (cross-language API)
+println!("Contents: {}", pq);             // Same output via Display trait (Rust-idiomatic)
 ```
 
 ## Usage
