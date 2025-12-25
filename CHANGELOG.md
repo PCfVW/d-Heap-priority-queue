@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - 2025-12-25
+
+### Added
+- **Cross-Language Error Handling Documentation**: Comprehensive table showing error handling patterns for each language
+- **Return Type Variations Guide**: Detailed documentation of return type differences and safety recommendations
+- **Cross-Language Compatibility**: Added `to_string()` alias to Zig implementation for consistency with C++/Rust
+- **Language-Specific Error Handling**: Enhanced language extensions documentation with error handling approaches
+
+### Fixed
+- **Misleading API Documentation**: Replaced false "unified API" claims with accurate cross-language reference table
+- **Method Naming Confusion**: Clarified actual method names per language (camelCase vs snake_case)
+- **TypeScript Alias Documentation**: Clear distinction between primary methods and cross-language compatibility aliases
+- **Missing Zig Method**: Added documented `to_string()` method alongside existing `toString()`
+
+### Changed
+- **Documentation Structure**: Reorganized API documentation to accurately reflect language-specific conventions
+- **Error Handling Clarity**: Added best practices and safety recommendations for each language's error handling approach
+- **API Reference Format**: Updated from misleading unified table to accurate cross-language mapping
+
+### Technical Details
+- Updated main README.md with comprehensive error handling and return type documentation
+- Enhanced TypeScript README with clear primary vs alias method documentation
+- Added Zig `to_string()` alias method with proper documentation
+- Resolved all critical issues identified in comprehensive API audit
+- Maintained full backward compatibility across all implementations
+
 ## [2.1.1] - 2025-12-18
 
 ### Added
@@ -76,6 +102,7 @@ For existing Zig users upgrading from v1.x:
 - Comprehensive test suites
 - Professional documentation
 
+[2.1.2]: https://github.com/your-username/priority-queues/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/your-username/priority-queues/compare/v2.0.0...v2.1.1
 [2.0.0]: https://github.com/your-username/priority-queues/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/your-username/priority-queues/compare/v1.0.0...v1.1.0

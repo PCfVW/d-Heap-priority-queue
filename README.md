@@ -1,4 +1,4 @@
-# Min/Max d-Heap Priority Queues (C++, Rust, Zig, and TypeScript) v2.1.1
+# Min/Max d-Heap Priority Queues (C++, Rust, Zig, and TypeScript) v2.1.2
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
 
@@ -10,32 +10,63 @@ This repository contains generic d-ary heap (d-heap) priority queue implementati
 - <u>Provided</u>: access top (front), insert, update priority of existing item, delete-top (pop), size/length, emptiness check, membership test (contains).
 - <u>Not provided</u>: erase/remove arbitrary item by identity, meld/merge of heaps, stable ordering for equal priorities, or iterators supporting removal during traversal.
 
-## Unified API Methods
+## Cross-Language API Reference
 
-All four implementations (C++, Rust, Zig, and TypeScript) provide these standardized method names for cross-language consistency:
+All four implementations provide equivalent functionality with method names following their respective language conventions:
 
-| Method | Description | C++ | Rust | Zig | TypeScript |
-|--------|-------------|-----|------|-----|------------|
-| `clear()` | Clear all items, optionally reset arity | ✅ | ✅ | ✅ | ✅ |
-| `contains()` | Check if item exists in queue (O(1)) | ✅ | ✅ | ✅ | ✅ |
-| `d()` | Get arity (number of children per node) | ✅ | ✅ | ✅ | ✅ |
-| `decrease_priority()` | Decrease priority of existing item | ✅ | ✅ | ✅ | ✅ |
-| `front()` | Get reference to highest-priority item | ✅ | ✅ | ✅ | ✅ |
-| `increase_priority()` | Increase priority of existing item | ✅ | ✅ | ✅ | ✅ |
-| `insert()` | Add new item to queue | ✅ | ✅ | ✅ | ✅ |
-| `is_empty()` | Check if queue is empty | ✅ | ✅ | ✅ | ✅ |
-| `len()` | Get number of items | ✅ | ✅ | ✅ | ✅ |
-| `pop()` | Remove highest-priority item | ✅ | ✅ | ✅ | ✅ |
-| `to_string()` | String representation of queue contents | ✅ | ✅* | ✅ | ✅ |
-| `Position` | Type alias for position indices | ✅ | ✅ | ✅ | ✅ |
+### Core Functionality Matrix
+
+| Function | C++ | Rust | Zig | TypeScript |
+|----------|-----|------|-----|------------|
+| **Clear** | `clear(opt_d)` | `clear(opt_d)` | `clear(new_depth?)` | `clear(newD?)` |
+| **Contains** | `contains()` | `contains()` | `contains()` | `contains()` |
+| **Arity** | `d()` | `d()` | `d()` | `d()` |
+| **Decrease Priority** | `decrease_priority()` | `decrease_priority()` | `decreasePriority()` | `decreasePriority()` |
+| **Front** | `front()` | `front()` | `front()` | `front()` |
+| **Increase Priority** | `increase_priority()` | `increase_priority()` | `increasePriority()` | `increasePriority()` |
+| **Insert** | `insert()` | `insert()` | `insert()` | `insert()` |
+| **Is Empty** | `is_empty()` | `is_empty()` | `isEmpty()` | `isEmpty()` |
+| **Length** | `len()` | `len()` | `len()` | `len()` |
+| **Pop** | `pop()` | `pop()` | `pop()` | `pop()` |
+| **String Output** | `to_string()` | `to_string()` | `toString()` / `to_string()` | `toString()` / `to_string()` |
+| **Position Type** | `Position` | `Position` | `Position` | `Position` |
+
+### Method Naming Conventions
+
+**C++ and Rust** follow `snake_case` conventions:
+- `is_empty()`, `increase_priority()`, `decrease_priority()`, `to_string()`
+
+**Zig and TypeScript** follow `camelCase` conventions:
+- `isEmpty()`, `increasePriority()`, `decreasePriority()`, `toString()`
+
+**Cross-Language Compatibility**: 
+- **Zig**: Provides `to_string()` alias for `toString()`
+- **TypeScript**: Provides snake_case aliases for all camelCase methods
+
+### Return Type Variations
+
+Different languages handle safety and error conditions in their idiomatic ways:
+
+| Method | C++ | Rust | Zig | TypeScript |
+|--------|-----|------|-----|------------|
+| **front()** | `const T&` (UB if empty) | `&T` (panics if empty) | `?T` (null if empty) | `T` (throws if empty) |
+| **peek()** | *Not available* | `Option<&T>` | `?T` (alias for front) | `T \| undefined` |
+| **pop()** | `void` | `()` | `?T` | `T \| undefined` |
+| **Error handling** | Assertions | Panics | Error unions | Exceptions |
+
+**Safety Recommendations**:
+- **C++**: Always check `!is_empty()` before calling `front()`
+- **Rust**: Use `peek()` for safe access or handle panics appropriately
+- **Zig**: `front()` is safe by default, returns `null` for empty heaps
+- **TypeScript**: Use `peek()` for safe access or wrap `front()` in try-catch
 
 ### **Priority Update Method Design**
 
-The `increase_priority()` and `decrease_priority()` methods have an intentionally **asymmetric design** that optimizes for both performance and robustness:
+The priority update methods have an intentionally **asymmetric design** that optimizes for both performance and robustness:
 
 **Method Semantics:**
-- **`increase_priority()`**: Make an item **more important** (moves toward heap root)
-- **`decrease_priority()`**: Make an item **less important** (moves toward heap leaves)
+- **Increase Priority**: Make an item **more important** (moves toward heap root)
+- **Decrease Priority**: Make an item **less important** (moves toward heap leaves)
 
 **Heap Context:**
 - **Min-heap**: Lower priority values = higher importance (e.g., priority 5 > priority 10)
@@ -50,6 +81,24 @@ This asymmetric design reflects real-world usage patterns: `increase_priority()`
 *Note: Original methods (`size()`, `empty()`, etc.) remain available in C++ for backward compatibility.*
 
 *\* Rust also implements the `Display` trait, allowing `format!("{}", pq)` in addition to `pq.to_string()`.*
+
+## Error Handling by Language
+
+Each implementation follows its language's idiomatic error handling patterns:
+
+| Operation | C++ | Rust | Zig | TypeScript |
+|-----------|-----|------|-----|------------|
+| **Empty front()** | Undefined behavior | Panic with message | Returns `null` | Throws `Error` |
+| **Invalid arity** | Assert failure | Panic with message | Returns `error.DepthMustBePositive` | Throws `Error` |
+| **Item not found** | Assert failure | Panic with message | Returns `error.ItemNotFound` | Throws `Error` |
+| **Index out of bounds** | Assert failure | Panic with message | N/A | Throws `Error` |
+
+### Error Handling Best Practices
+
+- **C++**: Check `!empty()` before calling `front()`, validate inputs before operations
+- **Rust**: Use `peek()` for safe access, handle panics with `catch_unwind` if needed  
+- **Zig**: Handle error unions with `try` or explicit error checking (`if (result) |value| { ... }`)
+- **TypeScript**: Use try-catch blocks or `peek()` for safe access
 
 ## Language Comparison
 
@@ -76,16 +125,55 @@ Why four implementations? Each language brings unique strengths to priority queu
 
 All four implementations provide identical functionality—choose based on your project's ecosystem and requirements.
 
+## Language-Specific Extensions
+
+While all implementations provide the core d-heap functionality, each offers additional features that leverage their language's strengths:
+
+### C++ Extensions
+- **Legacy compatibility**: `size()`, `empty()`, `getd()`, `put()` methods for backward compatibility
+- **Position-based operations**: `increase_priority(position)` overload for direct index manipulation
+- **Template specialization**: Full STL compatibility with custom hash/equality functors
+- **Error handling**: Assertion-based validation with compile-time `INCLUDE_ASSERT` flag
+
+### Rust Extensions  
+- **Index-based updates**: `increase_priority_by_index(index)` for position-based priority changes
+- **Safe access**: `peek()` method returns `Option<&T>` instead of panicking
+- **Display trait**: Automatic `format!("{}", pq)` support alongside explicit `to_string()`
+- **Memory safety**: Compile-time guarantees with zero-cost abstractions
+- **Error handling**: Panic-based errors with descriptive messages, safe `peek()` alternative
+
+### Zig Extensions
+- **Pre-allocation**: `initCapacity()` constructor for performance optimization
+- **Generic types**: Full compile-time generics with `DHeap(T, Context, Comparator)`
+- **Explicit memory**: Manual allocator management following Zig best practices
+- **Compile-time optimization**: `comptime` features for zero-runtime-cost abstractions
+- **Error handling**: Error union return types with explicit error handling (`!void`, `error.ItemNotFound`)
+
+### TypeScript Extensions
+- **Key-based operations**: `containsKey()`, `getPosition()`, `getPositionByKey()` for advanced lookups
+- **Bulk operations**: `insertMany()`, `popMany()` for efficient batch processing
+- **Array access**: `toArray()` method and `[Symbol.iterator]()` for integration with JavaScript ecosystem
+- **Property access**: `size` property alongside `len()` method
+- **Cross-language aliases**: Snake_case method aliases for easy porting from C++/Rust
+- **Error handling**: Exception-based errors with try-catch handling, safe `peek()` alternative
+
+Choose extensions based on your specific use case—core functionality remains identical across all implementations.
+
 ## Version Information
 
-**Current Version: 2.1.1** - Patch Release
+**Current Version: 2.1.2** - Patch Release
 
-**What's New in 2.1.1:**
+**What's New in 2.1.2:**
+- � ***Documentation Overhaul**: Fixed misleading unified API claims, now accurately documents per-language method names
+- � **Eurror Handling Guide**: Added comprehensive error handling documentation with best practices for each language
+- � **Rebturn Type Clarity**: Documented return type differences and safety recommendations across languages
+- 🌐 **Cross-Language Compatibility**: Added `to_string()` alias to Zig for better cross-language consistency
+- ✅ **API Audit Resolution**: Resolved all critical documentation issues identified in comprehensive API audit
+
+**Previous in 2.1.1:**
 - 🔧 **TypeScript Tooling**: Added ESLint configuration and linting support
 - 🐛 **Bug Fix**: Fixed module type configuration for better Node.js compatibility
 - 📦 **Publishing Ready**: Complete NPM publishing setup with proper build pipeline
-
-**Previous in 2.1.0:**
 - 🚀 **Zig 0.15.2**: Updated Zig implementation for latest Zig version with API changes
 - ✨ **Generic Zig**: Zig implementation now fully generic (use your own item types)
 - 🧪 **Comprehensive Tests**: 20+ tests in Zig matching Rust coverage
