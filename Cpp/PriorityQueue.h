@@ -10,16 +10,31 @@
 ///
 /// This file is divided as follows:
 ///	- File History					(Line 19)
-/// - Inclusion of files			(Line 107)
-///	- Namespace declaration			(Line 120)
-///	- Class declaration				(Line 129)
+/// - Inclusion of files			(Line 123)
+///	- Namespace declaration			(Line 136)
+///	- Class declaration				(Line 145)
 ///
-///	- End of file					(line 399)
+///	- End of file					(line 415)
 ///
 /// =================================================================================================================== File history
 ///
-/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/12/18]
-/// Version: 2.0.0
+/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/12/25]
+/// Version: 2.1.2
+///
+/// [v2.1.2] Documentation & Compatibility Release -------------------------------------------------------------------- 2025/12/25
+///     - Fixed misleading unified API documentation: now accurately documents per-language method names
+///     - Added comprehensive error handling documentation with best practices for each language
+///     - Added return type variations guide with safety recommendations across all implementations
+///     - Enhanced cross-language compatibility: Zig now provides to_string() alias for consistency
+///     - Resolved all critical issues identified in comprehensive API audit
+///     - Added TypeScript implementation to npm registry as d-ary-heap@2.1.2
+///     - Updated installation guide with TypeScript instructions and cross-language compatibility notes
+///     - Maintained full backward compatibility across all implementations
+///
+/// [v2.1.1] TypeScript Tooling Release ------------------------------------------------------------------------------- 2025/12/18
+///     - Added ESLint configuration and linting support for TypeScript implementation
+///     - Fixed module type configuration for better Node.js compatibility
+///     - Complete NPM publishing setup with automated build pipeline
 ///
 /// [v2.0.0] Major Release - Zig 0.15.2 Support & Generic Implementation ---------------------------------------------- 2025/12/18
 ///     - Zig implementation updated for Zig 0.15.2 compatibility with API changes
@@ -29,13 +44,13 @@
 ///     - Zig can now be used as a dependency in other projects via build.zig.zon
 ///     - Enhanced error handling: removed unreachable from Zig error paths
 ///     - Added peek() alias and initCapacity() methods in Zig for API completeness
-///     - All three implementations maintain synchronized version numbers and API parity
+///     - All four implementations maintain synchronized version numbers and API parity
 ///
 /// [v1.1.0] Enhanced Release - Three-Language Implementation ---------------------------------------------------------- 2025/09/26
 ///     - Complete Zig implementation added with full API parity
 ///     - All three languages (C++, Rust, Zig) now provide identical functionality
 ///     - Enhanced documentation with cross-language comparison and usage guides
-///     - Synchronized version numbering across all implementations
+///     - Synchronized version numbering across all three implementations
 ///
 /// [v1.0.0] Stable Release - Complete d-ary Priority Queue ----------------------------------------------------------- 2025/09/26
 ///     - Feature-complete implementation with decrease_priority() method
@@ -44,12 +59,13 @@
 ///     - Cross-language API parity with Rust implementation
 ///     - Professional documentation with usage examples and design explanations
 ///
-/// [DEV 5] Unified API with Rust ------------------------------------------------------------------------------------- 2025/09/25
-///     - Unified API methods added so that both C++ and Rust implementations have the same method names:
-///			- size() -> len()
-///			- empty() -> is_empty()
-///			- getd() -> d()
-///			- put_string() -> to_string()
+/// [DEV 5] Cross-Language API Consistency --------------------------------------------------------------------------- 2025/09/25
+///     - Cross-language API methods added for consistency across C++, Rust, Zig, and TypeScript:
+///			- size() -> len() (unified across all languages)
+///			- empty() -> is_empty() (C++/Rust snake_case, Zig/TypeScript camelCase as isEmpty())
+///			- getd() -> d() (unified across all languages)
+///			- put_string() -> to_string() (C++/Rust snake_case, Zig/TypeScript camelCase as toString())
+///     - Note: Method names follow language conventions (snake_case vs camelCase) with compatibility aliases
 ///
 /// [DEV 4] Comments -------------------------------------------------------------------------------------------------- 2025/08/13
 ///		- Fixed line numbers in comments
