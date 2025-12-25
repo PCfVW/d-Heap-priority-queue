@@ -1,5 +1,57 @@
 # Installation Guide
 
+## TypeScript Installation
+
+### Prerequisites
+- **Node.js 18+**
+- npm or yarn
+
+### Install from npm
+
+```bash
+npm install d-ary-heap
+# or
+yarn add d-ary-heap
+```
+
+### Usage
+
+```typescript
+import { PriorityQueue, minBy } from 'd-ary-heap';
+
+interface Task {
+  id: number;
+  priority: number;
+  name: string;
+}
+
+const pq = new PriorityQueue<Task, number>({
+  d: 4,
+  comparator: minBy(task => task.priority),
+  keyExtractor: task => task.id
+});
+
+pq.insert({ id: 1, priority: 10, name: 'Low priority' });
+pq.insert({ id: 2, priority: 5, name: 'High priority' });
+console.log(pq.front()); // { id: 2, priority: 5, name: 'High priority' }
+```
+
+### Cross-Language Compatibility
+
+TypeScript provides both camelCase (primary) and snake_case (compatibility) methods:
+
+```typescript
+// Primary TypeScript style
+pq.isEmpty()
+pq.increasePriority(item)
+pq.toString()
+
+// Cross-language compatibility aliases
+pq.is_empty()
+pq.increase_priority(item)  
+pq.to_string()
+```
+
 ## Zig Installation
 
 ### Prerequisites
@@ -16,7 +68,7 @@
     .version = "0.1.0",
     .dependencies = .{
         .d_heap = .{
-            .url = "https://github.com/your-username/priority-queues/archive/refs/tags/v2.0.0.tar.gz",
+            .url = "https://github.com/your-username/priority-queues/archive/refs/tags/v2.1.2.tar.gz",
             .hash = "1220abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         },
     },
@@ -82,6 +134,21 @@ pub fn main() !void {
         std.debug.print("Popped: {f}\n", .{item});
     }
 }
+```
+
+### Cross-Language Compatibility (v2.1.2+)
+
+Zig provides both camelCase (primary) and snake_case (compatibility) methods:
+
+```zig
+// Primary Zig style
+heap.isEmpty()
+heap.increasePriority(item)
+heap.toString()
+
+// Cross-language compatibility aliases  
+heap.to_string()  // Available in v2.1.2+
+```
 ```
 
 ### Custom Item Types
@@ -168,10 +235,10 @@ int main() {
 ```toml
 [dependencies]
 # If published to crates.io (not recommended based on analysis)
-# rust_priority_queue = "2.0.0"
+# rust_priority_queue = "2.1.2"
 
 # Or use git dependency
-rust_priority_queue = { git = "https://github.com/your-username/priority-queues", tag = "v2.0.0" }
+rust_priority_queue = { git = "https://github.com/your-username/priority-queues", tag = "v2.1.2" }
 ```
 
 ### Usage
@@ -186,6 +253,23 @@ fn main() {
     println!("{}", pq.front());  // 5
 }
 ```
+
+## Cross-Language Method Compatibility
+
+### Method Naming Conventions
+
+Different languages follow their respective naming conventions:
+
+| Function | C++ | Rust | Zig | TypeScript |
+|----------|-----|------|-----|------------|
+| **Check Empty** | `is_empty()` | `is_empty()` | `isEmpty()` | `isEmpty()` |
+| **Increase Priority** | `increase_priority()` | `increase_priority()` | `increasePriority()` | `increasePriority()` |
+| **String Output** | `to_string()` | `to_string()` | `toString()` / `to_string()` | `toString()` / `to_string()` |
+
+### Compatibility Features (v2.1.2+)
+- **Zig**: Added `to_string()` alias for cross-language consistency
+- **TypeScript**: Provides complete snake_case aliases for all camelCase methods
+- **Error Handling**: Each language uses idiomatic error handling (assertions, panics, error unions, exceptions)
 
 ## Building from Source
 
@@ -222,7 +306,33 @@ cargo run --bin demo
 cargo test
 ```
 
+### TypeScript
+
+```bash
+cd TypeScript
+npm install       # Install dependencies
+npm run build     # Build the package
+npm test          # Run tests
+npm run lint      # Run linting
+```
+
 ## Troubleshooting
+
+## Troubleshooting
+
+### TypeScript Issues
+
+#### Package Not Found
+```bash
+npm ERR! 404 Not Found - GET https://registry.npmjs.org/d-ary-heap
+```
+Ensure you're using the correct package name: `d-ary-heap` (not `d_ary_heap`)
+
+#### Type Errors
+Make sure you're using TypeScript 5.0+ and have proper type definitions:
+```bash
+npm install --save-dev typescript@latest
+```
 
 ### Zig Hash Mismatch
 If you get a hash mismatch error, Zig will tell you the correct hash:
@@ -232,12 +342,32 @@ error: hash mismatch: expected 1220abc..., found 1220def...
 Copy the "found" hash to your `build.zig.zon`.
 
 ### Zig Version Compatibility
-This library requires Zig 0.15.2+. For older Zig versions, use v1.1.0.
+- **v2.1.2+**: Requires Zig 0.15.2+
+- **v2.0.0-v2.1.1**: Requires Zig 0.15.2+  
+- **v1.x**: For older Zig versions, use v1.1.0
+
+### Version Compatibility Matrix
+
+| Package Version | Zig | C++ | Rust | TypeScript | Node.js |
+|----------------|-----|-----|------|------------|---------|
+| **v2.1.2** | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
+| **v2.1.1** | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
+| **v2.0.0** | 0.15.2+ | C++17+ | 2021+ | N/A | N/A |
 
 ### Build Issues
-- Ensure you have the correct compiler versions
+- Ensure you have the correct compiler versions (see compatibility matrix above)
 - Check that all dependencies are properly configured
+- For TypeScript: Run `npm install` before building
 - Refer to the language-specific README files for detailed instructions
+
+## Error Handling Differences
+
+Each language handles errors idiomatically:
+
+- **C++**: Assertions (`assert()`) - check conditions before calling methods
+- **Rust**: Panics with messages - use `peek()` for safe access
+- **Zig**: Error unions (`!void`) - handle with `try` or explicit checking
+- **TypeScript**: Exceptions - use try-catch or `peek()` for safe access
 
 ## Examples
 
