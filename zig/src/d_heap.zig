@@ -451,6 +451,16 @@ pub fn DHeap(
             return buffer.toOwnedSlice(self.allocator);
         }
 
+        /// Alias for toString() - snake_case for cross-language consistency.
+        ///
+        /// Provides the same functionality as `toString()` but with snake_case naming
+        /// to match C++ and Rust implementations for easier cross-language usage.
+        ///
+        /// Time complexity: O(n)
+        pub fn to_string(self: Self) ![]const u8 {
+            return self.toString();
+        }
+
         // =====================================================================
         // Private Methods - Heap Operations
         // =====================================================================
