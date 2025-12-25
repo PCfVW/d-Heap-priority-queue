@@ -1,7 +1,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (TypeScript) v2.1.1
+# d-Heap Priority Queue (TypeScript) v2.1.2
 
 A high-performance, generic d-ary heap priority queue with O(1) item lookup, supporting both min-heap and max-heap behavior.
 
@@ -87,7 +87,8 @@ Options:
 |--------|-------------|------|
 | `len()` | Number of items | O(1) |
 | `size` | Property alias for `len()` | O(1) |
-| `isEmpty()` / `is_empty()` | Check if empty | O(1) |
+| `isEmpty()` | Check if empty (primary method) | O(1) |
+| `is_empty()` | Alias for `isEmpty()` (cross-language compatibility) | O(1) |
 | `d()` | Get arity | O(1) |
 | `contains(item)` | Check if item exists (by key) | O(1) |
 | `containsKey(key)` | Check if key exists | O(1) |
@@ -102,18 +103,31 @@ Options:
 |--------|-------------|------|
 | `insert(item)` | Add new item | O(log_d n) |
 | `pop()` | Remove and return highest-priority item | O(d · log_d n) |
-| `increasePriority(item)` / `increase_priority(item)` | Update item to higher priority | O(log_d n) |
-| `increasePriorityByIndex(i)` / `increase_priority_by_index(i)` | Update by index | O(log_d n) |
-| `decreasePriority(item)` / `decrease_priority(item)` | Update item to lower priority | O(d · log_d n) |
+| `increasePriority(item)` | Update item to higher priority (primary method) | O(log_d n) |
+| `increase_priority(item)` | Alias for `increasePriority()` (cross-language compatibility) | O(log_d n) |
+| `increasePriorityByIndex(i)` | Update by index (primary method) | O(log_d n) |
+| `increase_priority_by_index(i)` | Alias for `increasePriorityByIndex()` (cross-language compatibility) | O(log_d n) |
+| `decreasePriority(item)` | Update item to lower priority (primary method) | O(d · log_d n) |
+| `decrease_priority(item)` | Alias for `decreasePriority()` (cross-language compatibility) | O(d · log_d n) |
 | `clear(newD?)` | Remove all items, optionally change arity | O(1) |
 
 ### Utility Methods
 
 | Method | Description |
 |--------|-------------|
-| `toString()` / `to_string()` | String representation |
+| `toString()` | String representation (primary method) |
+| `to_string()` | Alias for `toString()` (cross-language compatibility) |
 | `toArray()` | Copy of internal array |
 | `[Symbol.iterator]()` | Iterate over items in heap order |
+
+### Method Naming Convention
+
+This TypeScript implementation follows **camelCase** as the primary naming convention (TypeScript/JavaScript standard), with **snake_case aliases** provided for cross-language compatibility:
+
+- **Primary methods**: `isEmpty()`, `increasePriority()`, `decreasePriority()`, `toString()`
+- **Compatibility aliases**: `is_empty()`, `increase_priority()`, `decrease_priority()`, `to_string()`
+
+Use the primary camelCase methods for TypeScript/JavaScript projects, and the snake_case aliases when porting code from C++/Rust implementations.
 
 ## Comparator Helpers
 

@@ -1,7 +1,7 @@
 ![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-f7a41d.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (Zig 0.15.2) v2.1.1
+# d-Heap Priority Queue (Zig 0.15.2) v2.1.2
 
 A **generic** d-ary heap priority queue supporting both min-queue and max-queue behavior through comparator functions.
 
@@ -202,8 +202,9 @@ const MyHeap = d_heap.DHeap(
 | `increasePriority(item)` | O(log_d n) | Update item to higher priority |
 | `decreasePriority(item)` | O(d·log_d n) | Update item to lower priority |
 | `pop()` | O(d·log_d n) | Remove and return highest-priority item |
-| `clear(new_d)` | O(1) | Clear all items, optionally change arity |
-| `toString()` | O(n) | Get string representation (caller owns memory) |
+| `clear(new_depth?)` | O(1) | Clear all items, optionally change arity (new_depth is optional) |
+| `toString()` | O(n) | Get string representation (primary method, caller owns memory) |
+| `to_string()` | O(n) | Alias for `toString()` (cross-language compatibility) |
 
 ### Error Types
 
@@ -245,6 +246,8 @@ Your custom item type must provide:
 | String | `toString()` | `to_string()` | `to_string()` |
 
 **Note**: Zig uses camelCase for functions following Zig conventions, while C++ and Rust use snake_case.
+
+**Note**: Zig uses camelCase for functions following Zig conventions, while C++ and Rust use snake_case. For cross-language compatibility, Zig provides snake_case aliases for key methods: `to_string()` (alias for `toString()`).
 
 ## What is a d-Heap?
 
