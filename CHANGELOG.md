@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-12-26
+
+### Added
+- **Examples Infrastructure**: Complete `examples/dijkstra/` directory structure
+- **TypeScript Dijkstra Implementation**: Working example with path reconstruction
+- **Shared Test Graph**: JSON format graph from Network Flows textbook (Figure 4.7, page 110)
+- **Performance Comparisons**: Demonstrates d-ary heap advantages across different arities
+- **Algorithm Documentation**: Comprehensive README with complexity analysis
+
+### Enhanced
+- **Documentation**: Added detailed algorithm explanation and expected results
+- **Visual Diagrams**: Mermaid graph visualization with red edge weights
+- **Cross-Language Foundation**: Established pattern for future language implementations
+
 ## [2.1.2] - 2025-12-25
 
 ### Added
@@ -102,6 +116,7 @@ For existing Zig users upgrading from v1.x:
 - Comprehensive test suites
 - Professional documentation
 
+[2.2.0]: https://github.com/your-username/priority-queues/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/your-username/priority-queues/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/your-username/priority-queues/compare/v2.0.0...v2.1.1
 [2.0.0]: https://github.com/your-username/priority-queues/compare/v1.1.0...v2.0.0

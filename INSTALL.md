@@ -68,7 +68,7 @@ pq.to_string()
     .version = "0.1.0",
     .dependencies = .{
         .d_heap = .{
-            .url = "https://github.com/your-username/priority-queues/archive/refs/tags/v2.1.2.tar.gz",
+            .url = "https://github.com/your-username/priority-queues/archive/refs/tags/v2.2.0.tar.gz",
             .hash = "1220abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         },
     },
@@ -136,7 +136,7 @@ pub fn main() !void {
 }
 ```
 
-### Cross-Language Compatibility (v2.1.2+)
+### Cross-Language Compatibility (v2.2.0+)
 
 Zig provides both camelCase (primary) and snake_case (compatibility) methods:
 
@@ -147,7 +147,7 @@ heap.increasePriority(item)
 heap.toString()
 
 // Cross-language compatibility aliases  
-heap.to_string()  // Available in v2.1.2+
+heap.to_string()  // Available in v2.2.0+
 ```
 ```
 
@@ -235,10 +235,10 @@ int main() {
 ```toml
 [dependencies]
 # If published to crates.io (not recommended based on analysis)
-# rust_priority_queue = "2.1.2"
+# rust_priority_queue = "2.2.0"
 
 # Or use git dependency
-rust_priority_queue = { git = "https://github.com/your-username/priority-queues", tag = "v2.1.2" }
+rust_priority_queue = { git = "https://github.com/your-username/priority-queues", tag = "v2.2.0" }
 ```
 
 ### Usage
@@ -266,7 +266,7 @@ Different languages follow their respective naming conventions:
 | **Increase Priority** | `increase_priority()` | `increase_priority()` | `increasePriority()` | `increasePriority()` |
 | **String Output** | `to_string()` | `to_string()` | `toString()` / `to_string()` | `toString()` / `to_string()` |
 
-### Compatibility Features (v2.1.2+)
+### Compatibility Features (v2.2.0+)
 - **Zig**: Added `to_string()` alias for cross-language consistency
 - **TypeScript**: Provides complete snake_case aliases for all camelCase methods
 - **Error Handling**: Each language uses idiomatic error handling (assertions, panics, error unions, exceptions)
@@ -342,7 +342,7 @@ error: hash mismatch: expected 1220abc..., found 1220def...
 Copy the "found" hash to your `build.zig.zon`.
 
 ### Zig Version Compatibility
-- **v2.1.2+**: Requires Zig 0.15.2+
+- **v2.2.0+**: Requires Zig 0.15.2+
 - **v2.0.0-v2.1.1**: Requires Zig 0.15.2+  
 - **v1.x**: For older Zig versions, use v1.1.0
 
@@ -350,7 +350,7 @@ Copy the "found" hash to your `build.zig.zon`.
 
 | Package Version | Zig | C++ | Rust | TypeScript | Node.js |
 |----------------|-----|-----|------|------------|---------|
-| **v2.1.2** | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
+| **v2.2.0** | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
 | **v2.1.1** | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
 | **v2.0.0** | 0.15.2+ | C++17+ | 2021+ | N/A | N/A |
 

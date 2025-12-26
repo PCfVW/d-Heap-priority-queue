@@ -1,4 +1,4 @@
-# Min/Max d-Heap Priority Queues (C++, Rust, Zig, and TypeScript) v2.1.2
+# Min/Max d-Heap Priority Queues (C++, Rust, Zig, and TypeScript) v2.2.0
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
 
@@ -161,18 +161,18 @@ Choose extensions based on your specific use case—core functionality remains i
 
 ## Version Information
 
-**Current Version: 2.1.2** - Patch Release
+**Current Version: 2.2.0** — Examples Infrastructure + TypeScript Dijkstra
 
-**What's New in 2.1.2:**
-- � ***Documentation Overhaul**: Fixed misleading unified API claims, now accurately documents per-language method names
-- � **Eurror Handling Guide**: Added comprehensive error handling documentation with best practices for each language
-- � **Rebturn Type Clarity**: Documented return type differences and safety recommendations across languages
-- 🌐 **Cross-Language Compatibility**: Added `to_string()` alias to Zig for better cross-language consistency
-- ✅ **API Audit Resolution**: Resolved all critical documentation issues identified in comprehensive API audit
+**What's New in 2.2.0:**
+- ✅ **Examples Infrastructure**: Added `examples/dijkstra/` with Network Flows textbook example
+- ✅ **TypeScript Dijkstra Implementation**: Complete working example with path reconstruction
+- ✅ **Shared Test Graph**: JSON format graph from Ahuja, Magnanti, Orlin Figure 4.7
+- ✅ **Performance Comparisons**: Demonstrates d-ary heap advantages (d=2 vs d=4 vs d=8)
+- ✅ **Documentation**: Comprehensive README with algorithm explanation and complexity analysis
 
-**Previous in 2.1.1:**
-- 🔧 **TypeScript Tooling**: Added ESLint configuration and linting support
-- 🐛 **Bug Fix**: Fixed module type configuration for better Node.js compatibility
+**Previous in 2.1.2:**
+- 📚 **Documentation Overhaul**: Fixed misleading unified API claims, now accurately documents per-language method names
+- 🛡️ **Error Handling Guide**: Added comprehensive error handling documentation with best practices for each language
 - 📦 **Publishing Ready**: Complete NPM publishing setup with proper build pipeline
 - 🚀 **Zig 0.15.2**: Updated Zig implementation for latest Zig version with API changes
 - ✨ **Generic Zig**: Zig implementation now fully generic (use your own item types)
@@ -194,6 +194,8 @@ All four implementations share synchronized version numbers to ensure feature co
 
 ## Getting Started
 
+**New in v2.2.0**: Check out the [Dijkstra's Algorithm Example](https://github.com/PCfVW/d-Heap-priority-queue/tree/main/examples/dijkstra/) to see d-ary heaps in action with a classic shortest path algorithm from the Network Flows textbook.
+
 Explore the language-specific implementations:
 
 | Language | README |
@@ -207,7 +209,7 @@ Explore the language-specific implementations:
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE)
 
-This project is licensed under the **Apache License 2.0** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **Apache License 2.0** - see the [LICENSE](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/LICENSE) file for details.
 
 Copyright © 2023-2025 Eric Jacopin
 
