@@ -2,7 +2,7 @@
  * Pre-built comparator factories for common use cases.
  *
  * @module comparators
- * @version 2.1.2
+ * @version 2.2.0
  * @license Apache-2.0
  */
 

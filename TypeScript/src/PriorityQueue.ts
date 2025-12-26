@@ -9,7 +9,7 @@
  * - O(log_d n) insert and priority increase operations
  * - O(d · log_d n) pop and priority decrease operations
  *
- * @version 2.1.2
+ * @version 2.2.0
  * @license Apache-2.0
  * @copyright 2023-2025 Eric Jacopin
  */
