@@ -19,7 +19,14 @@
 /// =================================================================================================================== File history
 ///
 /// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/12/25]
-/// Version: 2.1.2
+/// Version: 2.2.0
+///
+/// [v2.2.0] Examples Infrastructure + TypeScript Dijkstra Release ---------------------------------------------------- 2025/12/26
+///     - Added examples/dijkstra/ infrastructure with Network Flows textbook example (Figure 4.7, page 110)
+///     - Implemented complete TypeScript Dijkstra example with path reconstruction and performance comparisons
+///     - Added shared test graph in JSON format for cross-language compatibility
+///     - Enhanced documentation with algorithm explanation and complexity analysis
+///     - Demonstrated d-ary heap performance advantages (d=2 vs d=4 vs d=8) in real algorithm
 ///
 /// [v2.1.2] Documentation & Compatibility Release -------------------------------------------------------------------- 2025/12/25
 ///     - Fixed misleading unified API documentation: now accurately documents per-language method names
