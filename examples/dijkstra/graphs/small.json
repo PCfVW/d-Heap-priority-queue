@@ -1,0 +1,14 @@
+{
+  "vertices": ["A", "B", "C", "D", "E", "F"],
+  "edges": [
+    {"from": "A", "to": "B", "weight": 6},
+    {"from": "A", "to": "C", "weight": 4},
+    {"from": "B", "to": "C", "weight": 2},
+    {"from": "B", "to": "D", "weight": 2},
+    {"from": "C", "to": "D", "weight": 1},
+    {"from": "C", "to": "E", "weight": 2},
+    {"from": "D", "to": "F", "weight": 7},
+    {"from": "E", "to": "D", "weight": 1},
+    {"from": "E", "to": "F", "weight": 3}
+  ]
+}
