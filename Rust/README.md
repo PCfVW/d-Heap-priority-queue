@@ -1,91 +1,230 @@
 ![Rust Edition 2021](https://img.shields.io/badge/Rust-Edition_2021-orange.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
+![crates.io](https://img.shields.io/crates/v/d-ary-heap.svg)
+![docs.rs](https://docs.rs/d-ary-heap/badge.svg)
 
-# d-Heap Priority Queue (Rust, Edition 2021) v2.2.0
+# d-ary Heap Priority Queue (Rust) v2.2.0
 
-This is a generic d-ary heap priority queue supporting both min-queue and max-queue behavior through a comparator wrapper.
+**Wikipedia-standard d-ary heap implementation** with O(1) item lookup and configurable arity.
 
-## Strengths
+## Key Features
 
-- **Flexible behavior**: min-heap or max-heap via comparator adaptors (`MinBy`/`MaxBy`), and configurable arity `d` at construction time.
-- **Efficient operations** on n items (see reference below):
-  - O(1): access the highest-priority item (`front()`).
-  - O(log_d n): `insert()` and upward reheapification.
-  - O(d · log_d n): delete-top (`pop()`), with up to d children examined per level.
-- **O(1) item lookup**: internal hash map tracks positions by item identity, enabling efficient priority updates for existing items.
-- **Practical API**: `insert`, `front`, `pop`, `increase_priority`, `is_empty`, `len`, `contains`.
-- **Unified API**: Cross-language standardized methods including `d()`, `contains()`, `to_string()`, `decrease_priority()`, and `Position` type alias.
-- **Rust-idiomatic**: Implements `Display` trait for formatting; `to_string()` provided for cross-language API parity.
+- **d-ary heap (not binary)**: Configurable arity `d` (number of children per node)
+- **Min/Max flexibility**: Supports both min-heap and max-heap behavior via comparators
+- **O(1) item lookup**: Internal hash map enables efficient priority updates
+- **Efficient operations**:
+  - O(1): `front()`, `peek()`, `len()`, `is_empty()`, `contains()`
+  - O(log_d n): `insert()`, `increase_priority()`
+  - O(d × log_d n): `pop()`, `decrease_priority()`
+- **Cross-language API**: Unified methods matching C++, Zig, and TypeScript implementations
+- **Rust-idiomatic**: Implements `Display` trait alongside `to_string()` for flexibility
 
-## How to use (basic example)
+## Installation
 
-Define your item type `T` and derive:
-- **Hash + Eq** for identity (e.g., by stable id/number),
-- Choose a comparator wrapper on priority (e.g., by `cost`) determining min- or max-queue.
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+d-ary-heap = "2.2.0"
+```
+
+## Quick Start
 
 ```rust
-use priority_queue::{PriorityQueue, MinBy, MaxBy};
+use d_ary_heap::{DHeap, MinBy, MaxBy};
 
 #[derive(Clone, Eq, PartialEq, Hash)]
-struct Item { id: u32, cost: u32 } // identity by id; priority by cost
-
-// For to_string() method, implement Display
-impl std::fmt::Display for Item {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Item(id: {}, cost: {})", self.id, self.cost)
-    }
+struct Task {
+    id: u32,
+    priority: u32,
 }
 
-// Min-queue by "cost"
-let mut pq: PriorityQueue<Item, MinBy<_>> =
-    PriorityQueue::new(3, MinBy(|x: &Item| x.cost));
+// Min-heap by priority (lower value = higher priority)
+let mut heap = DHeap::new(4, MinBy(|t: &Task| t.priority));
 
-pq.insert(Item { id: 1, cost: 10 });
-pq.insert(Item { id: 2, cost: 5 });
+// Insert items
+heap.insert(Task { id: 1, priority: 10 });
+heap.insert(Task { id: 2, priority: 5 });
 
-let top = pq.front().clone(); // highest priority (lowest cost here)
+// Get highest priority item
+let top = heap.front().unwrap();
+assert_eq!(top.priority, 5);
 
-// Increase priority of an existing item (e.g., decrease cost in a min-queue)
-let updated = Item { id: 1, cost: 3 }; // same identity, new priority
-pq.increase_priority(&updated);        // repositions item upward as needed
+// Update priority (make more important)
+heap.increase_priority(&Task { id: 1, priority: 1 });
+let top = heap.front().unwrap();
+assert_eq!(top.priority, 1);
 
-// Decrease priority of an existing item (e.g., increase cost in a min-queue)
-let decreased = Item { id: 2, cost: 8 }; // same identity, new priority
-pq.decrease_priority(&decreased);       // repositions item downward as needed
-
-pq.pop(); // remove current highest-priority item
-
-// Unified API methods (cross-language consistency)
-println!("Size: {}", pq.len());           // Get number of items
-println!("Empty: {}", pq.is_empty());     // Check if empty
-println!("Arity: {}", pq.d());            // Get d value
-println!("Contains: {}", pq.contains(&Item { id: 1, cost: 0 })); // O(1) membership test
-println!("Contents: {}", pq.to_string()); // String output (cross-language API)
-println!("Contents: {}", pq);             // Same output via Display trait (Rust-idiomatic)
+// Remove items in priority order
+while let Some(task) = heap.pop() {
+    println!("Processing task {} with priority {}", task.id, task.priority);
+}
 ```
 
-## Usage
+## Usage Examples
+
+### Basic Operations
+
+```rust
+use d_ary_heap::{DHeap, MinBy};
+
+let mut heap = DHeap::new(3, MinBy(|x: &i32| *x));
+
+// Insert items
+heap.insert(10);
+heap.insert(5);
+heap.insert(15);
+
+// Check properties
+assert_eq!(heap.len(), 3);
+assert!(!heap.is_empty());
+assert_eq!(heap.d(), 3);
+
+// Access highest priority
+assert_eq!(heap.front(), Some(&5));
+assert_eq!(heap.peek(), Some(&5));
+
+// Remove items
+assert_eq!(heap.pop(), Some(5));
+assert_eq!(heap.pop(), Some(10));
+assert_eq!(heap.pop(), Some(15));
+assert_eq!(heap.pop(), None);
+```
+
+### Max-Heap Example
+
+```rust
+use d_ary_heap::{DHeap, MaxBy};
+
+let mut heap = DHeap::new(2, MaxBy(|x: &i32| *x));
+
+heap.insert(10);
+heap.insert(5);
+heap.insert(15);
+
+// Max-heap: highest value has highest priority
+assert_eq!(heap.front(), Some(&15));
+```
+
+### Custom Comparators
+
+```rust
+use d_ary_heap::DHeap;
+
+// Custom comparator for complex types
+let heap = DHeap::new(4, |a: &str, b: &str| a.len() < b.len());
+
+heap.insert("short");
+heap.insert("medium length");
+heap.insert("longest string here");
+
+// Shortest string has highest priority
+assert_eq!(heap.front(), Some(&"short"));
+```
+
+## API Reference
+
+### Core Types
+
+- `DHeap<T, C>`: The main heap type
+- `MinBy<F>`: Comparator wrapper for min-heap behavior
+- `MaxBy<F>`: Comparator wrapper for max-heap behavior
+- `Position`: Type alias for position indices (cross-language consistency)
+
+### Methods
+
+| Method | Complexity | Description |
+|--------|------------|-------------|
+| `new(d, comparator)` | O(1) | Create new heap with arity d |
+| `len()` | O(1) | Number of items |
+| `is_empty()` | O(1) | Check if empty |
+| `d()` | O(1) | Get arity |
+| `contains(item)` | O(1) | Check membership |
+| `front()` | O(1) | Highest priority item (None if empty) |
+| `peek()` | O(1) | Alias for front() |
+| `insert(item)` | O(log_d n) | Add new item |
+| `increase_priority(item)` | O(log_d n) | Update to higher priority |
+| `decrease_priority(item)` | O(d·log_d n) | Update to lower priority |
+| `pop()` | O(d·log_d n) | Remove highest priority item |
+| `clear()` | O(1) | Remove all items |
+| `to_string()` | O(n) | String representation |
+
+## Performance Considerations
+
+### Choosing Optimal Arity (d)
+
+| Arity | Use Case | Insert | Pop |
+|-------|----------|--------|-----|
+| d=2 | Mixed workloads | O(log n) | O(log n) |
+| d=3-4 | Insert-heavy | O(log₃ n) | O(3·log₃ n) |
+| d=8+ | Very insert-heavy | O(log₈ n) | O(8·log₈ n) |
+
+**Recommendation**: Start with d=4 for most workloads.
+
+### Optimization Tips
+
+1. **Pre-size when possible**: If you know approximate size, create with capacity
+2. **Choose d wisely**: Benchmark with your workload (d=4 often optimal)
+3. **Use simple comparators**: Inline closures are faster than complex functions
+4. **Stable identity**: Ensure Hash/Eq are based on stable identity, not priority
+
+## Cross-Language Compatibility
+
+This implementation provides API parity with:
+- **C++**: `PriorityQueue<T>` in `Cpp/PriorityQueue.h`
+- **Zig**: `DHeap(T)` in `zig/src/d_heap.zig`
+- **TypeScript**: `PriorityQueue<T>` in `TypeScript/src/PriorityQueue.ts`
+
+All implementations share:
+- Identical time complexities
+- Unified method names (with language-appropriate casing)
+- Cross-language API consistency
+
+## What is a d-ary Heap?
+
+A [d-ary heap](https://en.wikipedia.org/wiki/D-ary_heap) is a tree structure where:
+
+- Each node has **up to d children** (configurable arity)
+- The **root** contains the highest-priority item
+- **Children are unordered** (unlike binary heaps)
+- **Heap property**: Each parent has higher priority than all children
+- **Complete tree**: Filled left-to-right, level by level
+
+### Advantages over Binary Heaps (d=2)
+
+- **Shallower tree**: Height is log_d(n) instead of log₂(n)
+- **Faster inserts**: O(log_d n) vs O(log₂ n)
+- **Configurable**: Optimize for your specific workload
+
+### Trade-offs
+
+- **Slower pops**: O(d·log_d n) vs O(log₂ n)
+- **More comparisons**: Each pop examines up to d children
+- **Memory**: Slightly higher overhead for position tracking
+
+## Reference Implementation
+
+This implementation follows the d-ary heap specification from:
+
+- **Wikipedia**: [D-ary heap](https://en.wikipedia.org/wiki/D-ary_heap)
+- **Network Flows textbook**: Section A.3, pp. 773–778
+  - Ravindra Ahuja, Thomas Magnanti & James Orlin
+  - Prentice Hall (1993)
+  - [Book information](https://mitmgmtfaculty.mit.edu/jorlin/network-flows/)
+
+## Testing
 
 ```bash
-# Run tests
+# Run all tests
 cargo test
 
-# Run the demo
-cargo run
+# Run specific test
+cargo test test_min_heap_ordering
+
+# Run demo
+cargo run --bin demo
 ```
 
-Notes:
-- Identity should be stable (`Eq` + `Hash`); priority values may change over time.
-- Only the highest-priority item can be removed directly (`pop()`).
+## License
 
-## What is a d-Heap?
-
-- A [d-ary heap](https://en.wikipedia.org/wiki/D-ary_heap) is a tree where each node has up to d children, the root holds the highest priority, children are unordered, and priorities decrease along any root-to-leaf path.
-- Time complexities over n items (cf. reference):
-  - O(1): access top
-  - O(d · log_d n): delete-top
-  - O(log_d n): insert and upward update
-
-## Reference
-
-Section A.3, [d-Heaps](https://en.wikipedia.org/wiki/D-ary_heap), pp. 773–778 of Ravindra Ahuja, Thomas Magnanti & James Orlin, **Network Flows** (Prentice Hall, 1993). Book info: https://mitmgmtfaculty.mit.edu/jorlin/network-flows/
+Apache License 2.0 - See [LICENSE](../LICENSE) for details.
