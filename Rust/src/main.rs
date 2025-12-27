@@ -1,4 +1,4 @@
-use priority_queue::{PriorityQueue, MinBy, MaxBy, PriorityCompare};
+use d_ary_heap::{PriorityQueue, MinBy, MaxBy, PriorityCompare};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::hash::{Hash, Hasher};
 

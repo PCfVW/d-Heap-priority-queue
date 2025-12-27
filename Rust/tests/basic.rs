@@ -1,4 +1,4 @@
-use priority_queue::{PriorityQueue, MinBy, MaxBy};
+use d_ary_heap::{PriorityQueue, MinBy, MaxBy};
 use std::hash::{Hash, Hasher};
 use std::fmt;
 
@@ -94,7 +94,7 @@ fn unified_api_methods() {
 
 #[test]
 fn position_type_alias() {
-    use priority_queue::Position;
+    use d_ary_heap::Position;
 
     let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(2, MinBy(|x: &Item| x.cost));
     pq.insert(Item { id: 1, cost: 10 });

@@ -6,7 +6,7 @@
 //
 // Licensed under the Apache License, Version 2.0 (the "License")
 
-use priority_queue::{PriorityQueue, MinBy, MaxBy};
+use d_ary_heap::{PriorityQueue, MinBy, MaxBy};
 
 #[derive(Clone, Debug)]
 struct TestItem {
