@@ -586,11 +586,6 @@ func (pq *PriorityQueue[T, K]) To_string() string {
 // Private Methods - Heap Operations
 // ===========================================================================
 
-// parent returns the parent index of node i.
-func (pq *PriorityQueue[T, K]) parent(i int) int {
-	return (i - 1) / pq.depth
-}
-
 // swap exchanges two items in the heap and updates their position mappings.
 func (pq *PriorityQueue[T, K]) swap(i, j int) {
 	pq.container[i], pq.container[j] = pq.container[j], pq.container[i]
