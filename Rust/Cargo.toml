@@ -1,20 +1,30 @@
 [package]
-name = "rust_priority_queue"
+name = "d-ary-heap"
 version = "2.2.0"
 edition = "2021"
+authors = ["Eric Jacopin"]
+license = "Apache-2.0"
+repository = "https://github.com/PCfVW/priority-queues"
+homepage = "https://github.com/PCfVW/priority-queues"
+readme = "README.md"
+keywords = ["heap", "priority-queue", "d-ary-heap", "data-structures", "collections"]
+categories = ["data-structures", "algorithms", "no-std"]
+documentation = "https://docs.rs/d-ary-heap"
+
+description = """
+Generic d-ary heap priority queue supporting min/max via comparator, with O(1) item lookup for updates.
+Features configurable arity, efficient priority updates, and cross-language API compatibility.
+"""
 
 [lib]
-name = "priority_queue"
+name = "d_ary_heap"
 path = "src/lib.rs"
 
 [[bin]]
 name = "demo"
 path = "src/main.rs"
 
-authors = ["Eric Jacopin"]
-license = "Apache-2.0"
-repository = ""
-keywords = ["heap", "priority-queue", "d-ary-heap"]
-categories = ["data-structures"]
 
-description = "Generic d-ary heap priority queue supporting min/max via comparator, with O(1) item lookup for updates."
+[features]
+default = ["std"]
+std = []
