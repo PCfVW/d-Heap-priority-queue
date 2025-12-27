@@ -194,7 +194,7 @@ All four implementations share synchronized version numbers to ensure feature co
 
 ## Getting Started
 
-**New in v2.2.0**: Check out the [Dijkstra's Algorithm Example](https://github.com/PCfVW/d-Heap-priority-queue/tree/main/examples/dijkstra/) to see d-ary heaps in action with a classic shortest path algorithm from the Network Flows textbook.
+**New in v2.2.0**: Check out the [Dijkstra's Algorithm Example](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/examples/dijkstra) to see d-ary heaps in action with a classic shortest path algorithm from the Network Flows textbook.
 
 Explore the language-specific implementations:
 
