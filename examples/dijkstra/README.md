@@ -104,7 +104,7 @@ Each language implementation:
 Currently available:
 - `TypeScript/` - Node.js with npm/yarn ✅
 
-**Coming in v2.4.0** (see [ROADMAP.md](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/LICENSE):
+**Coming in v2.4.0** (see [ROADMAP.md](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/ROADMAP.md):
 - `Cpp/` - C++ with standard compiler
 - `Rust/` - Cargo build system
 - `Zig/` - Zig build system
