@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - YYYY-MM-DD
+
+### Added
+- **Rust Documentation**: Created comprehensive doctests for all public methods and types
+- **Package Metadata**: Enhanced Cargo.toml with complete publication-ready metadata
+
+### Changed
+- **Package Naming**: Updated package name to `d-ary-heap` for clarity and consistency
+- **Library Naming**: Standardized library name to `d_ary_heap` throughout the codebase
+
 ## [2.2.0] - 2025-12-26
 
 ### Added
