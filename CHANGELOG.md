@@ -5,15 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0] - YYYY-MM-DD
+## [2.3.0] - 2025-12-27
 
 ### Added
+- **Go Implementation**: Complete d-heap priority queue library in Go with full API parity
+- **Go Generics**: Full generic support with `PriorityQueue[T any, K comparable]`
+- **Go Dijkstra Example**: Complete working example demonstrating d-heap usage in `examples/dijkstra/Go/`
+- **Comparator Utilities**: `MinBy()`, `MaxBy()` factory functions and pre-built comparators for common types
+- **Bulk Operations**: `InsertMany()`, `PopMany()` for efficient batch processing with Floyd's heapify algorithm
+- **Safe Access**: `Peek()` method returns `(T, bool)` for safe, non-panicking access
+- **Go Stringer Interface**: Implements `fmt.Stringer` for automatic `fmt.Print()` support
+- **Cross-Language Aliases**: Snake_case method aliases (`Is_empty()`, `Increase_priority()`, etc.) for easy porting
+- **Go Workspace**: Added `go.work` file for multi-module development
 - **Rust Documentation**: Created comprehensive doctests for all public methods and types
-- **Package Metadata**: Enhanced Cargo.toml with complete publication-ready metadata
+- **Rust Package Metadata**: Enhanced Cargo.toml with complete publication-ready metadata
 
 ### Changed
-- **Package Naming**: Updated package name to `d-ary-heap` for clarity and consistency
-- **Library Naming**: Standardized library name to `d_ary_heap` throughout the codebase
+- **Five Language Support**: Project now supports C++, Go, Rust, Zig, and TypeScript
+- **Updated Documentation**: Root README.md updated to include Go in all API tables and comparisons
+- **Version Information**: Updated to reflect Go implementation as primary feature of v2.3.0
+- **Rust Package Naming**: Updated package name to `d-ary-heap` for clarity and consistency
+- **Rust Library Naming**: Standardized library name to `d_ary_heap` throughout the codebase
+
+### Technical Details (Go)
+- Go module path: `github.com/PCfVW/d-Heap-priority-queue/Go`
+- Package name: `dheap`
+- Requires Go 1.21+ for generics support
+- 47 test cases covering all functionality
+- Idiomatic Go error handling: errors for recoverable conditions, panics for programmer errors
 
 ## [2.2.0] - 2025-12-26
 
@@ -126,8 +145,9 @@ For existing Zig users upgrading from v1.x:
 - Comprehensive test suites
 - Professional documentation
 
-[2.2.0]: https://github.com/your-username/priority-queues/compare/v2.1.2...v2.2.0
-[2.1.2]: https://github.com/your-username/priority-queues/compare/v2.1.1...v2.1.2
+[2.3.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.1.2...v2.2.0
+[2.1.2]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.1.1...v2.1.2
 [2.1.1]: https://github.com/your-username/priority-queues/compare/v2.0.0...v2.1.1
 [2.0.0]: https://github.com/your-username/priority-queues/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/your-username/priority-queues/compare/v1.0.0...v1.1.0
