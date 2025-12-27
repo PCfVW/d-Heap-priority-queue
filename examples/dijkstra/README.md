@@ -103,9 +103,16 @@ Each language implementation:
 
 Currently available:
 - `TypeScript/` - Node.js with npm/yarn ✅
+- `Go/` - Go modules ✅
 
-**Coming in v2.4.0** (see [ROADMAP.md](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/ROADMAP.md):
+**Coming in future versions** (see [ROADMAP.md](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/ROADMAP.md)):
 - `Cpp/` - C++ with standard compiler
 - `Rust/` - Cargo build system
 - `Zig/` - Zig build system
-- `Go/` - Go modules
+
+### Running the Go Example
+
+```bash
+cd examples/dijkstra/Go
+go run .
+```
