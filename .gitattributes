@@ -1,7 +1,8 @@
-# Force GitHub to detect C++, Rust, and Zig
+# Force GitHub to detect C++, Go, Rust, and Zig
 *.cpp linguist-language=C++
 *.h linguist-language=C++
 *.hpp linguist-language=C++
+*.go linguist-language=Go
 *.rs linguist-language=Rust
 *.zig linguist-language=Zig
 
