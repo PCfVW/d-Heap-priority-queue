@@ -59,25 +59,58 @@ Starting with TypeScript enables:
 
 ---
 
-## v2.4.0 — Complete Dijkstra Examples
+## v2.4.0 — React Flow Visualization + Complete Examples
 
-> *Why wait for the other languages?*
+> *Why visualization first?*
 
-By this point, both the example structure and a new language integration have been battle-tested. Completing the remaining examples becomes straightforward.
+A live, interactive demo is more compelling than static benchmarks. Users can *see* why d=4 creates a shallower tree than d=2, watch `decrease_priority` bubble up in real-time, and understand the algorithm intuitively.
+
+### React Flow Demo
+
+- **Heap tree visualization** — See the d-ary structure as nodes are inserted/removed
+- **Dijkstra step-through** — Animated shortest path on the sample graph
+- **Arity toggle** — Switch between d=2, d=4, d=8 to compare tree depths
+- **Operation counter** — Track inserts, pops, and decrease_priority calls
+
+### Complete Dijkstra Examples
 
 Same algorithm, same graph, five languages—ideal for:
 - **Learning** — Compare idiomatic patterns across languages
-- **Benchmarking** — Measure d=2 vs d=4 vs d=8 performance
 - **Credibility** — Proves the unified API works everywhere
+
+### Basic Benchmarks
+
+- **Graph sizes** — Small (6 nodes), medium (~100 nodes), large (~1000 nodes)
+- **Arity comparison** — d=2 vs d=4 on each graph size
+- **One language** — TypeScript (fastest iteration for demo integration)
 
 ### Deliverables
 
+- [ ] `demo/` — React Flow visualization app
 - [ ] `examples/dijkstra/Cpp/`
 - [ ] `examples/dijkstra/Rust/`
 - [ ] `examples/dijkstra/Zig/`
+- [ ] `examples/dijkstra/graphs/medium.json` — ~100 node graph
+- [ ] `examples/dijkstra/graphs/large.json` — ~1000 node graph
+- [ ] `benchmarks/basic/` — Simple d=2 vs d=4 comparison
+- [ ] Updated README with demo link and examples matrix
+
+---
+
+## v2.5.0 — Extensive Benchmarks
+
+> *Why separate from v2.4.0?*
+
+Rigorous benchmarking requires careful methodology: multiple runs, statistical analysis, and reproducibility across machines. This deserves focused attention after the demo proves the concept.
+
+### Deliverables
+
 - [ ] `benchmarks/scripts/` — Benchmark runners for each language
 - [ ] `benchmarks/results/` — Comparative data (d=2 vs d=4 vs d=8)
-- [ ] Updated README with complete examples matrix
+- [ ] `benchmarks/methodology.md` — Reproducible benchmark protocol
+- [ ] Cross-language performance comparison (C++, Go, Rust, Zig, TypeScript)
+- [ ] Dense vs sparse graph analysis
+- [ ] Memory usage profiling
 
 ---
 
@@ -88,9 +121,8 @@ The following are under consideration but not yet scheduled:
 | Item | Description |
 |------|-------------|
 | **Julia implementation** | No d-ary heap exists in the Julia ecosystem—significant gap |
-| **React Flow visualization** | Interactive step-through of Dijkstra with animated heap operations |
 | **Additional examples** | Prim's MST, A* search, event-driven simulation |
-| **Performance benchmarks** | Formal benchmarks with reproducible methodology |
+| **Hosted demo** | Deploy React Flow visualization to GitHub Pages or Vercel |
 
 ---
 
