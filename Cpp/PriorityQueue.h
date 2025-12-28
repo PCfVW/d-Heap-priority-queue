@@ -10,16 +10,29 @@
 ///
 /// This file is divided as follows:
 ///	- File History					(Line 19)
-/// - Inclusion of files			(Line 123)
-///	- Namespace declaration			(Line 136)
-///	- Class declaration				(Line 145)
+/// - Inclusion of files			(Line 143)
+///	- Namespace declaration			(Line 156)
+///	- Class declaration				(Line 165)
 ///
-///	- End of file					(line 415)
+///	- End of file					(line 435)
 ///
 /// =================================================================================================================== File history
 ///
-/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/12/25]
-/// Version: 2.2.0
+/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/12/27]
+/// Version: 2.3.0
+///
+/// [v2.3.0] Go Implementation Release -------------------------------------------------------------------------------- 2025/12/27
+///     - Added complete Go implementation with full API parity (fifth language)
+///     - Go generics support: PriorityQueue[T any, K comparable] with Comparator and KeyExtractor
+///     - Go Dijkstra example demonstrating d-heap usage in examples/dijkstra/Go/
+///     - Comparator utilities: MinBy(), MaxBy() factory functions and pre-built comparators
+///     - Bulk operations: InsertMany(), PopMany() with Floyd's O(n) heapify algorithm
+///     - Cross-language aliases: Snake_case method aliases (Is_empty(), Increase_priority(), etc.)
+///     - Go workspace configuration with go.work for multi-module development
+///     - 47 test cases covering all functionality in Go implementation
+///     - All five implementations now maintain synchronized version numbers and API parity
+///     - Updated Rust package name to `d-ary-heap` for clarity and consistency
+///     - Standardized Rust library name to `d_ary_heap` throughout the codebase
 ///
 /// [v2.2.0] Examples Infrastructure + TypeScript Dijkstra Release ---------------------------------------------------- 2025/12/26
 ///     - Added examples/dijkstra/ infrastructure with Network Flows textbook example (Figure 4.7, page 110)
@@ -53,7 +66,7 @@
 ///     - Added peek() alias and initCapacity() methods in Zig for API completeness
 ///     - All four implementations maintain synchronized version numbers and API parity
 ///
-/// [v1.1.0] Enhanced Release - Three-Language Implementation ---------------------------------------------------------- 2025/09/26
+/// [v1.1.0] Enhanced Release - Three-Language Implementation --------------------------------------------------------- 2025/09/26
 ///     - Complete Zig implementation added with full API parity
 ///     - All three languages (C++, Rust, Zig) now provide identical functionality
 ///     - Enhanced documentation with cross-language comparison and usage guides
@@ -66,7 +79,7 @@
 ///     - Cross-language API parity with Rust implementation
 ///     - Professional documentation with usage examples and design explanations
 ///
-/// [DEV 5] Cross-Language API Consistency --------------------------------------------------------------------------- 2025/09/25
+/// [DEV 5] Cross-Language API Consistency ---------------------------------------------------------------------------- 2025/09/25
 ///     - Cross-language API methods added for consistency across C++, Rust, Zig, and TypeScript:
 ///			- size() -> len() (unified across all languages)
 ///			- empty() -> is_empty() (C++/Rust snake_case, Zig/TypeScript camelCase as isEmpty())

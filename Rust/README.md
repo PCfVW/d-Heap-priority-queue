@@ -3,7 +3,7 @@
 ![crates.io](https://img.shields.io/crates/v/d-ary-heap.svg)
 ![docs.rs](https://docs.rs/d-ary-heap/badge.svg)
 
-# d-ary Heap Priority Queue (Rust) v2.2.0
+# d-ary Heap Priority Queue (Rust) v2.3.0
 
 **Wikipedia-standard d-ary heap implementation** with O(1) item lookup and configurable arity.
 
@@ -25,7 +25,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-d-ary-heap = "2.2.0"
+d-ary-heap = "2.3.0"
 ```
 
 ## Quick Start

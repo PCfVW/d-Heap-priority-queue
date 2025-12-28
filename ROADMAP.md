@@ -14,11 +14,31 @@ Each milestone follows a deliberate sequence:
 
 ## Current Status
 
-**v2.2.0** — Core implementations complete for C++, Rust, Zig, and TypeScript.
+**v2.3.0** — Core implementations complete for C++, Go, Rust, Zig, and TypeScript.
 
 ---
 
-## v2.2.0 — Examples Infrastructure + TypeScript Dijkstra
+## v2.3.0 — Go Implementation ✅
+
+> *Why Go? Why now?*
+
+Research revealed the only existing Go d-ary heap library lacks `decrease_priority` and O(1) item lookup—the very features that make d-ary heaps useful for graph algorithms.
+
+Adding Go after the TypeScript example (rather than before) means:
+- **The example pattern exists** — Dijkstra structure is already defined
+- **Architecture is validated** — `go.work` setup tested with a real use case
+- **Different audience reached** — Go developers ≠ TypeScript developers
+
+### Deliverables
+
+- [x] `Go/` — Full implementation with API parity
+- [x] `go.work` — Workspace configuration for local development
+- [x] `examples/dijkstra/Go/` — Dijkstra implementation
+- [ ] Published on [pkg.go.dev](https://pkg.go.dev)
+
+---
+
+## v2.2.0 — Examples Infrastructure + TypeScript Dijkstra ✅
 
 > *Why start here?*
 
@@ -36,26 +56,6 @@ Starting with TypeScript enables:
 - [x] `examples/dijkstra/graphs/small.json` — Shared test graph (used by all languages)
 - [x] `examples/dijkstra/TypeScript/` — Working implementation
 - [x] `benchmarks/` directory scaffold (populated in v2.4.0)
-
----
-
-## v2.3.0 — Go Implementation
-
-> *Why Go? Why now?*
-
-Research revealed the only existing Go d-ary heap library lacks `decrease_priority` and O(1) item lookup—the very features that make d-ary heaps useful for graph algorithms.
-
-Adding Go after the TypeScript example (rather than before) means:
-- **The example pattern exists** — Dijkstra structure is already defined
-- **Architecture is validated** — `go.work` setup tested with a real use case
-- **Different audience reached** — Go developers ≠ TypeScript developers
-
-### Deliverables
-
-- [ ] `Go/` — Full implementation with API parity
-- [ ] `go.work` — Workspace configuration for local development
-- [ ] `examples/dijkstra/Go/` — Dijkstra implementation
-- [ ] Published on [pkg.go.dev](https://pkg.go.dev)
 
 ---
 

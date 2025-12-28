@@ -5,7 +5,7 @@
  *
  * @packageDocumentation
  * @module d-ary-heap
- * @version 2.2.0
+ * @version 2.3.0
  * @license Apache-2.0
  * @copyright 2023-2025 Eric Jacopin
  */

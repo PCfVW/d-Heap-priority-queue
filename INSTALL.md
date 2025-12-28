@@ -1,5 +1,64 @@
 # Installation Guide
 
+## Go Installation
+
+### Prerequisites
+- **Go 1.21+** (for generics support)
+
+### Install
+
+```bash
+go get github.com/PCfVW/d-Heap-priority-queue/Go/src@v2.3.0
+```
+
+### Usage
+
+```go
+package main
+
+import (
+    "fmt"
+    dheap "github.com/PCfVW/d-Heap-priority-queue/Go/src"
+)
+
+type Task struct {
+    ID       string
+    Priority int
+}
+
+func main() {
+    pq := dheap.New(dheap.Options[Task, string]{
+        D:            4,
+        Comparator:   dheap.MinBy(func(t Task) int { return t.Priority }),
+        KeyExtractor: func(t Task) string { return t.ID },
+    })
+
+    pq.Insert(Task{ID: "task1", Priority: 10})
+    pq.Insert(Task{ID: "task2", Priority: 5})
+
+    top, _ := pq.Front()
+    fmt.Printf("Top: %s\n", top.ID)  // task2
+}
+```
+
+### Cross-Language Compatibility
+
+Go provides both PascalCase (primary) and snake_case (compatibility) methods:
+
+```go
+// Primary Go style
+pq.IsEmpty()
+pq.IncreasePriority(item)
+pq.String()
+
+// Cross-language compatibility aliases
+pq.Is_empty()
+pq.Increase_priority(item)
+pq.To_string()
+```
+
+---
+
 ## TypeScript Installation
 
 ### Prerequisites
@@ -68,7 +127,7 @@ pq.to_string()
     .version = "0.1.0",
     .dependencies = .{
         .d_heap = .{
-            .url = "https://github.com/your-username/priority-queues/archive/refs/tags/v2.2.0.tar.gz",
+            .url = "https://github.com/PCfVW/priority-queues/archive/refs/tags/v2.3.0.tar.gz",
             .hash = "1220abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         },
     },
@@ -136,7 +195,7 @@ pub fn main() !void {
 }
 ```
 
-### Cross-Language Compatibility (v2.2.0+)
+### Cross-Language Compatibility (v2.3.0+)
 
 Zig provides both camelCase (primary) and snake_case (compatibility) methods:
 
@@ -146,9 +205,8 @@ heap.isEmpty()
 heap.increasePriority(item)
 heap.toString()
 
-// Cross-language compatibility aliases  
+// Cross-language compatibility aliases
 heap.to_string()  // Available in v2.2.0+
-```
 ```
 
 ### Custom Item Types
@@ -235,10 +293,10 @@ int main() {
 ```toml
 [dependencies]
 # If published to crates.io (not recommended based on analysis)
-# rust_priority_queue = "2.2.0"
+# rust_priority_queue = "2.3.0"
 
 # Or use git dependency
-rust_priority_queue = { git = "https://github.com/your-username/priority-queues", tag = "v2.2.0" }
+rust_priority_queue = { git = "https://github.com/PCfVW/priority-queues", tag = "v2.3.0" }
 ```
 
 ### Usage
@@ -260,24 +318,34 @@ fn main() {
 
 Different languages follow their respective naming conventions:
 
-| Function | C++ | Rust | Zig | TypeScript |
-|----------|-----|------|-----|------------|
-| **Check Empty** | `is_empty()` | `is_empty()` | `isEmpty()` | `isEmpty()` |
-| **Increase Priority** | `increase_priority()` | `increase_priority()` | `increasePriority()` | `increasePriority()` |
-| **String Output** | `to_string()` | `to_string()` | `toString()` / `to_string()` | `toString()` / `to_string()` |
+| Function | C++ | Go | Rust | Zig | TypeScript |
+|----------|-----|-----|------|-----|------------|
+| **Check Empty** | `is_empty()` | `IsEmpty()` | `is_empty()` | `isEmpty()` | `isEmpty()` |
+| **Increase Priority** | `increase_priority()` | `IncreasePriority()` | `increase_priority()` | `increasePriority()` | `increasePriority()` |
+| **String Output** | `to_string()` | `String()` | `to_string()` | `toString()` / `to_string()` | `toString()` / `to_string()` |
 
-### Compatibility Features (v2.2.0+)
+### Compatibility Features (v2.3.0+)
+- **Go**: Provides snake_case aliases (`Is_empty()`, `To_string()`) for cross-language consistency
 - **Zig**: Added `to_string()` alias for cross-language consistency
 - **TypeScript**: Provides complete snake_case aliases for all camelCase methods
-- **Error Handling**: Each language uses idiomatic error handling (assertions, panics, error unions, exceptions)
+- **Error Handling**: Each language uses idiomatic error handling (assertions, panics, error unions, exceptions, ok booleans)
 
 ## Building from Source
 
 ### Clone the repository
 
 ```bash
-git clone https://github.com/your-username/priority-queues.git
+git clone https://github.com/PCfVW/priority-queues.git
 cd priority-queues
+```
+
+### Go
+
+```bash
+cd Go
+go build ./...   # Build all packages
+go test ./...    # Run tests
+go run examples/dijkstra/Go/main.go  # Run Dijkstra example
 ```
 
 ### Zig
@@ -342,17 +410,18 @@ error: hash mismatch: expected 1220abc..., found 1220def...
 Copy the "found" hash to your `build.zig.zon`.
 
 ### Zig Version Compatibility
-- **v2.2.0+**: Requires Zig 0.15.2+
-- **v2.0.0-v2.1.1**: Requires Zig 0.15.2+  
+- **v2.3.0+**: Requires Zig 0.15.2+
+- **v2.0.0-v2.2.0**: Requires Zig 0.15.2+
 - **v1.x**: For older Zig versions, use v1.1.0
 
 ### Version Compatibility Matrix
 
-| Package Version | Zig | C++ | Rust | TypeScript | Node.js |
-|----------------|-----|-----|------|------------|---------|
-| **v2.2.0** | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
-| **v2.1.1** | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
-| **v2.0.0** | 0.15.2+ | C++17+ | 2021+ | N/A | N/A |
+| Package Version | Go | Zig | C++ | Rust | TypeScript | Node.js |
+|----------------|-----|-----|-----|------|------------|---------|
+| **v2.3.0** | 1.21+ | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
+| **v2.2.0** | N/A | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
+| **v2.1.1** | N/A | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
+| **v2.0.0** | N/A | 0.15.2+ | C++17+ | 2021+ | N/A | N/A |
 
 ### Build Issues
 - Ensure you have the correct compiler versions (see compatibility matrix above)
@@ -365,6 +434,7 @@ Copy the "found" hash to your `build.zig.zon`.
 Each language handles errors idiomatically:
 
 - **C++**: Assertions (`assert()`) - check conditions before calling methods
+- **Go**: Ok booleans - use `Peek()` for safe access, errors returned as second value
 - **Rust**: Panics with messages - use `peek()` for safe access
 - **Zig**: Error unions (`!void`) - handle with `try` or explicit checking
 - **TypeScript**: Exceptions - use try-catch or `peek()` for safe access
