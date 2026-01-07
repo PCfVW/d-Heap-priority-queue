@@ -1,0 +1,29 @@
+{
+  "vertices": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"],
+  "edges": [
+    {"from": "A", "to": "B", "weight": 5},
+    {"from": "A", "to": "C", "weight": 3},
+    {"from": "A", "to": "D", "weight": 7},
+    {"from": "B", "to": "C", "weight": 2},
+    {"from": "B", "to": "E", "weight": 4},
+    {"from": "C", "to": "D", "weight": 1},
+    {"from": "C", "to": "F", "weight": 6},
+    {"from": "D", "to": "G", "weight": 3},
+    {"from": "E", "to": "F", "weight": 2},
+    {"from": "E", "to": "H", "weight": 5},
+    {"from": "F", "to": "G", "weight": 4},
+    {"from": "F", "to": "I", "weight": 3},
+    {"from": "G", "to": "J", "weight": 2},
+    {"from": "H", "to": "I", "weight": 1},
+    {"from": "H", "to": "K", "weight": 6},
+    {"from": "I", "to": "J", "weight": 4},
+    {"from": "I", "to": "L", "weight": 2},
+    {"from": "J", "to": "M", "weight": 3},
+    {"from": "K", "to": "L", "weight": 2},
+    {"from": "K", "to": "N", "weight": 5},
+    {"from": "L", "to": "M", "weight": 1},
+    {"from": "L", "to": "N", "weight": 4},
+    {"from": "M", "to": "O", "weight": 3},
+    {"from": "N", "to": "O", "weight": 2}
+  ]
+}
