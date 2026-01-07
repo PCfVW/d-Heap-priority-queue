@@ -184,7 +184,7 @@ Choose extensions based on your specific use case—core functionality remains i
 **Current Version: 2.4.0** — Interactive Demo & Zig Bulk Operations
 
 **What's New in 2.4.0:**
-- 🎯 **[Interactive Demo](https://eric-jacopin.github.io/Priority-Queues/)**: React Flow visualization of d-ary heaps with Dijkstra's algorithm
+- 🎯 **[Interactive Demo](https://pcfvw.github.io/Priority-Queues/)**: React Flow visualization of d-ary heaps with Dijkstra's algorithm
   - Dual-panel layout with heap tree and graph visualization
   - Arity comparison (d=2, d=4, d=8) and Race Mode
   - Timeline scrubber, playback controls, keyboard shortcuts
