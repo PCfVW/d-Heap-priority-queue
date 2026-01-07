@@ -415,11 +415,16 @@ func (pq *PriorityQueue[T, K]) Increase_priority(updatedItem T) error {
 // Cross-language equivalents:
 //   - Rust: increase_priority_by_index(index)
 //   - TypeScript: increasePriorityByIndex(index)
-func (pq *PriorityQueue[T, K]) IncreasePriorityByIndex(index int) {
+func (pq *PriorityQueue[T, K]) IncreasePriorityByIndex(index Position) {
 	if index < 0 || index >= len(pq.container) {
 		panic("index out of bounds")
 	}
 	pq.moveUp(index)
+}
+
+// Increase_priority_by_index is a snake_case alias for IncreasePriorityByIndex (cross-language consistency).
+func (pq *PriorityQueue[T, K]) Increase_priority_by_index(index Position) {
+	pq.IncreasePriorityByIndex(index)
 }
 
 // DecreasePriority updates an existing item to have lower priority (moves toward leaves).
@@ -587,7 +592,7 @@ func (pq *PriorityQueue[T, K]) To_string() string {
 // ===========================================================================
 
 // swap exchanges two items in the heap and updates their position mappings.
-func (pq *PriorityQueue[T, K]) swap(i, j int) {
+func (pq *PriorityQueue[T, K]) swap(i, j Position) {
 	pq.container[i], pq.container[j] = pq.container[j], pq.container[i]
 
 	// Update positions
@@ -596,7 +601,8 @@ func (pq *PriorityQueue[T, K]) swap(i, j int) {
 }
 
 // bestChildPosition finds the child with highest priority among all children of node i.
-func (pq *PriorityQueue[T, K]) bestChildPosition(i int) int {
+// Children of node i are at indices: left = i*d+1 through i*d+d (inclusive), i.e., [left, left+d-1].
+func (pq *PriorityQueue[T, K]) bestChildPosition(i Position) Position {
 	d := pq.depth
 	n := len(pq.container)
 	left := i*d + 1
@@ -606,12 +612,13 @@ func (pq *PriorityQueue[T, K]) bestChildPosition(i int) int {
 	}
 
 	best := left
-	right := (i+1)*d + 1
-	if right > n {
-		right = n
+	// rightBound is the exclusive upper bound for iteration (one past the last child index)
+	rightBound := (i+1)*d + 1
+	if rightBound > n {
+		rightBound = n
 	}
 
-	for j := left + 1; j < right; j++ {
+	for j := left + 1; j < rightBound; j++ {
 		if pq.comparator(pq.container[j], pq.container[best]) {
 			best = j
 		}
@@ -621,7 +628,7 @@ func (pq *PriorityQueue[T, K]) bestChildPosition(i int) int {
 }
 
 // moveUp sifts an item up to restore heap property.
-func (pq *PriorityQueue[T, K]) moveUp(i int) {
+func (pq *PriorityQueue[T, K]) moveUp(i Position) {
 	d := pq.depth
 
 	for i > 0 {
@@ -636,7 +643,7 @@ func (pq *PriorityQueue[T, K]) moveUp(i int) {
 }
 
 // moveDown sifts an item down to restore heap property.
-func (pq *PriorityQueue[T, K]) moveDown(i int) {
+func (pq *PriorityQueue[T, K]) moveDown(i Position) {
 	d := pq.depth
 	n := len(pq.container)
 
