@@ -2,7 +2,7 @@
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
 
-**[Live Demo: Interactive Visualization](https://eric-jacopin.github.io/Priority-Queues/)** - See how d-ary heaps work with Dijkstra's algorithm
+**[Live Demo: Interactive Visualization](https://pcfvw.github.io/Priority-Queues/)** - See how d-ary heaps work with Dijkstra's algorithm
 
 - Min-heap or max-heap behavior via comparator
 - Efficient operations: O(1) front, O(log_d n) insert/update, O(d · log_d n) pop
@@ -233,7 +233,7 @@ All five implementations share synchronized version numbers to ensure feature co
 
 ## Getting Started
 
-**New in v2.4.0**: Try the [Interactive Demo](https://eric-jacopin.github.io/Priority-Queues/) to visualize d-ary heaps with Dijkstra's algorithm. Also check out the [Dijkstra examples](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/examples/dijkstra) available in Go, TypeScript, and more.
+**New in v2.4.0**: Try the [Interactive Demo](https://pcfvw.github.io/Priority-Queues/) to visualize d-ary heaps with Dijkstra's algorithm. Also check out the [Dijkstra examples](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/examples/dijkstra) available in Go, TypeScript, and more.
 
 Explore the language-specific implementations:
 
