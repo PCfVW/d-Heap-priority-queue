@@ -112,6 +112,19 @@ Rigorous benchmarking requires careful methodology: multiple runs, statistical a
 - [ ] Dense vs sparse graph analysis
 - [ ] Memory usage profiling
 
+### Cross-Language Instrumentation
+
+Extend the TypeScript instrumentation pattern to all languages for consistent benchmarking:
+
+| Language   | Mechanism                        | Overhead When Disabled |
+|------------|----------------------------------|------------------------|
+| Go         | Nil stats pointer                | ~1 cycle (nil check)   |
+| Rust       | Generic over StatsCollector trait | Zero (monomorphization) |
+| C++        | Template policy class            | Zero (inlining)        |
+| Zig        | Comptime bool parameter          | Zero (branch elimination) |
+
+Each implementation will track comparison counts per operation (insert, pop, decreasePriority) with zero overhead when disabled, matching the TypeScript design from v2.4.0.
+
 ---
 
 ## Future Considerations

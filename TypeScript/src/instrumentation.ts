@@ -18,15 +18,16 @@
  *
  * ## Cross-Language Consistency
  *
- * This pattern is implemented consistently across all d-ary-heap implementations:
+ * Currently, instrumentation is implemented in TypeScript only. The table below
+ * shows the idiomatic zero-cost approach for each language, planned for v2.5.0:
  *
- * | Language   | Mechanism                        | Overhead When Disabled |
- * |------------|----------------------------------|------------------------|
- * | TypeScript | Optional hooks + instrumented comparator | Zero (JIT optimization) |
- * | Go         | Nil stats pointer                | ~1 cycle (nil check)   |
- * | Rust       | Generic over StatsCollector trait | Zero (monomorphization) |
- * | C++        | Template policy class            | Zero (inlining)        |
- * | Zig        | Comptime bool parameter          | Zero (branch elimination) |
+ * | Language   | Mechanism                        | Overhead When Disabled | Status |
+ * |------------|----------------------------------|------------------------|--------|
+ * | TypeScript | Optional hooks + instrumented comparator | Zero (JIT optimization) | ✅ Implemented |
+ * | Go         | Nil stats pointer                | ~1 cycle (nil check)   | Planned v2.5.0 |
+ * | Rust       | Generic over StatsCollector trait | Zero (monomorphization) | Planned v2.5.0 |
+ * | C++        | Template policy class            | Zero (inlining)        | Planned v2.5.0 |
+ * | Zig        | Comptime bool parameter          | Zero (branch elimination) | Planned v2.5.0 |
  *
  * ## Usage Example
  *
