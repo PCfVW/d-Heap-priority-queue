@@ -325,6 +325,47 @@ pub fn DHeap(
             try self.moveUp(index);
         }
 
+        /// Insert multiple items into the heap.
+        ///
+        /// Uses Floyd's heapify algorithm which is O(n) for bulk insertion when
+        /// starting from an empty heap, vs O(n log n) for individual inserts.
+        ///
+        /// Time complexity: O(n) where n is total items after insertion (when starting empty)
+        ///                  O(k log n) when inserting k items into non-empty heap
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: InsertMany()
+        ///   - TypeScript: insertMany()
+        ///
+        /// Returns: Error if allocation fails
+        pub fn insertMany(self: *Self, items: []const T) !void {
+            if (items.len == 0) return;
+
+            const start_index = self.container.items.len;
+
+            // Add all items to container and positions map
+            for (items, 0..) |item, i| {
+                try self.container.append(self.allocator, item);
+                try self.positions.put(item, start_index + i);
+            }
+
+            // If this was an empty heap, use heapify O(n) instead of n insertions O(n log n)
+            if (start_index == 0 and items.len > 1) {
+                try self.heapify();
+            } else {
+                // Otherwise, sift up each new item
+                var i: usize = start_index;
+                while (i < self.container.items.len) : (i += 1) {
+                    try self.moveUp(i);
+                }
+            }
+        }
+
+        /// Alias for insertMany() - snake_case for cross-language consistency.
+        pub fn insert_many(self: *Self, items: []const T) !void {
+            return self.insertMany(items);
+        }
+
         /// Increase the priority of an existing item (move toward root).
         ///
         /// Updates an item's priority and repositions it upward in the heap.
@@ -387,7 +428,9 @@ pub fn DHeap(
         /// Returns null if the heap is empty.
         ///
         /// Time complexity: O(d · log_d n)
-        pub fn pop(self: *Self) ?T {
+        ///
+        /// Returns: The highest-priority item, null if empty, or error if internal operation fails
+        pub fn pop(self: *Self) !?T {
             if (self.container.items.len == 0) return null;
 
             const top = self.container.items[0];
@@ -395,7 +438,7 @@ pub fn DHeap(
 
             if (last_index > 0) {
                 // Swap root with last element
-                self.swapItems(0, last_index);
+                try self.swapItems(0, last_index);
             }
 
             // Remove the last element (which is now the old root)
@@ -404,11 +447,72 @@ pub fn DHeap(
 
             // Restore heap property if there are remaining items
             if (self.container.items.len > 0) {
-                // moveDown can't fail here because we're not adding items
-                self.moveDown(0) catch {};
+                try self.moveDown(0);
             }
 
             return top;
+        }
+
+        /// Remove and return multiple highest-priority items.
+        ///
+        /// Returns a slice containing up to `count` items in priority order.
+        /// The caller owns the returned memory and must free it.
+        ///
+        /// Time complexity: O(count · d · log_d n)
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: PopMany()
+        ///   - TypeScript: popMany()
+        ///
+        /// Returns: Allocated slice of popped items, or error if allocation fails
+        pub fn popMany(self: *Self, count: usize) ![]T {
+            const actual_count = @min(count, self.container.items.len);
+            if (actual_count == 0) {
+                return &[_]T{};
+            }
+
+            var result = try self.allocator.alloc(T, actual_count);
+            errdefer self.allocator.free(result);
+
+            for (0..actual_count) |i| {
+                if (try self.pop()) |item| {
+                    result[i] = item;
+                }
+            }
+
+            return result;
+        }
+
+        /// Alias for popMany() - snake_case for cross-language consistency.
+        pub fn pop_many(self: *Self, count: usize) ![]T {
+            return self.popMany(count);
+        }
+
+        /// Get a copy of all items in heap order (not priority order).
+        ///
+        /// Returns a newly allocated slice containing all items.
+        /// The caller owns the returned memory and must free it.
+        ///
+        /// Time complexity: O(n)
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: ToArray()
+        ///   - TypeScript: toArray()
+        ///
+        /// Returns: Allocated slice of all items, or error if allocation fails
+        pub fn toArray(self: *const Self) ![]T {
+            if (self.container.items.len == 0) {
+                return &[_]T{};
+            }
+
+            const result = try self.allocator.alloc(T, self.container.items.len);
+            @memcpy(result, self.container.items);
+            return result;
+        }
+
+        /// Alias for toArray() - snake_case for cross-language consistency.
+        pub fn to_array(self: *const Self) ![]T {
+            return self.toArray();
         }
 
         /// Clear all items from the heap, optionally changing the arity.
@@ -492,29 +596,42 @@ pub fn DHeap(
         ///
         /// This is a low-level operation that updates both the container and
         /// the position HashMap.
-        fn swapItems(self: *Self, i: usize, j: usize) void {
+        ///
+        /// Returns: Error if position map update fails (should not happen for existing keys)
+        fn swapItems(self: *Self, i: usize, j: usize) !void {
             if (i == j) return;
 
             // Swap in container
             std.mem.swap(T, &self.container.items[i], &self.container.items[j]);
 
             // Update positions in HashMap
-            // SAFETY: These items are already in the HashMap (inserted during insert()).
+            // These items are already in the HashMap (inserted during insert()).
             // We're only updating the position values, not adding new keys.
             // The put() operation for existing keys should not require allocation
-            // in most cases, but we handle potential errors gracefully.
-            self.positions.put(self.container.items[i], i) catch {
-                // This should not happen for existing keys, but if it does,
-                // the heap invariants may be violated. In debug builds, we panic.
-                if (std.debug.runtime_safety) {
-                    @panic("Failed to update position in HashMap during swap");
-                }
-            };
-            self.positions.put(self.container.items[j], j) catch {
-                if (std.debug.runtime_safety) {
-                    @panic("Failed to update position in HashMap during swap");
-                }
-            };
+            // in most cases, but we propagate any errors to maintain heap invariants.
+            try self.positions.put(self.container.items[i], i);
+            try self.positions.put(self.container.items[j], j);
+        }
+
+        /// Build heap property from unordered array using Floyd's algorithm.
+        ///
+        /// Called internally by insertMany when starting from empty heap.
+        /// Time complexity: O(n)
+        fn heapify(self: *Self) !void {
+            const n = self.container.items.len;
+            if (n <= 1) return;
+
+            // Start from last non-leaf node and sift down each
+            // Last non-leaf is parent of last element: floor((n-2)/d)
+            // Use saturating subtraction to handle n < 2 case safely
+            const last_non_leaf = (n -| 2) / self.depth;
+
+            // Iterate from last_non_leaf down to 0 (inclusive)
+            var i: usize = last_non_leaf + 1;
+            while (i > 0) {
+                i -= 1;
+                try self.moveDown(i);
+            }
         }
 
         /// Move an item upward in the heap to restore heap property.
@@ -523,7 +640,7 @@ pub fn DHeap(
             while (i > 0) {
                 const p = self.parent(i);
                 if (self.comparator.higherPriority(self.container.items[i], self.container.items[p])) {
-                    self.swapItems(i, p);
+                    try self.swapItems(i, p);
                     i = p;
                 } else {
                     break;
@@ -540,7 +657,7 @@ pub fn DHeap(
 
                 const best = self.bestChildPosition(i);
                 if (self.comparator.higherPriority(self.container.items[best], self.container.items[i])) {
-                    self.swapItems(i, best);
+                    try self.swapItems(i, best);
                     i = best;
                 } else {
                     break;

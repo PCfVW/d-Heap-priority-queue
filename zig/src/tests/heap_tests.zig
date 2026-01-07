@@ -52,7 +52,7 @@ test "basic heap operations" {
     try testing.expectEqual(@as(u32, 1), heap.front().?.cost);
 
     // Pop and verify
-    _ = heap.pop();
+    _ = try heap.pop();
     try testing.expectEqual(@as(u32, 5), heap.front().?.cost);
     try testing.expectEqual(@as(usize, 1), heap.len());
 }
@@ -85,7 +85,7 @@ test "min heap ordering" {
         }
         first = false;
         last_cost = top.cost;
-        _ = heap.pop();
+        _ = try heap.pop();
     }
 }
 
@@ -118,7 +118,7 @@ test "min heap with different arities" {
             }
             first = false;
             last = top.cost;
-            _ = heap.pop();
+            _ = try heap.pop();
         }
     }
 }
@@ -151,7 +151,7 @@ test "max heap ordering" {
         }
         first = false;
         last_cost = top.cost;
-        _ = heap.pop();
+        _ = try heap.pop();
     }
 }
 
@@ -360,7 +360,7 @@ test "empty heap pop returns null" {
     var heap = try DHeap.init(2, MinByCost, allocator);
     defer heap.deinit();
 
-    try testing.expectEqual(heap.pop(), null);
+    try testing.expectEqual(try heap.pop(), null);
 }
 
 test "single item operations" {
@@ -382,7 +382,7 @@ test "single item operations" {
     try testing.expectEqual(@as(u32, 50), heap.front().?.cost);
 
     // Pop single item
-    const popped = heap.pop();
+    const popped = try heap.pop();
     try testing.expectEqual(@as(u32, 42), popped.?.number);
     try testing.expect(heap.isEmpty());
 }
@@ -502,7 +502,7 @@ test "heap property maintained after mixed operations" {
     try testing.expectEqual(@as(u32, 1), heap.front().?.number); // Still item 1
 
     // Pop front
-    _ = heap.pop();
+    _ = try heap.pop();
     try testing.expectEqual(@as(u32, 4), heap.front().?.number); // Item 4 (cost 20)
 
     // Decrease priority of item 4 (20 -> 45)
@@ -519,6 +519,6 @@ test "heap property maintained after mixed operations" {
         }
         first = false;
         last = top.cost;
-        _ = heap.pop();
+        _ = try heap.pop();
     }
 }
