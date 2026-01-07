@@ -1,6 +1,8 @@
-# Min/Max d-Heap Priority Queues (C++, Go, Rust, Zig, and TypeScript) v2.3.0
+# Min/Max d-Heap Priority Queues (C++, Go, Rust, Zig, and TypeScript) v2.4.0
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
+
+**[Live Demo: Interactive Visualization](https://eric-jacopin.github.io/Priority-Queues/)** - See how d-ary heaps work with Dijkstra's algorithm
 
 - Min-heap or max-heap behavior via comparator
 - Efficient operations: O(1) front, O(log_d n) insert/update, O(d · log_d n) pop
@@ -160,6 +162,8 @@ While all implementations provide the core d-heap functionality, each offers add
 
 ### Zig Extensions
 - **Pre-allocation**: `initCapacity()` constructor for performance optimization
+- **Bulk operations**: `insertMany()`, `popMany()` for efficient batch processing with Floyd's heapify algorithm
+- **Array access**: `toArray()` method for integration with Zig slices
 - **Generic types**: Full compile-time generics with `DHeap(T, Context, Comparator)`
 - **Explicit memory**: Manual allocator management following Zig best practices
 - **Compile-time optimization**: `comptime` features for zero-runtime-cost abstractions
@@ -177,9 +181,18 @@ Choose extensions based on your specific use case—core functionality remains i
 
 ## Version Information
 
-**Current Version: 2.3.0** — Go Implementation
+**Current Version: 2.4.0** — Zig Bulk Operations & Go Refinements
 
-**What's New in 2.3.0:**
+**What's New in 2.4.0:**
+- ✅ **Zig Bulk Operations**: Added `insertMany()` with Floyd's O(n) heapify algorithm for efficient batch insertion
+- ✅ **Zig Pop Many**: Added `popMany(count)` method for removing multiple highest-priority items at once
+- ✅ **Zig Array Access**: Added `toArray()` method for integration with Zig slices
+- ✅ **Zig Snake_case Aliases**: Added `insert_many()`, `pop_many()`, `to_array()` aliases for cross-language consistency
+- ✅ **Zig Error Handling**: Improved error propagation in `swapItems()` and `pop()` methods
+- ✅ **Go Internal Consistency**: Now uses `Position` type alias internally for documentation clarity
+- ✅ **Go Snake_case Alias**: Added `Increase_priority_by_index()` alias for consistency
+
+**Previous in 2.3.0:**
 - ✅ **Go Implementation**: Complete d-heap priority queue in Go with full API parity
 - ✅ **Go Generics**: Full generic support with `PriorityQueue[T any, K comparable]`
 - ✅ **Go Dijkstra Example**: Complete working example demonstrating d-heap usage

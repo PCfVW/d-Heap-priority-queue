@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-01-07
+
+### Added
+- **Zig Bulk Operations**: Added `insertMany()` with Floyd's O(n) heapify algorithm for efficient batch insertion
+- **Zig Pop Many**: Added `popMany(count)` method for removing multiple highest-priority items at once
+- **Zig Array Access**: Added `toArray()` method for integration with Zig slices
+- **Zig Snake_case Aliases**: Added `insert_many()`, `pop_many()`, `to_array()` aliases for cross-language consistency
+- **Go Snake_case Alias**: Added `Increase_priority_by_index()` alias for consistency with other Go aliases
+
+### Changed
+- **Go Internal Consistency**: Now uses `Position` type alias internally instead of raw `int` for documentation clarity
+- **Go Documentation**: Renamed `right` to `rightBound` in `bestChildPosition()` with clarifying comments
+- **Zig Error Handling**: `swapItems()` now properly propagates errors instead of silently ignoring allocation failures
+- **Zig pop() Signature**: Changed from `?T` to `!?T` to properly propagate potential errors from internal operations
+- **README Zig Extensions**: Updated to document new bulk operations and array access features
+
+### Technical Details (Zig)
+- `insertMany()` uses Floyd's heapify algorithm when starting from empty heap (O(n) vs O(n log n))
+- `popMany()` returns caller-owned allocated slice that must be freed
+- `toArray()` returns a copy of all items in heap order (not priority order)
+- Error propagation ensures heap invariants are never silently corrupted
+
+### Technical Details (Go)
+- `Position` type alias now used in `swap()`, `bestChildPosition()`, `moveUp()`, `moveDown()`, and `IncreasePriorityByIndex()`
+- Variable naming improved for clarity in child position calculations
+
 ## [2.3.0] - 2025-12-27
 
 ### Added
