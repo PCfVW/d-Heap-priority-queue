@@ -181,16 +181,18 @@ Choose extensions based on your specific use case—core functionality remains i
 
 ## Version Information
 
-**Current Version: 2.4.0** — Zig Bulk Operations & Go Refinements
+**Current Version: 2.4.0** — Interactive Demo & Zig Bulk Operations
 
 **What's New in 2.4.0:**
-- ✅ **Zig Bulk Operations**: Added `insertMany()` with Floyd's O(n) heapify algorithm for efficient batch insertion
-- ✅ **Zig Pop Many**: Added `popMany(count)` method for removing multiple highest-priority items at once
-- ✅ **Zig Array Access**: Added `toArray()` method for integration with Zig slices
-- ✅ **Zig Snake_case Aliases**: Added `insert_many()`, `pop_many()`, `to_array()` aliases for cross-language consistency
-- ✅ **Zig Error Handling**: Improved error propagation in `swapItems()` and `pop()` methods
-- ✅ **Go Internal Consistency**: Now uses `Position` type alias internally for documentation clarity
-- ✅ **Go Snake_case Alias**: Added `Increase_priority_by_index()` alias for consistency
+- 🎯 **[Interactive Demo](https://eric-jacopin.github.io/Priority-Queues/)**: React Flow visualization of d-ary heaps with Dijkstra's algorithm
+  - Dual-panel layout with heap tree and graph visualization
+  - Arity comparison (d=2, d=4, d=8) and Race Mode
+  - Timeline scrubber, playback controls, keyboard shortcuts
+- ✅ **TypeScript Instrumentation**: Opt-in comparison counting for performance analysis
+- ✅ **GitHub Actions**: Automatic demo deployment to GitHub Pages
+- ✅ **Zig Bulk Operations**: `insertMany()` with Floyd's O(n) heapify, `popMany()`, `toArray()`
+- ✅ **Zig Error Handling**: Proper error propagation in `swapItems()` and `pop()`
+- ✅ **Go Refinements**: `Position` type used internally, `Increase_priority_by_index()` alias
 
 **Previous in 2.3.0:**
 - ✅ **Go Implementation**: Complete d-heap priority queue in Go with full API parity

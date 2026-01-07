@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.4.0] - 2026-01-07
 
 ### Added
+- **Interactive React Flow Demo**: Live visualization of d-ary heap priority queues with Dijkstra's algorithm
+  - Dual-panel layout: heap tree (left) and graph (right)
+  - Real-time vertex state coloring (unvisited/in-queue/processed)
+  - Arity toggle (d=2, d=4, d=8) for performance comparison
+  - Race Mode: Compare all three arities simultaneously
+  - Timeline scrubber and playback controls
+  - Live at: https://eric-jacopin.github.io/Priority-Queues/
+- **TypeScript Instrumentation**: Opt-in comparison counting for performance analysis
+  - `instrumentComparator()` for tracking comparisons per operation
+  - Theoretical complexity functions for Big-O reference
+  - Zero overhead when not used
+- **GitHub Actions Deployment**: Automatic demo deployment to GitHub Pages
 - **Zig Bulk Operations**: Added `insertMany()` with Floyd's O(n) heapify algorithm for efficient batch insertion
 - **Zig Pop Many**: Added `popMany(count)` method for removing multiple highest-priority items at once
 - **Zig Array Access**: Added `toArray()` method for integration with Zig slices
@@ -20,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Zig Error Handling**: `swapItems()` now properly propagates errors instead of silently ignoring allocation failures
 - **Zig pop() Signature**: Changed from `?T` to `!?T` to properly propagate potential errors from internal operations
 - **README Zig Extensions**: Updated to document new bulk operations and array access features
+
+### Technical Details (Demo)
+- React 18 + TypeScript + Vite 7
+- React Flow (@xyflow/react) with dagre layout
+- Uses d-ary-heap NPM package with instrumentation hooks
+- Keyboard shortcuts: Space (play/pause), arrows (step), R (reset), 1/2/3 (arity)
 
 ### Technical Details (Zig)
 - `insertMany()` uses Floyd's heapify algorithm when starting from empty heap (O(n) vs O(n log n))
