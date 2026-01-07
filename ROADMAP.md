@@ -14,7 +14,7 @@ Each milestone follows a deliberate sequence:
 
 ## Current Status
 
-**v2.3.0** — Core implementations complete for C++, Go, Rust, Zig, and TypeScript.
+**v2.4.0** — Interactive React Flow demo, TypeScript instrumentation, Zig bulk operations.
 
 ---
 

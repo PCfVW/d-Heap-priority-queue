@@ -2,7 +2,7 @@
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 ![pkg.go.dev](https://pkg.go.dev/badge/github.com/PCfVW/d-Heap-priority-queue/Go.svg)
 
-# d-ary Heap Priority Queue (Go) v2.3.0
+# d-ary Heap Priority Queue (Go) v2.4.0
 
 **Wikipedia-standard d-ary heap implementation** with O(1) item lookup and configurable arity.
 

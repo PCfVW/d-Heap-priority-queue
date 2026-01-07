@@ -189,6 +189,7 @@ For existing Zig users upgrading from v1.x:
 - Comprehensive test suites
 - Professional documentation
 
+[2.4.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.1.2...v2.2.0
 [2.1.2]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.1.1...v2.1.2

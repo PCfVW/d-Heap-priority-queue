@@ -64,7 +64,7 @@
 //
 // See also: https://en.wikipedia.org/wiki/D-ary_heap
 //
-// Version: 2.3.0
+// Version: 2.4.0
 // License: Apache-2.0
-// Copyright: 2023-2025 Eric Jacopin
+// Copyright: 2023-2026 Eric Jacopin
 package dheap

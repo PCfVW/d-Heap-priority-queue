@@ -18,8 +18,15 @@
 ///
 /// =================================================================================================================== File history
 ///
-/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2025/12/27]
-/// Version: 2.3.0
+/// [Author, Created, Last Modification] = [Eric JACOPIN, 2023/07/29, 2026/01/07]
+/// Version: 2.4.0
+///
+/// [v2.4.0] Interactive Demo & Zig Bulk Operations ------------------------------------------------------------------- 2026/01/07
+///     - Interactive React Flow demo: live visualization of d-ary heaps with Dijkstra's algorithm
+///     - TypeScript instrumentation: opt-in comparison counting for performance analysis
+///     - Zig bulk operations: insertMany(), popMany(), toArray() with Floyd's O(n) heapify
+///     - Zig error handling: proper error propagation in swapItems() and pop()
+///     - Go refinements: Position type used internally, Increase_priority_by_index() alias
 ///
 /// [v2.3.0] Go Implementation Release -------------------------------------------------------------------------------- 2025/12/27
 ///     - Added complete Go implementation with full API parity (fifth language)

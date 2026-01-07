@@ -233,7 +233,7 @@ All five implementations share synchronized version numbers to ensure feature co
 
 ## Getting Started
 
-**New in v2.3.0**: Check out the [Dijkstra's Algorithm Example](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/examples/dijkstra) to see d-ary heaps in action with a classic shortest path algorithm from the Network Flows textbook (now available in Go, TypeScript, and more).
+**New in v2.4.0**: Try the [Interactive Demo](https://eric-jacopin.github.io/Priority-Queues/) to visualize d-ary heaps with Dijkstra's algorithm. Also check out the [Dijkstra examples](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/examples/dijkstra) available in Go, TypeScript, and more.
 
 Explore the language-specific implementations:
 

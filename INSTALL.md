@@ -8,7 +8,7 @@
 ### Install
 
 ```bash
-go get github.com/PCfVW/d-Heap-priority-queue/Go/src@v2.3.0
+go get github.com/PCfVW/d-Heap-priority-queue/Go/src@v2.4.0
 ```
 
 ### Usage
@@ -127,7 +127,7 @@ pq.to_string()
     .version = "0.1.0",
     .dependencies = .{
         .d_heap = .{
-            .url = "https://github.com/PCfVW/priority-queues/archive/refs/tags/v2.3.0.tar.gz",
+            .url = "https://github.com/PCfVW/priority-queues/archive/refs/tags/v2.4.0.tar.gz",
             .hash = "1220abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         },
     },
@@ -293,10 +293,10 @@ int main() {
 ```toml
 [dependencies]
 # If published to crates.io (not recommended based on analysis)
-# rust_priority_queue = "2.3.0"
+# rust_priority_queue = "2.4.0"
 
 # Or use git dependency
-rust_priority_queue = { git = "https://github.com/PCfVW/priority-queues", tag = "v2.3.0" }
+rust_priority_queue = { git = "https://github.com/PCfVW/priority-queues", tag = "v2.4.0" }
 ```
 
 ### Usage
@@ -410,14 +410,15 @@ error: hash mismatch: expected 1220abc..., found 1220def...
 Copy the "found" hash to your `build.zig.zon`.
 
 ### Zig Version Compatibility
-- **v2.3.0+**: Requires Zig 0.15.2+
-- **v2.0.0-v2.2.0**: Requires Zig 0.15.2+
+- **v2.4.0+**: Requires Zig 0.15.2+
+- **v2.0.0-v2.3.0**: Requires Zig 0.15.2+
 - **v1.x**: For older Zig versions, use v1.1.0
 
 ### Version Compatibility Matrix
 
 | Package Version | Go | Zig | C++ | Rust | TypeScript | Node.js |
 |----------------|-----|-----|-----|------|------------|---------|
+| **v2.4.0** | 1.21+ | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
 | **v2.3.0** | 1.21+ | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
 | **v2.2.0** | N/A | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
 | **v2.1.1** | N/A | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
