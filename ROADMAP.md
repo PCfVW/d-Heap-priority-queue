@@ -120,9 +120,30 @@ The following are under consideration but not yet scheduled:
 
 | Item | Description |
 |------|-------------|
+| **Svelte Flow demo** | Parallel visualization using Svelte Flow—same xyflow maintainers, framework diversity mirrors 5-language approach |
 | **Julia implementation** | No d-ary heap exists in the Julia ecosystem—significant gap |
 | **Additional examples** | Prim's MST, A* search, event-driven simulation |
-| **Hosted demo** | Deploy React Flow visualization to GitHub Pages or Vercel |
+| **Hosted demo** | Deploy visualization(s) to GitHub Pages or Vercel |
+
+### On Svelte Flow
+
+> *Why consider a second visualization framework?*
+
+The same reasoning that justified five heap implementations applies: **learning through diversity**. React Flow and Svelte Flow share identical APIs (both from [xyflow](https://github.com/xyflow/xyflow)), making the port tractable while teaching Svelte idioms (stores vs hooks, reactivity model, smaller bundle size).
+
+If pursued, the folder structure would evolve:
+
+```
+demo/
+├── shared/       # Framework-agnostic: types, algorithm, layout utils
+├── react/        # React Flow demo (v2.4.0)
+└── svelte/       # Svelte Flow demo (future)
+```
+
+**Decision criteria for committing:**
+- React demo is stable and well-received
+- Personal learning goal: understand Svelte's reactivity model
+- Community interest (issues, requests)
 
 ---
 
