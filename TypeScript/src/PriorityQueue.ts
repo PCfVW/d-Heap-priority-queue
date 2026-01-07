@@ -8,11 +8,14 @@
  * - O(1) access to highest-priority item
  * - O(log_d n) insert and priority increase operations
  * - O(d · log_d n) pop and priority decrease operations
+ * - Optional instrumentation hooks for performance analysis
  *
- * @version 2.3.0
+ * @version 2.4.0
  * @license Apache-2.0
  * @copyright 2023-2025 Eric Jacopin
  */
+
+import type { OperationType } from './instrumentation';
 
 /** Type alias for position indices (cross-language consistency) */
 export type Position = number;
@@ -41,6 +44,37 @@ export interface PriorityQueueOptions<T, K> {
   keyExtractor: KeyExtractor<T, K>;
   /** Initial capacity hint for pre-allocation */
   initialCapacity?: number;
+
+  /**
+   * Optional hook called before each heap operation.
+   *
+   * This enables opt-in instrumentation for performance analysis without
+   * adding overhead when not used. Pair with an instrumented comparator
+   * to track comparison counts per operation type.
+   *
+   * @param type - The operation about to be performed
+   *
+   * @example
+   * ```typescript
+   * const cmp = instrumentComparator(minBy((v) => v.priority));
+   * const pq = new PriorityQueue({
+   *   comparator: cmp,
+   *   keyExtractor: (v) => v.id,
+   *   onBeforeOperation: (op) => cmp.startOperation(op),
+   *   onAfterOperation: () => cmp.endOperation(),
+   * });
+   * ```
+   *
+   * @see instrumentComparator from './instrumentation'
+   */
+  onBeforeOperation?: (type: OperationType) => void;
+
+  /**
+   * Optional hook called after each heap operation completes.
+   *
+   * @see onBeforeOperation for usage example
+   */
+  onAfterOperation?: () => void;
 }
 
 /**
@@ -83,6 +117,12 @@ export class PriorityQueue<T, K = string | number> {
   /** Key extractor for identity-based lookup */
   private readonly keyExtractor: KeyExtractor<T, K>;
 
+  /** Optional hook called before operations (for instrumentation) */
+  private readonly onBeforeOperation: ((type: OperationType) => void) | undefined;
+
+  /** Optional hook called after operations (for instrumentation) */
+  private readonly onAfterOperation: (() => void) | undefined;
+
   /**
    * Create a new d-ary heap priority queue.
    *
@@ -108,6 +148,8 @@ export class PriorityQueue<T, K = string | number> {
     this.depth = d;
     this.comparator = options.comparator;
     this.keyExtractor = options.keyExtractor;
+    this.onBeforeOperation = options.onBeforeOperation;
+    this.onAfterOperation = options.onAfterOperation;
 
     // Pre-allocate if capacity hint provided
     const capacity = options.initialCapacity ?? 0;
@@ -255,17 +297,22 @@ export class PriorityQueue<T, K = string | number> {
    * to update existing items.
    */
   insert(item: T): void {
+    this.onBeforeOperation?.('insert');
+
     const index = this.container.length;
     this.container.push(item);
 
     // Fast path: first item doesn't need sift-up
     if (index === 0) {
       this.positions.set(this.keyExtractor(item), 0);
+      this.onAfterOperation?.();
       return;
     }
 
     this.positions.set(this.keyExtractor(item), index);
     this.moveUp(index);
+
+    this.onAfterOperation?.();
   }
 
   /**
@@ -337,15 +384,20 @@ export class PriorityQueue<T, K = string | number> {
    * This method only moves items upward for performance.
    */
   increasePriority(updatedItem: T): void {
+    this.onBeforeOperation?.('increasePriority');
+
     const key = this.keyExtractor(updatedItem);
     const index = this.positions.get(key);
 
     if (index === undefined) {
+      this.onAfterOperation?.();
       throw new Error('Item not found in priority queue');
     }
 
     this.container[index] = updatedItem;
     this.moveUp(index);
+
+    this.onAfterOperation?.();
   }
 
   /** Alias for increasePriority() - snake_case for cross-language consistency */
@@ -388,10 +440,13 @@ export class PriorityQueue<T, K = string | number> {
    * This method checks both directions for robustness.
    */
   decreasePriority(updatedItem: T): void {
+    this.onBeforeOperation?.('decreasePriority');
+
     const key = this.keyExtractor(updatedItem);
     const index = this.positions.get(key);
 
     if (index === undefined) {
+      this.onAfterOperation?.();
       throw new Error('Item not found in priority queue');
     }
 
@@ -399,6 +454,8 @@ export class PriorityQueue<T, K = string | number> {
     // Check both directions since we don't know if priority actually decreased
     this.moveUp(index);
     this.moveDown(index);
+
+    this.onAfterOperation?.();
   }
 
   /** Alias for decreasePriority() - snake_case for cross-language consistency */
@@ -413,10 +470,13 @@ export class PriorityQueue<T, K = string | number> {
    * @returns The removed item, or undefined if empty
    */
   pop(): T | undefined {
+    this.onBeforeOperation?.('pop');
+
     const container = this.container;
     const n = container.length;
 
     if (n === 0) {
+      this.onAfterOperation?.();
       return undefined;
     }
 
@@ -426,6 +486,7 @@ export class PriorityQueue<T, K = string | number> {
 
     if (n === 1) {
       container.length = 0;
+      this.onAfterOperation?.();
       return top;
     }
 
@@ -437,6 +498,7 @@ export class PriorityQueue<T, K = string | number> {
 
     this.moveDown(0);
 
+    this.onAfterOperation?.();
     return top;
   }
 

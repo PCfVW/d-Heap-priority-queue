@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "d-ary-heap",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "High-performance d-ary heap priority queue with O(1) item lookup, configurable arity, and min/max heap support",
   "main": "dist/index.cjs",
   "module": "dist/index.js",

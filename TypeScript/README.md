@@ -1,7 +1,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (TypeScript) v2.3.0
+# d-Heap Priority Queue (TypeScript) v2.4.0
 
 A high-performance, generic d-ary heap priority queue with O(1) item lookup, supporting both min-heap and max-heap behavior.
 
@@ -153,6 +153,87 @@ const byPriorityThenTime = chain(
   minBy<Task, number>(t => t.timestamp)
 );
 ```
+
+## Instrumentation (v2.4.0+)
+
+The library provides opt-in instrumentation for counting comparisons during heap operations. This is useful for:
+
+- **Educational purposes**: Understanding theoretical vs actual comparison costs
+- **Benchmarking**: Measuring real comparison counts across different arities
+- **Visualization**: Powering interactive demos that show heap behavior
+
+### Zero-Cost When Disabled
+
+Instrumentation follows a zero-overhead design:
+- No performance impact when not using instrumentation
+- Existing code works unchanged
+- Per-operation tracking distinguishes insert/pop/decreasePriority comparisons
+
+### Usage
+
+```typescript
+import {
+  PriorityQueue,
+  minBy,
+  instrumentComparator,
+  theoreticalInsertComparisons,
+  theoreticalPopComparisons
+} from 'd-ary-heap';
+
+// 1. Wrap your comparator with instrumentation
+const comparator = instrumentComparator(minBy((v: Vertex) => v.distance));
+
+// 2. Create priority queue with operation hooks
+const pq = new PriorityQueue({
+  d: 4,
+  comparator,
+  keyExtractor: (v) => v.id,
+  onBeforeOperation: (op) => comparator.startOperation(op),
+  onAfterOperation: () => comparator.endOperation(),
+});
+
+// 3. Use normally - comparisons are tracked automatically
+pq.insert({ id: 'A', distance: 0 });
+pq.insert({ id: 'B', distance: 5 });
+pq.insert({ id: 'C', distance: 3 });
+pq.pop();
+
+// 4. Access statistics
+console.log(comparator.stats);
+// { insert: 3, pop: 2, decreasePriority: 0, total: 5 }
+
+// 5. Compare with theoretical bounds
+const n = 3;
+const d = 4;
+console.log('Theoretical insert (worst):', theoreticalInsertComparisons(n, d));
+console.log('Theoretical pop (worst):', theoreticalPopComparisons(n, d));
+
+// 6. Reset for next measurement
+comparator.stats.reset();
+```
+
+### Theoretical Complexity
+
+For a d-ary heap with n elements:
+
+| Operation        | Comparisons (worst case)    |
+|------------------|----------------------------|
+| insert           | floor(log_d(n))            |
+| pop              | d × floor(log_d(n))        |
+| decreasePriority | floor(log_d(n)) (upward)   |
+| increasePriority | d × floor(log_d(n)) (downward) |
+
+### Cross-Language Consistency
+
+This instrumentation pattern is implemented consistently across all d-ary-heap language implementations:
+
+| Language   | Mechanism                        | Overhead When Disabled |
+|------------|----------------------------------|------------------------|
+| TypeScript | Optional hooks + instrumented comparator | Zero (JIT optimization) |
+| Go         | Nil stats pointer                | ~1 cycle (nil check)   |
+| Rust       | Generic over StatsCollector trait | Zero (monomorphization) |
+| C++        | Template policy class            | Zero (inlining)        |
+| Zig        | Comptime bool parameter          | Zero (branch elimination) |
 
 ## Priority Update Semantics
 
