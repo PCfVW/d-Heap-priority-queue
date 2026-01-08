@@ -136,7 +136,8 @@ The following are under consideration but not yet scheduled:
 | **Svelte Flow demo** | Parallel visualization using Svelte Flow—same xyflow maintainers, framework diversity mirrors 5-language approach |
 | **Julia implementation** | No d-ary heap exists in the Julia ecosystem—significant gap |
 | **Additional examples** | Prim's MST, A* search, event-driven simulation |
-| **Hosted demo** | Deploy visualization(s) to GitHub Pages or Vercel |
+| **WebAssembly** | Compile Rust to WASM for high-performance browser benchmarks (10k+ node graphs) |
+| **C++23 modernization** | `std::expected` for error handling, `std::flat_map` for cache-friendly lookups, `std::ranges` for cleaner algorithms, `std::print` for diagnostics, deducing `this` for member functions, ... |
 
 ### On Svelte Flow
 
