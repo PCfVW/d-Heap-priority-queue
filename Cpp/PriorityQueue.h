@@ -2,7 +2,7 @@
 ///
 /// C++ 17 implementation of a d-ary heap priority queue
 /// 
-/// Copyright (c) 2023-2025 Eric Jacopin
+/// Copyright (c) 2023-2026 Eric Jacopin
 /// 
 /// Licensed under the Apache License, Version 2.0 (the "License")
 /// 
@@ -10,11 +10,11 @@
 ///
 /// This file is divided as follows:
 ///	- File History					(Line 19)
-/// - Inclusion of files			(Line 143)
-///	- Namespace declaration			(Line 156)
-///	- Class declaration				(Line 165)
+/// - Inclusion of files			(Line 150)
+///	- Namespace declaration			(Line 163)
+///	- Class declaration				(Line 172)
 ///
-///	- End of file					(line 435)
+///	- End of file					(line 442)
 ///
 /// =================================================================================================================== File history
 ///
