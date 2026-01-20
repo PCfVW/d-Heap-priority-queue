@@ -4,7 +4,8 @@
 **Experiment:** AI Code Generation for d-ary Heap Priority Queues
 **Primary Models:** Claude Sonnet 4, Mistral Medium
 **Test-Mimicking Study:** 7 Claude models (Haiku 3, Sonnet 4, Opus 4, Opus 4.1, Sonnet 4.5, Haiku 4.5, Opus 4.5)
-**Languages:** Go, Rust, C++, TypeScript, Zig
+**Python Doctest Study:** 4 models, 3 providers (Claude Sonnet 4, Mistral Medium, Devstral 2512, EssentialAI RNJ-1)
+**Languages:** Go, Rust, C++, TypeScript, Zig, Python (doctests)
 
 This document presents empirical findings on how different forms of structured guidance (type signatures, documentation, tests) affect AI code generation quality. The key discovery: **type signatures constrain output 23% more effectively than documentation**, and **prompt structure determines whether tests are preserved or suppressed**.
 
@@ -461,27 +462,32 @@ AI coding tools targeting Rust and Zig communities could offer "Language Test Co
 
 These are **premium niche markets** where developers care deeply about test quality and consistency. A tool that says "we understand Rust/Zig test culture and leverage it" would differentiate itself.
 
-**Caveat:** This capability is narrow but deep:
-- ✅ Works with: Sonnet/Haiku 4.5 + Rust/Zig/Python + inline test presentation
-- ❌ Does not work with: Opus (suppresses) or Go/C++/TypeScript (external test culture)
-- ⚠️ Zig requires inline presentation (no `@import`) for preservation to work
+**Caveat:** This capability varies by language:
+- ✅ **Python doctests:** Universal preservation (all tested models: Claude, Mistral, Devstral, RNJ-1)
+- ✅ **Rust/Zig inline tests:** Works with Sonnet/Haiku 4.5 + inline test presentation
+- ❌ **Rust/Zig with Opus:** Opus suppresses tests (interprets as specification)
+- ❌ **Go/C++/TypeScript:** External test culture, no inline preservation
+- ⚠️ **Zig:** Requires inline presentation (no `@import`) for preservation to work
 
-#### Contribution 7: Python Doctests Achieve 100% Preservation
+#### Contribution 7: Python Doctests Achieve 100% Preservation (Multi-Model)
 
-Python doctests occupy a unique position: they are **simultaneously documentation AND tests**. Our experiment tested whether Sonnet treats them as documentation (no effect) or tests (preservation).
+Python doctests occupy a unique position: they are **simultaneously documentation AND tests**. Our experiment tested whether models treat them as documentation (no effect) or tests (preservation).
 
 **Experimental Setup:**
 - Prompt: d-ary heap implementation request with doctest examples in docstrings
 - Doctests provided: 50 `>>>` patterns across 10 methods
-- Model: Claude Sonnet 4
+- Models tested: Claude Sonnet 4, Mistral Medium, Devstral 2512, EssentialAI RNJ-1
 
-**Results:**
+**Results by Model:**
 
-| Metric | Prompt | Output | Ratio |
-|--------|--------|--------|-------|
-| Total `>>>` patterns | 50 | 50 | **1.00x** |
-| Methods with doctests | 10 | 10 | 100% |
-| All doctests pass | — | ✅ Yes | — |
+| Model | Provider | Doctests In | Doctests Out | Preservation | Tests Pass |
+|-------|----------|-------------|--------------|--------------|------------|
+| Claude Sonnet 4 | Anthropic | 50 | 50 | **100%** | ✅ Yes |
+| Mistral Medium | Mistral | 50 | 50 | **100%** | ✅ Yes |
+| Devstral 2512 | Mistral | 50 | 50 | **100%** | ✅ Yes |
+| EssentialAI RNJ-1 | EssentialAI | 50 | 50 | **100%** | ✅ Yes |
+
+**Key Finding: 100% preservation is universal across all tested models and providers.**
 
 **Method-by-Method Breakdown:**
 
@@ -500,10 +506,11 @@ Python doctests occupy a unique position: they are **simultaneously documentatio
 
 **Interpretation:**
 
-1. **100% preservation** — Sonnet maintains ALL provided doctests, identical to Rust/Zig behavior
+1. **100% preservation is universal** — ALL tested models (4 models, 3 providers) maintain ALL provided doctests
 2. **Consistent with Rust/Zig** — All inline test formats achieve 100% preservation, not amplification
 3. **Doctests treated as "inline tests"** — The `>>>` syntax in docstrings is recognized as executable test code
-4. **All doctests pass** — The generated implementation is functionally correct
+4. **All doctests pass** — Every generated implementation is functionally correct
+5. **Not Claude-specific** — Mistral models and EssentialAI RNJ-1 behave identically to Claude
 
 **Why This Matters for Python:**
 
@@ -550,11 +557,20 @@ Unlike Rust/Zig (niche markets), Python doctest scaffolding could benefit a **ma
 
 | Attribute | Rust/Zig | Python Doctests |
 |-----------|----------|-----------------|
-| Preservation rate | 100% | 100% |
+| Preservation rate | 100% (Sonnet only) | **100% (all models)** |
 | Behavior | Preservation (22→22) | Preservation (50→50) |
 | Market size | Niche | Mass market |
 | Test culture | Strong ("prove in-file") | Variable |
 | AI opportunity | Premium tooling | Mainstream adoption |
+| Model dependency | Sonnet preserves, Opus suppresses | **Universal preservation** |
+
+**Critical Distinction:** Unlike Rust/Zig (where preservation is Sonnet-specific), Python doctest preservation appears to be **universal across all tested models**, including:
+- Anthropic Claude Sonnet 4
+- Mistral Medium
+- Mistral Devstral 2512
+- EssentialAI RNJ-1
+
+This suggests that doctest preservation may be a more robust phenomenon than inline test preservation for compiled languages.
 
 ### Theoretical Grounding: Attention and Signal-to-Noise
 
@@ -595,7 +611,8 @@ The attention mechanism must work harder to extract actionable guidance from doc
 | "Include tests for guidance" | Tests cause elaboration, not constraint | Use tests for validation only |
 | "All Claude models behave similarly" | Opus ≠ Sonnet on test mimicking | Choose model tier deliberately |
 | "Test generation is unreliable" | 100% reproduction fidelity for Rust/Zig | Use test scaffolding for inline-test languages |
-| "Doctests are too tedious to maintain" | 100% preservation rate | AI can rehabilitate Python doctests for mass market |
+| "Doctests are too tedious to maintain" | 100% preservation (all 4 models, 3 providers) | AI can rehabilitate Python doctests for mass market |
+| "Preservation is model-specific" | Python doctests: universal across models | Doctests may be more robust than compiled-language tests |
 
 ### Practical Guide: How to Prompt for Test Generation
 
@@ -612,9 +629,9 @@ The `@import` pattern paradox reveals that showing test examples can actually *s
 
 | Language | Want Tests? | Prompt Strategy |
 |----------|-------------|-----------------|
-| **Rust** | Yes | Include example `#[test]` functions inline. The `mod tests {}` wrapper is optional — plain `#[test]` achieves 100% preservation. |
-| **Zig** | Yes | Present types and tests inline (no `@import`). With inline presentation: 22→22 preservation. With `@import`: 0 tests (suppression). |
-| **Python** | Yes | Include doctests (`>>>`) in docstrings. 100% preservation rate. |
+| **Rust** | Yes | Include example `#[test]` functions inline. The `mod tests {}` wrapper is optional — plain `#[test]` achieves 100% preservation. (Sonnet only) |
+| **Zig** | Yes | Present types and tests inline (no `@import`). With inline presentation: 22→22 preservation. With `@import`: 0 tests (suppression). (Sonnet only) |
+| **Python** | Yes | Include doctests (`>>>`) in docstrings. **100% preservation across ALL tested models** (Claude, Mistral, Devstral, RNJ-1). Most robust option. |
 | **Go/C++/TypeScript** | Yes | Generate implementation first, then request a separate test file. These models won't generate inline tests regardless of prompting. |
 
 **The suppression paradox explained:**
