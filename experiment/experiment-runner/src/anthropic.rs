@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 const ANTHROPIC_API_URL: &str = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_MODELS_URL: &str = "https://api.anthropic.com/v1/models";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
 
 pub struct AnthropicProvider {
@@ -72,6 +73,46 @@ struct ErrorDetail {
     #[allow(dead_code)]
     error_type: Option<String>,
     message: String,
+}
+
+/// Response from the /v1/models endpoint
+#[derive(Deserialize)]
+struct ModelsResponse {
+    data: Vec<ModelInfo>,
+}
+
+/// Information about an available model
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ModelInfo {
+    pub id: String,
+    pub display_name: String,
+    pub created_at: String,
+}
+
+impl AnthropicProvider {
+    /// List all available Anthropic models (newest first)
+    pub async fn list_models(&self) -> Result<Vec<ModelInfo>> {
+        let response = self
+            .client
+            .get(ANTHROPIC_MODELS_URL)
+            .header("x-api-key", &self.api_key)
+            .header("anthropic-version", ANTHROPIC_VERSION)
+            .send()
+            .await?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let error: ErrorResponse = response.json().await?;
+            return Err(anyhow!(
+                "Failed to list models ({}): {}",
+                status.as_u16(),
+                error.error.message
+            ));
+        }
+
+        let result: ModelsResponse = response.json().await?;
+        Ok(result.data)
+    }
 }
 
 #[async_trait]
