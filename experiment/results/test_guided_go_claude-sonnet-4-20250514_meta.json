@@ -1,0 +1,11 @@
+{
+  "experiment_id": "test_guided_go",
+  "condition": "test_guided",
+  "language": "go",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:50:33.786387300+00:00",
+  "input_tokens": 6768,
+  "output_tokens": 2702,
+  "elapsed_ms": 32931
+}

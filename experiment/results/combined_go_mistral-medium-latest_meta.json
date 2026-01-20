@@ -1,0 +1,11 @@
+{
+  "experiment_id": "combined_go",
+  "condition": "combined",
+  "language": "go",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:56:40.608198800+00:00",
+  "input_tokens": 7868,
+  "output_tokens": 2520,
+  "elapsed_ms": 18884
+}

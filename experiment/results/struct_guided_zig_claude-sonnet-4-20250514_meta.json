@@ -1,0 +1,11 @@
+{
+  "experiment_id": "struct_guided_zig",
+  "condition": "struct_guided",
+  "language": "zig",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:16:43.519397800+00:00",
+  "input_tokens": 918,
+  "output_tokens": 3293,
+  "elapsed_ms": 35403
+}

@@ -127,7 +127,7 @@ pq.to_string()
     .version = "0.1.0",
     .dependencies = .{
         .d_heap = .{
-            .url = "https://github.com/PCfVW/priority-queues/archive/refs/tags/v2.4.0.tar.gz",
+            .url = "https://github.com/PCfVW/d-Heap-priority-queue/archive/refs/tags/v2.4.0.tar.gz",
             .hash = "1220abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         },
     },

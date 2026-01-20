@@ -1,0 +1,11 @@
+{
+  "experiment_id": "combined_zig",
+  "condition": "combined",
+  "language": "zig",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:57:45.039832100+00:00",
+  "input_tokens": 6390,
+  "output_tokens": 1816,
+  "elapsed_ms": 13611
+}

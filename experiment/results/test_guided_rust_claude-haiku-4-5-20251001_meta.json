@@ -1,0 +1,11 @@
+{
+  "experiment_id": "test_guided_rust",
+  "condition": "test_guided",
+  "language": "rust",
+  "model": "claude-haiku-4-5-20251001",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T20:25:42.117634700+00:00",
+  "input_tokens": 5911,
+  "output_tokens": 6788,
+  "elapsed_ms": 35061
+}

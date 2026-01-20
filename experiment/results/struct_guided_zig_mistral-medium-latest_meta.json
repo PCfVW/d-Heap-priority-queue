@@ -1,0 +1,11 @@
+{
+  "experiment_id": "struct_guided_zig",
+  "condition": "struct_guided",
+  "language": "zig",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:19:05.915507900+00:00",
+  "input_tokens": 973,
+  "output_tokens": 1937,
+  "elapsed_ms": 14453
+}

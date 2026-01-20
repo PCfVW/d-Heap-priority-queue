@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_go",
+  "condition": "baseline",
+  "language": "go",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:40:08.368080200+00:00",
+  "input_tokens": 258,
+  "output_tokens": 1778,
+  "elapsed_ms": 12365
+}

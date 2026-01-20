@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_typescript",
+  "condition": "baseline",
+  "language": "typescript",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:41:21.189815100+00:00",
+  "input_tokens": 263,
+  "output_tokens": 1798,
+  "elapsed_ms": 12740
+}

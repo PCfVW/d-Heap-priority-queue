@@ -1,0 +1,11 @@
+{
+  "experiment_id": "test_guided_rust",
+  "condition": "test_guided",
+  "language": "rust",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:55:23.457761600+00:00",
+  "input_tokens": 6210,
+  "output_tokens": 1950,
+  "elapsed_ms": 13451
+}

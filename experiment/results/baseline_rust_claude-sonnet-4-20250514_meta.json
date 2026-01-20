@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_rust",
+  "condition": "baseline",
+  "language": "rust",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:31:54.906852700+00:00",
+  "input_tokens": 247,
+  "output_tokens": 3502,
+  "elapsed_ms": 40327
+}

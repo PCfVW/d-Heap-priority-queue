@@ -1,0 +1,11 @@
+{
+  "experiment_id": "struct_guided_go",
+  "condition": "struct_guided",
+  "language": "go",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:14:18.862966700+00:00",
+  "input_tokens": 690,
+  "output_tokens": 2634,
+  "elapsed_ms": 28823
+}

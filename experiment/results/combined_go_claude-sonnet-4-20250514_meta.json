@@ -1,0 +1,11 @@
+{
+  "experiment_id": "combined_go",
+  "condition": "combined",
+  "language": "go",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:58:31.372178100+00:00",
+  "input_tokens": 7792,
+  "output_tokens": 2788,
+  "elapsed_ms": 33884
+}

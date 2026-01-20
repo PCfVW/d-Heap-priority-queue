@@ -1,0 +1,11 @@
+{
+  "experiment_id": "combined_rust",
+  "condition": "combined",
+  "language": "rust",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T18:00:08.257318200+00:00",
+  "input_tokens": 6935,
+  "output_tokens": 7750,
+  "elapsed_ms": 93293
+}

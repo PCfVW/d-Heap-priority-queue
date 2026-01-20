@@ -1,0 +1,11 @@
+{
+  "experiment_id": "combined_typescript",
+  "condition": "combined",
+  "language": "typescript",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:57:27.933642400+00:00",
+  "input_tokens": 6543,
+  "output_tokens": 2008,
+  "elapsed_ms": 14387
+}

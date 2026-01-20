@@ -1,0 +1,10 @@
+{
+  "experiment_id": "baseline_zig",
+  "condition": "baseline",
+  "language": "zig",
+  "model": "essentialai/rnj-1",
+  "provider": "lmstudio",
+  "timestamp": "2026-01-19T16:57:30.903494700+00:00",
+  "input_tokens": 248,
+  "output_tokens": 959
+}

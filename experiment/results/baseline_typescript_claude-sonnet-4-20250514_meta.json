@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_typescript",
+  "condition": "baseline",
+  "language": "typescript",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:32:55.604822400+00:00",
+  "input_tokens": 253,
+  "output_tokens": 2407,
+  "elapsed_ms": 28478
+}

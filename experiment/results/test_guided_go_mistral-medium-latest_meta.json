@@ -1,0 +1,11 @@
+{
+  "experiment_id": "test_guided_go",
+  "condition": "test_guided",
+  "language": "go",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:54:58.305906500+00:00",
+  "input_tokens": 6783,
+  "output_tokens": 2238,
+  "elapsed_ms": 16943
+}

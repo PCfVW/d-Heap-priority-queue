@@ -1,0 +1,11 @@
+{
+  "experiment_id": "struct_guided_cpp",
+  "condition": "struct_guided",
+  "language": "cpp",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:15:46.368260100+00:00",
+  "input_tokens": 697,
+  "output_tokens": 1896,
+  "elapsed_ms": 21127
+}

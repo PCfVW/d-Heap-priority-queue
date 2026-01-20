@@ -1,0 +1,11 @@
+{
+  "experiment_id": "test_guided_rust",
+  "condition": "test_guided",
+  "language": "rust",
+  "model": "claude-opus-4-5-20251101",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T20:26:10.091873600+00:00",
+  "input_tokens": 5911,
+  "output_tokens": 2233,
+  "elapsed_ms": 27962
+}

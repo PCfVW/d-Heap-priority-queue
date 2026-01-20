@@ -1,0 +1,11 @@
+{
+  "experiment_id": "struct_guided_rust",
+  "condition": "struct_guided",
+  "language": "rust",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:14:51.228280100+00:00",
+  "input_tokens": 717,
+  "output_tokens": 2892,
+  "elapsed_ms": 32084
+}

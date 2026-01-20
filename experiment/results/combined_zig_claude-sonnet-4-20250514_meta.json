@@ -1,0 +1,11 @@
+{
+  "experiment_id": "combined_zig",
+  "condition": "combined",
+  "language": "zig",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T18:04:42.263107400+00:00",
+  "input_tokens": 6143,
+  "output_tokens": 2967,
+  "elapsed_ms": 38672
+}

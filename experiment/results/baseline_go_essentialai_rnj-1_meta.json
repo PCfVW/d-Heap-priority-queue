@@ -1,0 +1,10 @@
+{
+  "experiment_id": "baseline_go",
+  "condition": "baseline",
+  "language": "go",
+  "model": "essentialai/rnj-1",
+  "provider": "lmstudio",
+  "timestamp": "2026-01-19T16:56:00.169834200+00:00",
+  "input_tokens": 250,
+  "output_tokens": 926
+}

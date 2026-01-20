@@ -1,0 +1,10 @@
+{
+  "experiment_id": "baseline_rust",
+  "condition": "baseline",
+  "language": "rust",
+  "model": "essentialai/rnj-1",
+  "provider": "lmstudio",
+  "timestamp": "2026-01-19T16:56:23.174867500+00:00",
+  "input_tokens": 249,
+  "output_tokens": 927
+}

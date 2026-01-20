@@ -22,5 +22,18 @@ node_modules/
 .npm
 .eslintcache
 
+# Experiment runner build artifacts
+experiment/experiment-runner/target
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Windows reserved name artifacts
+nul
+
+# Draft documents
+experiment/blog_post_draft.md
+
 # Ignore gitignore directory (documentation/notes)
 gitignore/

@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_go",
+  "condition": "baseline",
+  "language": "go",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:31:14.304619900+00:00",
+  "input_tokens": 252,
+  "output_tokens": 3135,
+  "elapsed_ms": 35271
+}

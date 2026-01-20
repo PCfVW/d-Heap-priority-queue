@@ -1,0 +1,11 @@
+{
+  "experiment_id": "doc_guided_typescript",
+  "condition": "doc_guided",
+  "language": "typescript",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:07:59.566751200+00:00",
+  "input_tokens": 1242,
+  "output_tokens": 2823,
+  "elapsed_ms": 30572
+}

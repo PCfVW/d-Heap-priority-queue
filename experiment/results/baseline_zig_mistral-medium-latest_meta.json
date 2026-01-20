@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_zig",
+  "condition": "baseline",
+  "language": "zig",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:41:52.944042900+00:00",
+  "input_tokens": 257,
+  "output_tokens": 2139,
+  "elapsed_ms": 16060
+}

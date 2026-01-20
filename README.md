@@ -2,7 +2,29 @@
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
 
-**[Live Demo: Interactive Visualization](https://pcfvw.github.io/d-Heap-priority-queue/)** - See how d-ary heaps work with Dijkstra's algorithm
+## Table of Contents
+
+- [Live Demo](#live-demo)
+- [Cross-Language API Reference](#cross-language-api-reference)
+- [Error Handling by Language](#error-handling-by-language)
+- [Language Comparison](#language-comparison)
+- [Language-Specific Extensions](#language-specific-extensions)
+- [Version Information](#version-information)
+- [Getting Started](#getting-started)
+- [License](#license)
+- [AI Code Generation Research](#ai-code-generation-research)
+- [References](#references)
+
+## Live Demo
+
+**[Interactive Visualization](https://pcfvw.github.io/d-Heap-priority-queue/)** — Watch d-ary heaps in action with Dijkstra's algorithm.
+
+- Dual-panel layout: heap tree structure + graph visualization
+- Compare arities (d=2, d=4, d=8) side-by-side with Race Mode
+- Timeline scrubber and playback controls for step-by-step analysis
+- Keyboard shortcuts for efficient navigation
+
+## Features
 
 - Min-heap or max-heap behavior via comparator
 - Efficient operations: O(1) front, O(log_d n) insert/update, O(d · log_d n) pop
@@ -252,6 +274,16 @@ Explore the language-specific implementations:
 This project is licensed under the **Apache License 2.0** - see the [LICENSE](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/LICENSE) file for details.
 
 Copyright © 2023-2025 Eric Jacopin
+
+## AI Code Generation Research
+
+This repository includes an experiment studying how AI models generate d-ary heap implementations. Key findings:
+
+- **Type signatures are 23% more effective** than documentation for constraining AI output
+- **100% test preservation** for Rust, Zig, and Python doctests when using Claude Sonnet
+- **Model tier matters**: Opus interprets tests as specs; Sonnet reproduces them verbatim
+
+See [experiment/README.md](experiment/README.md) for the full study with reproducible experiments.
 
 ## References
 

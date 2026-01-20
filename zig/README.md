@@ -149,7 +149,7 @@ Add to your `build.zig.zon`:
 ```zig
 .dependencies = .{
     .d_heap = .{
-        .url = "https://github.com/your-repo/priority-queues/archive/refs/heads/main.tar.gz",
+        .url = "https://github.com/PCfVW/d-Heap-priority-queue/archive/refs/tags/v2.4.0.tar.gz",
         .hash = "...",
     },
 },

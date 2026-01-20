@@ -1,0 +1,11 @@
+{
+  "experiment_id": "combined_rust",
+  "condition": "combined",
+  "language": "rust",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:56:56.669520600+00:00",
+  "input_tokens": 7295,
+  "output_tokens": 1714,
+  "elapsed_ms": 12360
+}

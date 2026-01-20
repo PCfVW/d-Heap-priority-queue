@@ -1,0 +1,11 @@
+{
+  "experiment_id": "combined_cpp",
+  "condition": "combined",
+  "language": "cpp",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:57:09.929193800+00:00",
+  "input_tokens": 7018,
+  "output_tokens": 1464,
+  "elapsed_ms": 9743
+}

@@ -1,0 +1,10 @@
+{
+  "experiment_id": "baseline_cpp",
+  "condition": "baseline",
+  "language": "cpp",
+  "model": "essentialai/rnj-1",
+  "provider": "lmstudio",
+  "timestamp": "2026-01-19T16:56:47.015189100+00:00",
+  "input_tokens": 250,
+  "output_tokens": 1001
+}

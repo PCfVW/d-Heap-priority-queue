@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_cpp",
+  "condition": "baseline",
+  "language": "cpp",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:40:58.409121600+00:00",
+  "input_tokens": 268,
+  "output_tokens": 2348,
+  "elapsed_ms": 19080
+}

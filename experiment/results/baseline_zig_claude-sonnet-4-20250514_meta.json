@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_zig",
+  "condition": "baseline",
+  "language": "zig",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:33:42.237724700+00:00",
+  "input_tokens": 249,
+  "output_tokens": 4127,
+  "elapsed_ms": 46346
+}

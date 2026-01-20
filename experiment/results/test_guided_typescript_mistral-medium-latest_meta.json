@@ -1,0 +1,11 @@
+{
+  "experiment_id": "test_guided_typescript",
+  "condition": "test_guided",
+  "language": "typescript",
+  "model": "mistral-medium-latest",
+  "provider": "mistral",
+  "timestamp": "2026-01-19T17:55:52.606902700+00:00",
+  "input_tokens": 5458,
+  "output_tokens": 1652,
+  "elapsed_ms": 10126
+}

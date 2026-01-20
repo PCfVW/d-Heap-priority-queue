@@ -1,0 +1,11 @@
+{
+  "experiment_id": "baseline_cpp",
+  "condition": "baseline",
+  "language": "cpp",
+  "model": "claude-sonnet-4-20250514",
+  "provider": "anthropic",
+  "timestamp": "2026-01-19T17:32:26.845134300+00:00",
+  "input_tokens": 255,
+  "output_tokens": 2860,
+  "elapsed_ms": 31644
+}
