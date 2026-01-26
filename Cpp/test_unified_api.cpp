@@ -2,7 +2,7 @@
 ///
 /// Test suite for unified API methods in C++ d-ary heap priority queue
 /// 
-/// Copyright (c) 2023-2025 Eric Jacopin
+/// Copyright (c) 2023-2026 Eric Jacopin
 /// 
 /// Licensed under the Apache License, Version 2.0 (the "License")
 /// 
@@ -56,14 +56,15 @@ void test_unified_api_methods() {
 
 void test_position_type_alias() {
     std::cout << "\nTesting Position type alias..." << std::endl;
-    
+
     PriorityQueue<int> pq(2);
     pq.insert(10);
-    
-    // Test that Position type alias works
+
+    // Test that Position type alias works - use the safe std::expected version
     PriorityQueue<int>::Position pos = 0;
-    pq.increase_priority(pos);
-    
+    auto result = pq.increase_priority_by_index(pos);
+    assert(result.has_value());
+
     assert(pq.len() == 1);
     std::cout << "✓ Position type alias works correctly" << std::endl;
 }
@@ -76,8 +77,9 @@ void test_parameter_naming_consistency() {
     pq.insert(20);
 
     // Test updated parameter name (updated_item instead of t_with_new_higher_priority)
-    // For int types, the identity is the value itself, so we need to use the position-based method
-    pq.increase_priority(0);  // Move item at position 0 up
+    // Use the safe std::expected version to avoid ambiguity with int type
+    auto result = pq.increase_priority_by_index(0);  // Move item at position 0 up
+    assert(result.has_value());
 
     assert(pq.len() == 2);
     std::cout << "✓ Parameter naming consistency works correctly" << std::endl;
@@ -115,9 +117,10 @@ void test_internal_consistency() {
     
     assert(pq.front() == 5);  // Min heap behavior
     std::cout << "✓ Min heap property maintained after internal refactoring" << std::endl;
-    
-    // Test priority increase using position-based method
-    pq.increase_priority(0);  // Move item at position 0 up
+
+    // Test priority increase using position-based method (safe version)
+    auto result = pq.increase_priority_by_index(0);  // Move item at position 0 up
+    assert(result.has_value());
     assert(pq.front() == 5);  // Should still be 5 (minimum)
     std::cout << "✓ Priority increase works correctly after refactoring" << std::endl;
     
