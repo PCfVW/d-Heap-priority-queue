@@ -16,7 +16,7 @@ impl fmt::Display for Item {
 
 #[test]
 fn min_heap_ordering() {
-    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Item| x.cost));
+    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Item| x.cost)).unwrap();
     for n in [20, 5, 22, 16, 18, 17, 12, 9] {
         pq.insert(Item { id: n, cost: n });
     }
@@ -32,7 +32,7 @@ fn min_heap_ordering() {
 
 #[test]
 fn max_heap_ordering() {
-    let mut pq: PriorityQueue<Item, MaxBy<_>> = PriorityQueue::new(4, MaxBy(|x: &Item| x.cost));
+    let mut pq: PriorityQueue<Item, MaxBy<_>> = PriorityQueue::new(4, MaxBy(|x: &Item| x.cost)).unwrap();
     for n in [20, 5, 22, 16, 18, 17, 12, 9] {
         pq.insert(Item { id: n, cost: n });
     }
@@ -48,18 +48,18 @@ fn max_heap_ordering() {
 
 #[test]
 fn increase_priority_moves_up() {
-    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Item| x.cost));
+    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Item| x.cost)).unwrap();
     pq.insert(Item { id: 1, cost: 10 });
     pq.insert(Item { id: 2, cost: 9 });
     pq.insert(Item { id: 3, cost: 8 });
     // Update id=1 to become the top
-    pq.increase_priority(&Item { id: 1, cost: 1 });
+    pq.increase_priority(&Item { id: 1, cost: 1 }).unwrap();
     assert_eq!(pq.front().id, 1);
 }
 
 #[test]
 fn unified_api_methods() {
-    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Item| x.cost));
+    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Item| x.cost)).unwrap();
 
     // Test len() method (unified API)
     assert_eq!(pq.len(), 0);
@@ -96,24 +96,24 @@ fn unified_api_methods() {
 fn position_type_alias() {
     use d_ary_heap::Position;
 
-    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(2, MinBy(|x: &Item| x.cost));
+    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(2, MinBy(|x: &Item| x.cost)).unwrap();
     pq.insert(Item { id: 1, cost: 10 });
 
     // Test that Position type alias works
     let pos: Position = 0;
-    pq.increase_priority_by_index(pos);
+    pq.increase_priority_by_index(pos).unwrap();
 
     assert_eq!(pq.len(), 1);
 }
 
 #[test]
 fn parameter_naming_consistency() {
-    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(2, MinBy(|x: &Item| x.cost));
+    let mut pq: PriorityQueue<Item, MinBy<_>> = PriorityQueue::new(2, MinBy(|x: &Item| x.cost)).unwrap();
     pq.insert(Item { id: 1, cost: 10 });
 
     // Test updated parameter name (updated_item instead of t_with_new_higher_priority)
     let updated_item = Item { id: 1, cost: 5 };
-    pq.increase_priority(&updated_item);
+    pq.increase_priority(&updated_item).unwrap();
 
     assert_eq!(pq.front().cost, 5);
 }

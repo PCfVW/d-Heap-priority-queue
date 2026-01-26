@@ -31,7 +31,7 @@ where
 
 fn main() {
     // Min-heap by cost
-    let mut pq_less: PriorityQueue<Int, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Int| x.cost));
+    let mut pq_less: PriorityQueue<Int, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Int| x.cost)).unwrap();
 
     let input: Vec<i32> = vec![20, 5, 22, 16, 18, 17, 12, 9, 42, 27, 48, 36, 32, 13, 14, 28, 52, 10, 21, 8, 39, 29, 15, 38, 31, 41];
 
@@ -50,7 +50,7 @@ fn main() {
 
     // Increase priority (lower cost for min-heap)
     let i1_new = Int { number: 19, cost: 6 };
-    pq_less.increase_priority(&i1_new);
+    pq_less.increase_priority(&i1_new).unwrap();
     print_pq(&pq_less);
 
     // Verify non-decreasing order on pops
@@ -65,7 +65,7 @@ fn main() {
     }
 
     // Max-heap by cost
-    let mut pq_greater: PriorityQueue<Int, MaxBy<_>> = PriorityQueue::new(3, MaxBy(|x: &Int| x.cost));
+    let mut pq_greater: PriorityQueue<Int, MaxBy<_>> = PriorityQueue::new(3, MaxBy(|x: &Int| x.cost)).unwrap();
 
     for &n in &input {
         pq_greater.insert(Int { number: n as u32, cost: n as u32 });
@@ -77,7 +77,7 @@ fn main() {
     print_pq(&pq_greater);
 
     let i2_new = Int { number: 40, cost: 50 };
-    pq_greater.increase_priority(&i2_new);
+    pq_greater.increase_priority(&i2_new).unwrap();
     print_pq(&pq_greater);
 
     // Verify non-increasing order on pops
