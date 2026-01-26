@@ -49,10 +49,10 @@ graph LR
 
 ## Why d-ary Heaps for Dijkstra?
 
-Dijkstra's algorithm is the canonical use case for d-ary heaps. The algorithm performs many more `decrease_priority` operations than `pop` operations, especially on dense graphs. A 4-ary heap provides measurable performance improvements:
+Dijkstra's algorithm is the canonical use case for d-ary heaps. The algorithm performs many more priority update operations than `pop` operations, especially on dense graphs. A 4-ary heap provides measurable performance improvements:
 
-- **Binary heap (d=2)**: `decrease_priority` is O(log₂n)
-- **4-ary heap (d=4)**: `decrease_priority` is O(log₄n) ≈ O(log₂n / 2)
+- **Binary heap (d=2)**: priority update is O(log₂n)
+- **4-ary heap (d=4)**: priority update is O(log₄n) ≈ O(log₂n / 2)
 
 ## Algorithm Overview
 
@@ -65,7 +65,9 @@ Dijkstra's algorithm finds the shortest path from a source vertex to all other v
    - Extract vertex with minimum distance
    - For each neighbor, if new path is shorter:
      - Update distance
-     - Decrease priority in queue
+     - Update priority in queue (see note below)
+
+**Note on terminology:** Traditional algorithm literature calls this "decrease-key" because the distance value decreases. Our API uses importance-based naming: when distance decreases, the item becomes *more important* (should be processed sooner), so we call `increasePriority()`. Both refer to the same heap operation—moving an item toward the root.
 
 ### Complexity Analysis
 
@@ -73,9 +75,9 @@ Dijkstra's algorithm finds the shortest path from a source vertex to all other v
 |-----------|-------------------|-------------------|-------------|
 | Insert | O(log₂n) | O(log₄n) | ~2x faster |
 | Extract-min | O(log₂n) | O(4·log₄n) | ~2x slower |
-| Decrease-key | O(log₂n) | O(log₄n) | ~2x faster |
+| Update priority | O(log₂n) | O(log₄n) | ~2x faster |
 
-**Overall**: Since Dijkstra performs O(E) decrease-key operations vs O(V) extract-min operations, and E >> V in dense graphs, the 4-ary heap wins significantly.
+**Overall**: Since Dijkstra performs O(E) priority updates vs O(V) extract-min operations, and E >> V in dense graphs, the 4-ary heap wins significantly.
 
 ## Expected Results
 
@@ -94,25 +96,60 @@ Dijkstra's algorithm finds the shortest path from a source vertex to all other v
 ## Implementation Notes
 
 Each language implementation:
-- Uses the same graph format (`graphs/small.json`)
+- Uses the same graph format (`graphs/small.json`) — except C++ which embeds the data (no standard JSON support)
 - Implements identical algorithm logic
 - Demonstrates idiomatic patterns for that language
+- Dynamically sorts output vertices alphabetically (works with any graph, not just the example)
 - Includes basic testing and output formatting
 
 ## Running Examples
 
+**Live Demo**: Try the interactive TypeScript version in your browser: [https://pcfvw.github.io/d-Heap-priority-queue/](https://pcfvw.github.io/d-Heap-priority-queue/)
+
 Currently available:
 - `TypeScript/` - Node.js with npm/yarn ✅
 - `Go/` - Go modules ✅
+- `Rust/` - Cargo build system ✅
+- `Zig/` - Zig build system ✅
+- `Cpp/` - C++ with CMake ✅
 
-**Coming in future versions** (see [ROADMAP.md](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/ROADMAP.md)):
-- `Cpp/` - C++ with standard compiler
-- `Rust/` - Cargo build system
-- `Zig/` - Zig build system
+### Running the TypeScript Example
+
+**Online**: Visit [https://pcfvw.github.io/d-Heap-priority-queue/](https://pcfvw.github.io/d-Heap-priority-queue/) to run the example in your browser.
+
+**Locally**:
+```bash
+cd examples/dijkstra/TypeScript
+npm install
+npm start
+```
 
 ### Running the Go Example
 
 ```bash
 cd examples/dijkstra/Go
 go run .
+```
+
+### Running the Rust Example
+
+```bash
+cd examples/dijkstra/Rust
+cargo run
+```
+
+### Running the Zig Example
+
+```bash
+cd examples/dijkstra/Zig
+zig build run
+```
+
+### Running the C++ Example
+
+```bash
+cd examples/dijkstra/Cpp
+cmake -B build
+cmake --build build --config Release
+./build/Release/dijkstra
 ```

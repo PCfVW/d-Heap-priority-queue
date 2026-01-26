@@ -1,5 +1,21 @@
 # Installation Guide
 
+## Table of Contents
+
+- [Go Installation](#go-installation)
+- [TypeScript Installation](#typescript-installation)
+- [Zig Installation](#zig-installation)
+- [C++ Installation](#c-installation)
+- [Rust Installation](#rust-installation)
+- [Cross-Language Method Compatibility](#cross-language-method-compatibility)
+- [Building from Source](#building-from-source)
+- [Running Dijkstra Examples](#running-dijkstra-examples)
+- [Troubleshooting](#troubleshooting)
+- [Error Handling Differences](#error-handling-differences)
+- [Examples](#examples)
+
+---
+
 ## Go Installation
 
 ### Prerequisites
@@ -8,7 +24,7 @@
 ### Install
 
 ```bash
-go get github.com/PCfVW/d-Heap-priority-queue/Go/src@v2.4.0
+go get github.com/PCfVW/d-Heap-priority-queue/Go/src@v2.5.0
 ```
 
 ### Usage
@@ -127,7 +143,7 @@ pq.to_string()
     .version = "0.1.0",
     .dependencies = .{
         .d_heap = .{
-            .url = "https://github.com/PCfVW/d-Heap-priority-queue/archive/refs/tags/v2.4.0.tar.gz",
+            .url = "https://github.com/PCfVW/d-Heap-priority-queue/archive/refs/tags/v2.5.0.tar.gz",
             .hash = "1220abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         },
     },
@@ -265,8 +281,11 @@ pub fn main() !void {
 ## C++ Installation
 
 ### Prerequisites
-- **C++17** compatible compiler (GCC 7+, Clang 5+, MSVC 2017+)
-- CMake 3.10+ (optional, for building examples)
+- **C++23** compatible compiler — required for `std::expected` support
+  - **Visual Studio 2026** (v18.0+) with MSVC — recommended on Windows
+  - GCC 13+ — Linux
+  - Clang 16+ — macOS/Linux
+- CMake 3.20+ (optional, for building examples)
 
 ### Usage
 Simply include the header file in your project:
@@ -293,10 +312,10 @@ int main() {
 ```toml
 [dependencies]
 # If published to crates.io (not recommended based on analysis)
-# rust_priority_queue = "2.4.0"
+# rust_priority_queue = "2.5.0"
 
 # Or use git dependency
-rust_priority_queue = { git = "https://github.com/PCfVW/priority-queues", tag = "v2.4.0" }
+rust_priority_queue = { git = "https://github.com/PCfVW/priority-queues", tag = "v2.5.0" }
 ```
 
 ### Usage
@@ -345,7 +364,27 @@ cd priority-queues
 cd Go
 go build ./...   # Build all packages
 go test ./...    # Run tests
-go run examples/dijkstra/Go/main.go  # Run Dijkstra example
+```
+
+### Running Dijkstra Examples
+
+All five languages have complete Dijkstra implementations in [`examples/dijkstra/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/examples/dijkstra). See the [Dijkstra README](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/examples/dijkstra/README.md) for algorithm details and expected results.
+
+```bash
+# TypeScript
+cd examples/dijkstra/TypeScript && npm install && npm start
+
+# Go
+cd examples/dijkstra/Go && go run .
+
+# Rust
+cd examples/dijkstra/Rust && cargo run
+
+# Zig
+cd examples/dijkstra/Zig && zig build run
+
+# C++
+cd examples/dijkstra/Cpp && cmake -B build && cmake --build build --config Release && ./build/Release/dijkstra
 ```
 
 ### Zig
@@ -361,8 +400,10 @@ zig build test   # Run tests
 
 ```bash
 cd Cpp
-g++ -std=c++17 -O2 main.cpp -o demo
-./demo
+cmake -B build
+cmake --build build --config Release
+./build/Release/demo      # Windows
+# or ./build/demo         # Linux/macOS
 ```
 
 ### Rust
@@ -383,8 +424,6 @@ npm run build     # Build the package
 npm test          # Run tests
 npm run lint      # Run linting
 ```
-
-## Troubleshooting
 
 ## Troubleshooting
 
@@ -410,14 +449,15 @@ error: hash mismatch: expected 1220abc..., found 1220def...
 Copy the "found" hash to your `build.zig.zon`.
 
 ### Zig Version Compatibility
-- **v2.4.0+**: Requires Zig 0.15.2+
-- **v2.0.0-v2.3.0**: Requires Zig 0.15.2+
+- **v2.5.0+**: Requires Zig 0.15.2+
+- **v2.0.0-v2.4.0**: Requires Zig 0.15.2+
 - **v1.x**: For older Zig versions, use v1.1.0
 
 ### Version Compatibility Matrix
 
 | Package Version | Go | Zig | C++ | Rust | TypeScript | Node.js |
 |----------------|-----|-----|-----|------|------------|---------|
+| **v2.5.0** | 1.21+ | 0.15.2+ | C++23+ | 2021+ | 5.0+ | 18+ |
 | **v2.4.0** | 1.21+ | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
 | **v2.3.0** | 1.21+ | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
 | **v2.2.0** | N/A | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |

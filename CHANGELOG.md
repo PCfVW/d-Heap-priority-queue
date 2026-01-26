@@ -5,6 +5,89 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-01-24
+
+### Added
+
+#### Complete Dijkstra Examples (5 Languages)
+- **TypeScript**: `examples/dijkstra/TypeScript/` — Working implementation with path reconstruction
+- **Go**: `examples/dijkstra/Go/` — Complete implementation using d-heap package
+- **Rust**: `examples/dijkstra/Rust/` — Complete implementation using d-ary-heap crate
+- **Zig**: `examples/dijkstra/Zig/` — Complete implementation using Zig d-heap module
+- **C++**: `examples/dijkstra/Cpp/` — Self-contained implementation (graph data embedded due to no standard JSON support)
+- All implementations: identical algorithm, shared test graph (Network Flows Figure 4.7), dynamic vertex sorting
+- Performance comparison: tests with d=2, d=4, d=8 heap arities
+
+#### C++ API Completeness
+- **C++23 Error Handling**: `std::expected<T, Error>` for safe, expressive error propagation
+- **Safe Accessors**: `peek()` returns `std::optional<T>`, `get_position()` returns `std::optional<Position>`
+- **Bulk Operations**: `insert_many()` with Floyd's O(n) heapify, `pop_many()` for batch extraction
+- **Safe Pop**: `pop_front()` returns `std::optional<T>` for safe extraction
+- **Array Access**: `to_array()` for integration with standard library
+- **Priority Update Methods**: `update_priority()`, `decrease_priority_by_index()`, `update_priority_by_index()`
+- **Safe Variants**: `try_increase_priority()`, `try_decrease_priority()`, `try_update_priority()` returning `std::expected`
+- **Factory Functions**: `create()`, `create_with_first()` returning `std::expected<PriorityQueue, Error>`
+- **Error Enum**: `InvalidArity`, `ItemNotFound`, `IndexOutOfBounds`, `EmptyQueue`
+- **Comprehensive Tests**: 61 tests aligned with Rust test patterns
+
+#### Rust API Completeness
+- **Bulk Operations**: `insert_many()` with Floyd's O(n) heapify, `pop_many()` for batch extraction
+- **Array Access**: `to_array()` method for integration with Vec and standard library
+- **Bidirectional Update**: `update_priority()` for when direction is unknown
+- **Index-Based Update**: `update_priority_by_index()` for direct index manipulation
+- **Enhanced Tests**: 97 tests (62 comprehensive + 27 doc tests + 8 decrease_priority tests)
+
+#### Go API Completeness
+- **Bidirectional Update**: `UpdatePriority()` for when direction is unknown
+- **Position Lookup**: `GetPosition()`, `GetPositionByKey()` for O(1) index lookup
+- **Index-Based Updates**: `DecreasePriorityByIndex()` for direct index manipulation
+- **Snake_case Aliases**: `Update_priority()`, `Decrease_priority_by_index()` for cross-language compatibility
+- **Enhanced Tests**: 57 tests covering all functionality
+
+#### Zig API Completeness
+- **Bidirectional Update**: `updatePriority()` for when direction is unknown
+- **Position Lookup**: `getPosition()` for O(1) index lookup by item identity
+- **Index-Based Updates**: `increasePriorityByIndex()`, `decreasePriorityByIndex()` for direct index manipulation
+- **Bulk Operations**: `insertMany()` with Floyd's O(n) heapify, `popMany()` for batch extraction
+- **Array Access**: `toArray()` for integration with Zig slices
+- **Snake_case Aliases**: Full set of aliases (`update_priority()`, `get_position()`, `increase_priority_by_index()`, `decrease_priority_by_index()`, etc.)
+- **Enhanced Tests**: 54 tests covering all functionality
+
+#### TypeScript API Alignment
+- **Bidirectional Update**: `updatePriority()` for when direction is unknown
+
+### Fixed
+- **Zig/TypeScript `decreasePriority()` Semantics**: Now correctly only moves down (was incorrectly calling both directions, causing instrumentation mismatch)
+
+### Changed
+- **Cross-Language API Alignment**: All five implementations (C++, Go, Rust, Zig, TypeScript) now have identical core APIs
+- **Priority Update Semantics**: Importance-based semantics standardized across all languages
+  - `increase_priority()`: Move toward root (more important) — O(log_d n)
+  - `decrease_priority()`: Move toward leaves (less important) — O(d × log_d n)
+  - `update_priority()`: Both directions when unknown — O((d+1) × log_d n)
+- **Documentation**: Synchronized cross-language comments and API references
+
+### Technical Details (C++)
+- Requires C++23 for `std::expected` support
+- Template specialization maintains full STL compatibility with custom hash/equality functors
+- Legacy compatibility methods (`size()`, `empty()`, `getd()`, `put()`) preserved for backward compatibility
+- Position-based operations enable O(1) lookup followed by O(log n) update
+
+### Technical Details (Rust)
+- `Result<T, Error>` for all fallible operations
+- `Display` trait implementation for automatic `format!("{}", pq)` support
+- Memory safety with zero-cost abstractions maintained
+
+### Technical Details (Go)
+- Idiomatic Go error handling: errors for recoverable conditions, panics for programmer errors
+- `Position` type alias used internally for cross-language consistency
+- Implements `fmt.Stringer` interface for automatic `fmt.Print()` support
+
+### Technical Details (Zig)
+- Error union return types (`!void`, `error.ItemNotFound`, `error.IndexOutOfBounds`)
+- Explicit allocator management following Zig best practices
+- camelCase as primary convention with snake_case aliases for cross-language compatibility
+
 ## [2.4.0] - 2026-01-07
 
 ### Added
@@ -189,6 +272,7 @@ For existing Zig users upgrading from v1.x:
 - Comprehensive test suites
 - Professional documentation
 
+[2.5.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/PCfVW/d-Heap-priority-queue/compare/v2.1.2...v2.2.0

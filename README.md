@@ -1,10 +1,11 @@
-# Min/Max d-Heap Priority Queues (C++, Go, Rust, Zig, and TypeScript) v2.4.0
+# Min/Max d-Heap Priority Queues (C++, Go, Rust, Zig, and TypeScript) v2.5.0
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
 
 ## Table of Contents
 
 - [Live Demo](#live-demo)
+- [Features](#features)
 - [Cross-Language API Reference](#cross-language-api-reference)
 - [Error Handling by Language](#error-handling-by-language)
 - [Language Comparison](#language-comparison)
@@ -45,14 +46,24 @@ All five implementations provide equivalent functionality with method names foll
 | **Clear** | `clear(opt_d)` | `Clear(newD...)` | `clear(opt_d)` | `clear(new_depth?)` | `clear(newD?)` |
 | **Contains** | `contains()` | `Contains()` | `contains()` | `contains()` | `contains()` |
 | **Arity** | `d()` | `D()` | `d()` | `d()` | `d()` |
-| **Decrease Priority** | `decrease_priority()` | `DecreasePriority()` | `decrease_priority()` | `decreasePriority()` | `decreasePriority()` |
+| **Get Position** | `get_position()` | `GetPosition()` | `get_position()` | `getPosition()` | `getPosition()` |
 | **Front** | `front()` | `Front()` | `front()` | `front()` | `front()` |
-| **Increase Priority** | `increase_priority()` | `IncreasePriority()` | `increase_priority()` | `increasePriority()` | `increasePriority()` |
+| **Peek** | `peek()` | `Peek()` | `peek()` | `peek()` | `peek()` |
 | **Insert** | `insert()` | `Insert()` | `insert()` | `insert()` | `insert()` |
+| **Insert Many** | `insert_many()` | `InsertMany()` | `insert_many()` | `insertMany()` | `insertMany()` |
 | **Is Empty** | `is_empty()` | `IsEmpty()` | `is_empty()` | `isEmpty()` | `isEmpty()` |
 | **Length** | `len()` | `Len()` | `len()` | `len()` | `len()` |
 | **Pop** | `pop()` | `Pop()` | `pop()` | `pop()` | `pop()` |
-| **String Output** | `to_string()` | `String()` | `to_string()` | `toString()` / `to_string()` | `toString()` / `to_string()` |
+| **Pop Front** | `pop_front()` | — | — | — | — |
+| **Pop Many** | `pop_many()` | `PopMany()` | `pop_many()` | `popMany()` | `popMany()` |
+| **Increase Priority** | `increase_priority()` | `IncreasePriority()` | `increase_priority()` | `increasePriority()` | `increasePriority()` |
+| **Increase Priority By Index** | `increase_priority_by_index()` | `IncreasePriorityByIndex()` | `increase_priority_by_index()` | `increasePriorityByIndex()` | `increasePriorityByIndex()` |
+| **Decrease Priority** | `decrease_priority()` | `DecreasePriority()` | `decrease_priority()` | `decreasePriority()` | `decreasePriority()` |
+| **Decrease Priority By Index** | `decrease_priority_by_index()` | `DecreasePriorityByIndex()` | `decrease_priority_by_index()` | `decreasePriorityByIndex()` | `decreasePriorityByIndex()` |
+| **Update Priority** | `update_priority()` | `UpdatePriority()` | `update_priority()` | `updatePriority()` | `updatePriority()` |
+| **Update Priority By Index** | `update_priority_by_index()` | — | `update_priority_by_index()` | — | — |
+| **To Array** | `to_array()` | `ToArray()` | `to_array()` | `toArray()` | `toArray()` |
+| **String Output** | `to_string()` | `String()` | `to_string()` | `toString()` | `toString()` |
 | **Position Type** | `Position` | `Position` | `Position` | `Position` | `Position` |
 
 ### Method Naming Conventions
@@ -67,8 +78,8 @@ All five implementations provide equivalent functionality with method names foll
 - `isEmpty()`, `increasePriority()`, `decreasePriority()`, `toString()`
 
 **Cross-Language Compatibility**:
-- **Go**: Provides snake_case aliases (`Is_empty()`, `Increase_priority()`, `Decrease_priority()`, `To_string()`)
-- **Zig**: Provides `to_string()` alias for `toString()`
+- **Go**: Provides snake_case aliases (`Is_empty()`, `Increase_priority()`, `Decrease_priority()`, `To_string()`, etc.)
+- **Zig**: Provides snake_case aliases for all camelCase methods (`is_empty()`, `increase_priority()`, `decrease_priority()`, `update_priority()`, `get_position()`, `to_string()`, `to_array()`, etc.)
 - **TypeScript**: Provides snake_case aliases for all camelCase methods
 
 ### Return Type Variations
@@ -78,34 +89,37 @@ Different languages handle safety and error conditions in their idiomatic ways:
 | Method | C++ | Go | Rust | Zig | TypeScript |
 |--------|-----|-----|------|-----|------------|
 | **front()** | `const T&` (UB if empty) | `(T, error)` | `&T` (panics if empty) | `?T` (null if empty) | `T` (throws if empty) |
-| **peek()** | *Not available* | `(T, bool)` | `Option<&T>` | `?T` (alias for front) | `T \| undefined` |
-| **pop()** | `void` | `(T, bool)` | `()` | `?T` | `T \| undefined` |
-| **Error handling** | Assertions | Errors/Panics | Panics | Error unions | Exceptions |
+| **peek()** | `std::optional<T>` | `(T, bool)` | `Option<&T>` | `?T` (alias for front) | `T \| undefined` |
+| **pop()** | `void` | `(T, bool)` | `Option<T>` | `?T` | `T \| undefined` |
+| **pop_front()** | `std::optional<T>` | — | — | — | — |
+| **Error handling** | `std::expected` | Errors/Panics | `Result<T, Error>` | Error unions | Exceptions |
 
 **Safety Recommendations**:
-- **C++**: Always check `!is_empty()` before calling `front()`
+- **C++**: Use `peek()` for safe access (returns `std::optional<T>`), or check `!is_empty()` before `front()`
 - **Go**: Use `Peek()` for safe access (returns `(T, bool)`), or check `!IsEmpty()` before `Front()`
 - **Rust**: Use `peek()` for safe access or handle panics appropriately
 - **Zig**: `front()` is safe by default, returns `null` for empty heaps
 - **TypeScript**: Use `peek()` for safe access or wrap `front()` in try-catch
 
-### **Priority Update Method Design**
+### Priority Update Method Design
 
-The priority update methods have an intentionally **asymmetric design** that optimizes for both performance and robustness:
+The priority update methods use **importance-based semantics** with directional optimization:
 
 **Method Semantics:**
-- **Increase Priority**: Make an item **more important** (moves toward heap root)
-- **Decrease Priority**: Make an item **less important** (moves toward heap leaves)
+- **`increase_priority()`**: Make an item **more important** (moves toward heap root). Only moves up for O(log_d n) performance.
+- **`decrease_priority()`**: Make an item **less important** (moves toward heap leaves). Only moves down for O(d × log_d n) performance.
+- **`update_priority()`**: Update when direction is **unknown**. Checks both directions for O((d+1) × log_d n) performance.
 
 **Heap Context:**
 - **Min-heap**: Lower priority values = higher importance (e.g., priority 5 > priority 10)
 - **Max-heap**: Higher priority values = higher importance (e.g., priority 10 > priority 5)
 
-**Implementation Strategy:**
-- **`increase_priority()`**: Only moves items **up** (O(log_d n)) - assumes correct usage for optimal performance
-- **`decrease_priority()`**: Checks **both directions** (O(d × log_d n)) - handles user errors gracefully
+**When to use each:**
+- Use `increase_priority()` when you know the item became more important (e.g., Dijkstra's algorithm)
+- Use `decrease_priority()` when you know the item became less important
+- Use `update_priority()` when you don't know which direction the priority changed
 
-This asymmetric design reflects real-world usage patterns: `increase_priority()` is performance-critical in algorithms like Dijkstra's shortest path, while `decrease_priority()` is used less frequently and benefits from defensive programming that prevents heap corruption even when users accidentally call the wrong method.
+**Note**: `update_priority()` is now available in all five implementations (C++, Go, Rust, Zig, and TypeScript). Use it when you don't know the direction of priority change.
 
 *Note: Original methods (`size()`, `empty()`, etc.) remain available in C++ for backward compatibility.*
 
@@ -118,15 +132,26 @@ Each implementation follows its language's idiomatic error handling patterns:
 | Operation | C++ | Go | Rust | Zig | TypeScript |
 |-----------|-----|-----|------|-----|------------|
 | **Empty front()** | Undefined behavior | Returns `error` | Panic with message | Returns `null` | Throws `Error` |
-| **Invalid arity** | Assert failure | Panics | Panic with message | Returns `error.DepthMustBePositive` | Throws `Error` |
-| **Item not found** | Assert failure | Panics | Panic with message | Returns `error.ItemNotFound` | Throws `Error` |
-| **Index out of bounds** | Assert failure | Panics | Panic with message | N/A | Throws `Error` |
+| **Invalid arity** | `Error::InvalidArity` | Panics | `Error::InvalidArity` | `error.DepthMustBePositive` | Throws `Error` |
+| **Item not found** | `Error::ItemNotFound` | Returns `error` | `Error::ItemNotFound` | `error.ItemNotFound` | Throws `Error` |
+| **Index out of bounds** | `Error::IndexOutOfBounds` | Panics | `Error::IndexOutOfBounds` | `error.IndexOutOfBounds` | Throws `Error` |
+| **Empty queue op** | `Error::EmptyQueue` | Returns `error` | `Error::EmptyQueue` | Returns `null` | Throws `Error` |
+
+### Error Types by Language
+
+| Language | Error Mechanism | Error Types |
+|----------|-----------------|-------------|
+| **C++** | `std::expected<T, Error>` | `InvalidArity`, `ItemNotFound`, `IndexOutOfBounds`, `EmptyQueue` |
+| **Go** | `(T, error)` / `(T, bool)` | `ErrEmptyQueue`, `ErrItemNotFound`, `ErrInvalidArity` |
+| **Rust** | `Result<T, Error>` | `InvalidArity`, `ItemNotFound`, `IndexOutOfBounds`, `EmptyQueue` |
+| **Zig** | `!T` (error union) | `DepthMustBePositive`, `ItemNotFound`, `IndexOutOfBounds` |
+| **TypeScript** | `throws Error` | Error messages |
 
 ### Error Handling Best Practices
 
-- **C++**: Check `!empty()` before calling `front()`, validate inputs before operations
+- **C++**: Use `std::expected`-returning methods (`try_*`, `*_by_index`) for safe operations, or use `peek()` for safe front access
 - **Go**: Use `Peek()` for safe access (returns `(T, bool)`), check errors from `Front()`, handle panics for invalid operations
-- **Rust**: Use `peek()` for safe access, handle panics with `catch_unwind` if needed
+- **Rust**: Use `peek()` for safe access, use `Result`-returning methods for fallible operations
 - **Zig**: Handle error unions with `try` or explicit error checking (`if (result) |value| { ... }`)
 - **TypeScript**: Use try-catch blocks or `peek()` for safe access
 
@@ -161,41 +186,59 @@ All five implementations provide identical functionality—choose based on your 
 While all implementations provide the core d-heap functionality, each offers additional features that leverage their language's strengths:
 
 ### C++ Extensions
+- **C++23 error handling**: `std::expected<T, Error>` for safe, expressive error propagation
+- **Safe accessors**: `peek()` returns `std::optional<T>`, `get_position()` returns `std::optional<Position>`
+- **Bulk operations**: `insert_many()` with Floyd's O(n) heapify, `pop_many()` for batch extraction
+- **Complete priority API**: `update_priority()`, `decrease_priority_by_index()`, `update_priority_by_index()`
+- **Safe variants**: `try_increase_priority()`, `try_decrease_priority()`, `try_update_priority()` returning `std::expected`
+- **Factory functions**: `create()`, `create_with_first()` returning `std::expected<PriorityQueue, Error>`
 - **Legacy compatibility**: `size()`, `empty()`, `getd()`, `put()` methods for backward compatibility
-- **Position-based operations**: `increase_priority(position)` overload for direct index manipulation
+- **Position-based operations**: `increase_priority_by_index()`, `decrease_priority_by_index()` for direct index manipulation
 - **Template specialization**: Full STL compatibility with custom hash/equality functors
-- **Error handling**: Assertion-based validation with compile-time `INCLUDE_ASSERT` flag
 
 ### Go Extensions
 - **Functional options**: `Options[T, K]` struct for clean configuration with `Comparator` and `KeyExtractor`
 - **Bulk operations**: `InsertMany()`, `PopMany()` for efficient batch processing with Floyd's heapify algorithm
+- **Position lookup**: `GetPosition()` for O(1) index lookup by item identity
+- **Index-based updates**: `IncreasePriorityByIndex()`, `DecreasePriorityByIndex()` for direct index manipulation
+- **Bidirectional update**: `UpdatePriority()` for when priority change direction is unknown
 - **Safe access**: `Peek()` returns `(T, bool)` for safe, non-panicking access
 - **Array access**: `ToArray()` method for integration with Go slices and standard library
 - **Stringer interface**: Implements `fmt.Stringer` for automatic `fmt.Print()` support
 - **Cross-language aliases**: Snake_case method aliases (`Is_empty()`, `Increase_priority()`, etc.) for easy porting
 - **Error handling**: Idiomatic Go error returns from `Front()`, panics for programmer errors (invalid arity, item not found)
 
-### Rust Extensions  
-- **Index-based updates**: `increase_priority_by_index(index)` for position-based priority changes
-- **Safe access**: `peek()` method returns `Option<&T>` instead of panicking
+### Rust Extensions
+- **Result-based error handling**: `Result<T, Error>` for all fallible operations
+- **Index-based updates**: `increase_priority_by_index()`, `decrease_priority_by_index()`, `update_priority_by_index()`
+- **Bulk operations**: `insert_many()` with Floyd's O(n) heapify, `pop_many()` for batch extraction
+- **Safe access**: `peek()` method returns `Option<&T>`, `get_position()` returns `Option<Position>`
+- **Bidirectional update**: `update_priority()` for when priority change direction is unknown
 - **Display trait**: Automatic `format!("{}", pq)` support alongside explicit `to_string()`
+- **Array access**: `to_array()` method for integration with Vec and standard library
 - **Memory safety**: Compile-time guarantees with zero-cost abstractions
-- **Error handling**: Panic-based errors with descriptive messages, safe `peek()` alternative
 
 ### Zig Extensions
 - **Pre-allocation**: `initCapacity()` constructor for performance optimization
 - **Bulk operations**: `insertMany()`, `popMany()` for efficient batch processing with Floyd's heapify algorithm
+- **Position lookup**: `getPosition()` for O(1) index lookup by item identity
+- **Index-based updates**: `increasePriorityByIndex()`, `decreasePriorityByIndex()` for direct index manipulation
+- **Bidirectional update**: `updatePriority()` for when priority change direction is unknown
 - **Array access**: `toArray()` method for integration with Zig slices
 - **Generic types**: Full compile-time generics with `DHeap(T, Context, Comparator)`
 - **Explicit memory**: Manual allocator management following Zig best practices
 - **Compile-time optimization**: `comptime` features for zero-runtime-cost abstractions
-- **Error handling**: Error union return types with explicit error handling (`!void`, `error.ItemNotFound`)
+- **Cross-language aliases**: Full snake_case aliases for all camelCase methods
+- **Error handling**: Error union return types with explicit error handling (`!void`, `error.ItemNotFound`, `error.IndexOutOfBounds`)
 
 ### TypeScript Extensions
 - **Key-based operations**: `containsKey()`, `getPosition()`, `getPositionByKey()` for advanced lookups
+- **Index-based updates**: `increasePriorityByIndex()`, `decreasePriorityByIndex()` for direct index manipulation
+- **Bidirectional update**: `updatePriority()` for when priority change direction is unknown
 - **Bulk operations**: `insertMany()`, `popMany()` for efficient batch processing
 - **Array access**: `toArray()` method and `[Symbol.iterator]()` for integration with JavaScript ecosystem
 - **Property access**: `size` property alongside `len()` method
+- **Instrumentation**: Opt-in comparison counting for performance analysis and visualization
 - **Cross-language aliases**: Snake_case method aliases for easy porting from C++/Rust
 - **Error handling**: Exception-based errors with try-catch handling, safe `peek()` alternative
 
@@ -203,25 +246,41 @@ Choose extensions based on your specific use case—core functionality remains i
 
 ## Version Information
 
-**Current Version: 2.4.0** — Interactive Demo & Zig Bulk Operations
+**Current Version: 2.5.0** — C++ API Completeness & Cross-Language Alignment
 
-**What's New in 2.4.0:**
+**What's New in 2.5.0:**
+- 🎯 **Complete Dijkstra Examples**: All 5 languages now have working Dijkstra implementations in `examples/dijkstra/`
+- 🎯 **C++23 Modernization**: `std::expected<T, Error>` for safe, expressive error handling
+- ✅ **C++ API Completeness**: Added `peek()`, `get_position()`, `insert_many()`, `pop_many()`, `pop_front()`, `to_array()`
+- ✅ **C++ Priority Updates**: `update_priority()`, `decrease_priority_by_index()`, `update_priority_by_index()`
+- ✅ **C++ Safe Variants**: `try_increase_priority()`, `try_decrease_priority()`, `try_update_priority()` with `std::expected`
+- ✅ **Rust API Completeness**: Added `insert_many()`, `pop_many()`, `to_array()`, `update_priority()`, `update_priority_by_index()`
+- ✅ **Cross-Language Alignment**: All 5 implementations now have identical core APIs
+- ✅ **C++ Test Suite**: 61 comprehensive tests aligned with Rust test patterns
+- ✅ **Rust Test Suite**: 97 tests (62 comprehensive + 27 doc tests + 8 decrease_priority tests)
+- 📚 **Updated Documentation**: Synchronized cross-language comments and API references
+
+**Previous in 2.4.0:**
 - 🎯 **[Interactive Demo](https://pcfvw.github.io/d-Heap-priority-queue/)**: React Flow visualization of d-ary heaps with Dijkstra's algorithm
   - Dual-panel layout with heap tree and graph visualization
   - Arity comparison (d=2, d=4, d=8) and Race Mode
   - Timeline scrubber, playback controls, keyboard shortcuts
 - ✅ **TypeScript Instrumentation**: Opt-in comparison counting for performance analysis
 - ✅ **GitHub Actions**: Automatic demo deployment to GitHub Pages
+- ✅ **Unified Priority Update API**: New `updatePriority()` method across Go, Zig, and TypeScript for when direction is unknown
+- ✅ **Position Lookup**: `getPosition()` method for O(1) index lookup in Go, Zig, and TypeScript
+- ✅ **Index-Based Updates**: `increasePriorityByIndex()`, `decreasePriorityByIndex()` across Go, Zig, and TypeScript
 - ✅ **Zig Bulk Operations**: `insertMany()` with Floyd's O(n) heapify, `popMany()`, `toArray()`
-- ✅ **Zig Error Handling**: Proper error propagation in `swapItems()` and `pop()`
-- ✅ **Go Refinements**: `Position` type used internally, `Increase_priority_by_index()` alias
+- ✅ **Zig API Alignment**: Full snake_case aliases, fixed `decreasePriority()` semantics, 54 tests
+- ✅ **Go Refinements**: `Position` type used internally, full API parity, 57 tests
+- ✅ **TypeScript Refinements**: Full API parity with Go/Zig, 57 tests
 
 **Previous in 2.3.0:**
 - ✅ **Go Implementation**: Complete d-heap priority queue in Go with full API parity
 - ✅ **Go Generics**: Full generic support with `PriorityQueue[T any, K comparable]`
 - ✅ **Go Dijkstra Example**: Complete working example demonstrating d-heap usage
 - ✅ **Comparator Utilities**: `MinBy()`, `MaxBy()` factory functions and pre-built comparators
-- ✅ **Comprehensive Tests**: 47 test cases covering all functionality
+- ✅ **Comprehensive Tests**: 57 test cases covering all functionality
 - ✅ **Cross-Language Aliases**: Snake_case aliases for easy porting from other implementations
 
 **Previous in 2.2.0:**
@@ -237,16 +296,18 @@ Choose extensions based on your specific use case—core functionality remains i
 - 📦 **Publishing Ready**: Complete NPM publishing setup with proper build pipeline
 - 🚀 **Zig 0.15.2**: Updated Zig implementation for latest Zig version with API changes
 - ✨ **Generic Zig**: Zig implementation now fully generic (use your own item types)
-- 🧪 **Comprehensive Tests**: 20+ tests in Zig matching Rust coverage
+- 🧪 **Comprehensive Tests**: 54 tests in Zig matching Go/TypeScript coverage
 - 📦 **Module Export**: Zig can now be used as a dependency in other projects
 - 🔧 **Better Error Handling**: Removed `unreachable` from Zig error paths
 - ➕ **New Methods**: Added `peek()` alias and `initCapacity()` in Zig
 - 🟦 **TypeScript**: New high-performance TypeScript implementation with full API parity
 
 This version represents a feature-complete, production-ready implementation with:
-- ✅ **Complete API**: All 12 core methods implemented across all five languages
-- ✅ **Comprehensive Testing**: 20+ test functions covering all functionality and edge cases
+- ✅ **Complete API**: 23+ operations with full API parity across all five languages
+- ✅ **Comprehensive Testing**: 50-97 tests per language covering all functionality and edge cases
+  - C++: 61 tests | Rust: 97 tests | Go: 57 tests | Zig: 54 tests | TypeScript: 57 tests
 - ✅ **Cross-Language Parity**: Identical API and behavior across C++, Go, Rust, Zig, and TypeScript
+- ✅ **Modern Error Handling**: `std::expected` (C++), `Result<T, Error>` (Rust), error unions (Zig)
 - ✅ **Professional Documentation**: Detailed usage guides and design explanations
 - ✅ **Performance Optimized**: O(1) item lookup, template specialization, memory efficiency
 - ✅ **Truly Generic**: All implementations support user-defined item types
@@ -255,13 +316,13 @@ All five implementations share synchronized version numbers to ensure feature co
 
 ## Getting Started
 
-**New in v2.4.0**: Try the [Interactive Demo](https://pcfvw.github.io/d-Heap-priority-queue/) to visualize d-ary heaps with Dijkstra's algorithm. Also check out the [Dijkstra examples](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/examples/dijkstra) available in Go, TypeScript, and more.
+Try the [Interactive Demo](https://pcfvw.github.io/d-Heap-priority-queue/) to visualize d-ary heaps with Dijkstra's algorithm. Also check out the [Dijkstra examples](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/examples/dijkstra) available in all five languages (TypeScript, Go, Rust, Zig, C++).
 
 Explore the language-specific implementations:
 
 | Language | README |
 | --- | --- |
-| ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg) | [Cpp/README.md](Cpp/README.md) |
+| ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg) | [Cpp/README.md](Cpp/README.md) |
 | ![Go 1.21](https://img.shields.io/badge/Go-1.21-00ADD8.svg) | [Go/README.md](Go/README.md) |
 | ![Rust Edition 2021](https://img.shields.io/badge/Rust-Edition_2021-orange.svg) | [Rust/README.md](Rust/README.md) |
 | ![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-f7a41d.svg) | [zig/README.md](zig/README.md) |
@@ -273,7 +334,7 @@ Explore the language-specific implementations:
 
 This project is licensed under the **Apache License 2.0** - see the [LICENSE](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/LICENSE) file for details.
 
-Copyright © 2023-2025 Eric Jacopin
+Copyright © 2023-2026 Eric Jacopin
 
 ## AI Code Generation Research
 
