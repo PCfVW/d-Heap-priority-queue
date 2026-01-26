@@ -34,7 +34,7 @@ Adding Go after the TypeScript example (rather than before) means:
 - [x] `Go/` — Full implementation with API parity
 - [x] `go.work` — Workspace configuration for local development
 - [x] `examples/dijkstra/Go/` — Dijkstra implementation
-- [ ] Published on [pkg.go.dev](https://pkg.go.dev)
+- [x] Published on [pkg.go.dev](https://pkg.go.dev/github.com/PCfVW/d-Heap-priority-queue/Go/v2)
 
 ---
 
@@ -167,6 +167,45 @@ Each implementation will track comparison counts per operation (insert, pop, dec
 - [ ] Cross-language performance comparison (C++, Go, Rust, Zig, TypeScript)
 - [ ] Dense vs sparse graph analysis
 - [ ] Memory usage profiling
+
+---
+
+## CI/CD Automation
+
+> *Why automate publishing?*
+
+Manual publishing is error-prone and easy to forget. Automating the release process ensures consistency and reduces friction for future releases.
+
+### Planned Workflows
+
+| Workflow | Trigger | Action |
+|----------|---------|--------|
+| **npm publish** | GitHub Release published | Publish TypeScript package to npm |
+| **GitHub Release** | Tag pushed (`v*`) | Auto-create release with changelog |
+
+### npm Publish Workflow
+
+Automatically publish to npm when a GitHub release is created:
+
+- [ ] `.github/workflows/publish-npm.yml`
+- [ ] Requires `NPM_TOKEN` secret (Automation token from npmjs.com)
+- [ ] Runs tests before publishing
+- [ ] Uses `prepublishOnly` script for build
+
+### GitHub Release Workflow
+
+Automatically create a GitHub release when a version tag is pushed:
+
+- [ ] `.github/workflows/create-release.yml`
+- [ ] Trigger on `v*` tags (e.g., `v2.6.0`)
+- [ ] Extract release notes from CHANGELOG.md
+- [ ] Create release with proper formatting
+
+### Current Workflows
+
+| Workflow | Status | Purpose |
+|----------|--------|---------|
+| `deploy-demo.yml` | ✅ Active | Deploy React demo to GitHub Pages |
 
 ---
 
