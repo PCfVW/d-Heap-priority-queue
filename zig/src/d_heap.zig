@@ -257,8 +257,17 @@ pub fn DHeap(
         /// Check if the heap is empty.
         ///
         /// Time complexity: O(1)
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: IsEmpty()
+        ///   - TypeScript: isEmpty()
         pub fn isEmpty(self: Self) bool {
             return self.container.items.len == 0;
+        }
+
+        /// Alias for isEmpty() - snake_case for cross-language consistency.
+        pub fn is_empty(self: Self) bool {
+            return self.isEmpty();
         }
 
         /// Get the arity (number of children per node) of the heap.
@@ -276,6 +285,10 @@ pub fn DHeap(
         ///
         /// Time complexity: O(1)
         ///
+        /// Cross-language equivalents:
+        ///   - Go: Contains()
+        ///   - TypeScript: contains()
+        ///
         /// Example:
         /// ```zig
         /// if (heap.contains(Item{ .number = 42, .cost = 0 })) {
@@ -284,6 +297,32 @@ pub fn DHeap(
         /// ```
         pub fn contains(self: *const Self, item: T) bool {
             return self.positions.contains(item);
+        }
+
+        /// Get the position (index) of an item in the heap array.
+        ///
+        /// The item is looked up by identity (hash/equality), not by
+        /// priority value. Returns null if the item is not found.
+        ///
+        /// Time complexity: O(1)
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: GetPosition()
+        ///   - TypeScript: getPosition()
+        ///
+        /// Example:
+        /// ```zig
+        /// if (heap.getPosition(Item{ .number = 42, .cost = 0 })) |pos| {
+        ///     // Item found at position `pos`
+        /// }
+        /// ```
+        pub fn getPosition(self: *const Self, item: T) ?usize {
+            return self.positions.get(item);
+        }
+
+        /// Alias for getPosition() - snake_case for cross-language consistency.
+        pub fn get_position(self: *const Self, item: T) ?usize {
+            return self.getPosition(item);
         }
 
         /// Get the highest-priority item without removing it.
@@ -299,6 +338,12 @@ pub fn DHeap(
         /// Alias for front() - get highest-priority item without removing.
         ///
         /// Provided for API consistency with other priority queue implementations.
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: Peek()
+        ///   - TypeScript: peek()
+        ///   - C++: peek() (returns std::optional)
+        ///   - Rust: peek()
         pub fn peek(self: *const Self) ?T {
             return self.front();
         }
@@ -380,6 +425,10 @@ pub fn DHeap(
         ///
         /// Time complexity: O(log_d n)
         ///
+        /// Cross-language equivalents:
+        ///   - Go: IncreasePriority()
+        ///   - TypeScript: increasePriority()
+        ///
         /// Returns: Error if item not found
         pub fn increasePriority(self: *Self, updated_item: T) !void {
             const index_ptr = self.positions.getPtr(updated_item) orelse {
@@ -395,17 +444,79 @@ pub fn DHeap(
             try self.moveUp(index);
         }
 
+        /// Alias for increasePriority() - snake_case for cross-language consistency.
+        pub fn increase_priority(self: *Self, updated_item: T) !void {
+            return self.increasePriority(updated_item);
+        }
+
+        /// Increase the priority of the item at the given index.
+        ///
+        /// This is a lower-level method that only calls moveUp on the item
+        /// at the specified index. The caller is responsible for ensuring
+        /// the item's priority value has been updated appropriately.
+        ///
+        /// Time complexity: O(log_d n)
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: IncreasePriorityByIndex()
+        ///   - TypeScript: increasePriorityByIndex()
+        ///
+        /// Returns: Error if index is out of bounds
+        pub fn increasePriorityByIndex(self: *Self, index: usize) !void {
+            if (index >= self.container.items.len) {
+                return error.IndexOutOfBounds;
+            }
+            try self.moveUp(index);
+        }
+
+        /// Alias for increasePriorityByIndex() - snake_case for cross-language consistency.
+        pub fn increase_priority_by_index(self: *Self, index: usize) !void {
+            return self.increasePriorityByIndex(index);
+        }
+
+        /// Decrease the priority of the item at the given index.
+        ///
+        /// This is a lower-level method that only calls moveDown on the item
+        /// at the specified index. The caller is responsible for ensuring
+        /// the item's priority value has been updated appropriately.
+        ///
+        /// Time complexity: O(d · log_d n)
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: DecreasePriorityByIndex()
+        ///   - TypeScript: decreasePriorityByIndex()
+        ///
+        /// Returns: Error if index is out of bounds
+        pub fn decreasePriorityByIndex(self: *Self, index: usize) !void {
+            if (index >= self.container.items.len) {
+                return error.IndexOutOfBounds;
+            }
+            try self.moveDown(index);
+        }
+
+        /// Alias for decreasePriorityByIndex() - snake_case for cross-language consistency.
+        pub fn decrease_priority_by_index(self: *Self, index: usize) !void {
+            return self.decreasePriorityByIndex(index);
+        }
+
         /// Decrease the priority of an existing item (move toward leaves).
         ///
-        /// Updates an item's priority and repositions it in the heap, checking
-        /// both upward and downward directions. This is more defensive than
-        /// `increasePriority()` and handles cases where the caller might use
-        /// the wrong method.
+        /// Updates an item's priority and repositions it downward in the heap.
+        /// The item is identified by its identity (hash/equality), and its
+        /// priority is updated to the new value.
         ///
         /// For a min-heap: increasing the priority value decreases importance
         /// For a max-heap: decreasing the priority value decreases importance
         ///
+        /// This method only moves items downward for performance. If the new
+        /// priority is actually higher, use `increasePriority()` instead.
+        /// If direction is unknown, use `updatePriority()`.
+        ///
         /// Time complexity: O(d · log_d n)
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: DecreasePriority()
+        ///   - TypeScript: decreasePriority()
         ///
         /// Returns: Error if item not found
         pub fn decreasePriority(self: *Self, updated_item: T) !void {
@@ -417,9 +528,51 @@ pub fn DHeap(
             // Update the item in the container
             self.container.items[index] = updated_item;
 
-            // Check both directions since we don't know if priority actually decreased
-            try self.moveUp(index);
+            // Only move down - caller asserts priority decreased
             try self.moveDown(index);
+        }
+
+        /// Alias for decreasePriority() - snake_case for cross-language consistency.
+        pub fn decrease_priority(self: *Self, updated_item: T) !void {
+            return self.decreasePriority(updated_item);
+        }
+
+        /// Update the priority of an existing item when direction is unknown.
+        ///
+        /// Updates an item's priority and repositions it in the heap, checking
+        /// both upward and downward directions. Use this when you don't know
+        /// whether the priority increased or decreased.
+        ///
+        /// For better performance when direction is known, use:
+        /// - `increasePriority()` when item became more important
+        /// - `decreasePriority()` when item became less important
+        ///
+        /// Time complexity: O((d+1) · log_d n) - checks both directions
+        ///
+        /// Cross-language equivalents:
+        ///   - Go: UpdatePriority()
+        ///   - TypeScript: updatePriority()
+        ///
+        /// Returns: Error if item not found
+        pub fn updatePriority(self: *Self, updated_item: T) !void {
+            const index_ptr = self.positions.getPtr(updated_item) orelse {
+                return error.ItemNotFound;
+            };
+            const index = index_ptr.*;
+
+            // Update the item in the container
+            self.container.items[index] = updated_item;
+
+            // Check both directions since we don't know which way priority changed
+            try self.moveUp(index);
+            // Re-fetch position in case moveUp changed it
+            const new_index = self.positions.get(updated_item) orelse return error.ItemNotFound;
+            try self.moveDown(new_index);
+        }
+
+        /// Alias for updatePriority() - snake_case for cross-language consistency.
+        pub fn update_priority(self: *Self, updated_item: T) !void {
+            return self.updatePriority(updated_item);
         }
 
         /// Remove and return the highest-priority item.
@@ -731,4 +884,7 @@ pub const Error = error{
 
     /// Attempted to update priority of item not present in heap
     ItemNotFound,
+
+    /// Attempted to access item at invalid index
+    IndexOutOfBounds,
 };
