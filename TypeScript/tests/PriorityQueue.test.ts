@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { PriorityQueue, minBy, maxBy, minNumber, maxNumber } from '../src';
+import { PriorityQueue, minBy, maxBy, minNumber, maxNumber, reverse, chain } from '../src';
 
 // =============================================================================
 // Test Item Types
@@ -182,6 +182,43 @@ describe('PriorityQueue - Priority Updates', () => {
 
     pq.decrease_priority(createItem(1, 100));
     expect(pq.front().id).toBe(2);
+  });
+
+  it('should update priority when direction is unknown (updatePriority)', () => {
+    pq.insert(createItem(1, 10));
+    pq.insert(createItem(2, 5));
+    pq.insert(createItem(3, 15));
+
+    // Update item 1 to have lowest cost (move up)
+    pq.updatePriority(createItem(1, 1));
+    expect(pq.front().id).toBe(1);
+    expect(pq.front().cost).toBe(1);
+
+    // Update item 1 to have highest cost (move down)
+    pq.updatePriority(createItem(1, 100));
+    expect(pq.front().id).toBe(2);
+    expect(pq.front().cost).toBe(5);
+
+    // Pop all and verify order
+    expect(pq.pop()?.id).toBe(2);
+    expect(pq.pop()?.id).toBe(3);
+    expect(pq.pop()?.id).toBe(1);
+  });
+
+  it('should throw when updatePriority on non-existent item', () => {
+    pq.insert(createItem(1, 10));
+
+    expect(() => pq.updatePriority(createItem(99, 5))).toThrow(
+      'Item not found'
+    );
+  });
+
+  it('should handle update_priority snake_case alias', () => {
+    pq.insert(createItem(1, 10));
+    pq.insert(createItem(2, 5));
+
+    pq.update_priority(createItem(1, 1));
+    expect(pq.front().id).toBe(1);
   });
 });
 
@@ -555,5 +592,318 @@ describe('PriorityQueue - Additional API', () => {
     expect(() => pq.increasePriorityByIndex(-1)).toThrow('Index out of bounds');
     expect(() => pq.increasePriorityByIndex(5)).toThrow('Index out of bounds');
     expect(() => pq.increase_priority_by_index(99)).toThrow('Index out of bounds');
+  });
+
+  it('should support decreasePriorityByIndex()', () => {
+    const pq = new PriorityQueue<Item, number>({
+      d: 4,
+      comparator: minBy((item) => item.cost),
+      keyExtractor: (item) => item.id,
+    });
+
+    pq.insert(createItem(1, 5));
+    pq.insert(createItem(2, 10));
+    pq.insert(createItem(3, 15));
+
+    // Item 1 is at root (position 0) with cost 5
+    expect(pq.front().id).toBe(1);
+
+    // Directly modify item 1's cost to make it less important
+    // First get the internal array via toArray() to verify structure
+    const arr = pq.toArray();
+    expect(arr[0]!.id).toBe(1);
+
+    // Modify the item at position 0 to have higher cost (less important in min-heap)
+    // We need to access the container directly for this low-level test
+    // The byIndex method is meant to be called after externally modifying the item
+    // For testing, we use getPosition and then call decreasePriorityByIndex
+    const pos = pq.getPosition(createItem(1, 0))!;
+    expect(pos).toBe(0);
+
+    // Insert a new item that becomes root, pushing item 1 down
+    pq.insert(createItem(4, 1));
+    expect(pq.front().id).toBe(4);
+
+    // Item 1 is no longer at root
+    const newPos = pq.getPosition(createItem(1, 0))!;
+    expect(newPos).toBeGreaterThan(0);
+
+    // Call decreasePriorityByIndex on a non-root position (should work without throwing)
+    pq.decreasePriorityByIndex(newPos);
+    // Heap property should still be maintained
+    expect(pq.front().id).toBe(4);
+  });
+
+  it('should throw on decreasePriorityByIndex() with invalid index', () => {
+    const pq = new PriorityQueue<Item, number>({
+      d: 4,
+      comparator: minBy((item) => item.cost),
+      keyExtractor: (item) => item.id,
+    });
+
+    pq.insert(createItem(1, 10));
+
+    expect(() => pq.decreasePriorityByIndex(-1)).toThrow('Index out of bounds');
+    expect(() => pq.decreasePriorityByIndex(5)).toThrow('Index out of bounds');
+    expect(() => pq.decrease_priority_by_index(99)).toThrow('Index out of bounds');
+  });
+
+  it('should support decrease_priority_by_index() alias', () => {
+    const pq = new PriorityQueue<Item, number>({
+      d: 4,
+      comparator: minBy((item) => item.cost),
+      keyExtractor: (item) => item.id,
+    });
+
+    pq.insert(createItem(1, 10));
+    pq.insert(createItem(2, 5));
+
+    // Alias should work the same as main method
+    const pos = pq.getPosition(createItem(1, 0))!;
+    pq.decrease_priority_by_index(pos);
+    // Should not throw and heap should still be valid
+    expect(pq.len()).toBe(2);
+  });
+});
+
+// =============================================================================
+// Bulk Operations Tests
+// =============================================================================
+
+describe('PriorityQueue - Bulk Operations', () => {
+  it('should insert many items at once', () => {
+    const pq = new PriorityQueue<number, number>({
+      d: 4,
+      comparator: minNumber,
+      keyExtractor: (n) => n,
+    });
+
+    pq.insertMany([5, 3, 7, 1, 9, 2, 8, 4, 6]);
+
+    expect(pq.len()).toBe(9);
+    expect(pq.front()).toBe(1); // Min-heap: smallest first
+
+    // Pop all and verify sorted order
+    const result: number[] = [];
+    while (!pq.isEmpty()) {
+      result.push(pq.pop()!);
+    }
+    expect(result).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it('should handle insertMany with empty array', () => {
+    const pq = new PriorityQueue<number, number>({
+      d: 4,
+      comparator: minNumber,
+      keyExtractor: (n) => n,
+    });
+
+    pq.insertMany([]);
+
+    expect(pq.len()).toBe(0);
+    expect(pq.isEmpty()).toBe(true);
+  });
+
+  it('should pop many items at once', () => {
+    const pq = new PriorityQueue<number, number>({
+      d: 4,
+      comparator: minNumber,
+      keyExtractor: (n) => n,
+    });
+
+    pq.insertMany([5, 3, 7, 1, 9, 2, 8, 4, 6]);
+
+    const items = pq.popMany(4);
+
+    expect(items).toEqual([1, 2, 3, 4]);
+    expect(pq.len()).toBe(5);
+    expect(pq.front()).toBe(5);
+  });
+
+  it('should handle popMany requesting more than available', () => {
+    const pq = new PriorityQueue<number, number>({
+      d: 4,
+      comparator: minNumber,
+      keyExtractor: (n) => n,
+    });
+
+    pq.insertMany([3, 1, 2]);
+
+    const items = pq.popMany(10);
+
+    expect(items).toEqual([1, 2, 3]);
+    expect(pq.len()).toBe(0);
+    expect(pq.isEmpty()).toBe(true);
+  });
+
+  it('should handle popMany on empty queue', () => {
+    const pq = new PriorityQueue<number, number>({
+      d: 4,
+      comparator: minNumber,
+      keyExtractor: (n) => n,
+    });
+
+    const items = pq.popMany(5);
+
+    expect(items).toEqual([]);
+  });
+});
+
+// =============================================================================
+// Comparator Helper Tests
+// =============================================================================
+
+describe('PriorityQueue - Comparator Helpers', () => {
+  it('should work with minBy comparator', () => {
+    const pq = new PriorityQueue<Item, number>({
+      d: 4,
+      comparator: minBy((item) => item.cost),
+      keyExtractor: (item) => item.id,
+    });
+
+    pq.insert(createItem(1, 10));
+    pq.insert(createItem(2, 5));
+    pq.insert(createItem(3, 15));
+
+    expect(pq.front().id).toBe(2); // Lowest cost
+    expect(pq.pop()?.cost).toBe(5);
+    expect(pq.pop()?.cost).toBe(10);
+    expect(pq.pop()?.cost).toBe(15);
+  });
+
+  it('should work with maxBy comparator', () => {
+    const pq = new PriorityQueue<Item, number>({
+      d: 4,
+      comparator: maxBy((item) => item.cost),
+      keyExtractor: (item) => item.id,
+    });
+
+    pq.insert(createItem(1, 10));
+    pq.insert(createItem(2, 5));
+    pq.insert(createItem(3, 15));
+
+    expect(pq.front().id).toBe(3); // Highest cost
+    expect(pq.pop()?.cost).toBe(15);
+    expect(pq.pop()?.cost).toBe(10);
+    expect(pq.pop()?.cost).toBe(5);
+  });
+
+  it('should work with reverse comparator', () => {
+    // Reverse a min-heap to get a max-heap
+    const pq = new PriorityQueue<number, number>({
+      d: 4,
+      comparator: reverse(minNumber),
+      keyExtractor: (n) => n,
+    });
+
+    pq.insert(10);
+    pq.insert(5);
+    pq.insert(15);
+
+    expect(pq.front()).toBe(15); // Reversed: highest first
+    expect(pq.pop()).toBe(15);
+    expect(pq.pop()).toBe(10);
+    expect(pq.pop()).toBe(5);
+  });
+
+  it('should work with chain comparator for tiebreaking', () => {
+    interface Task {
+      id: number;
+      priority: number;
+      timestamp: number;
+    }
+
+    const pq = new PriorityQueue<Task, number>({
+      d: 4,
+      comparator: chain(
+        minBy((t: Task) => t.priority),
+        minBy((t: Task) => t.timestamp)
+      ),
+      keyExtractor: (t) => t.id,
+    });
+
+    // Same priority, different timestamps
+    pq.insert({ id: 1, priority: 1, timestamp: 300 });
+    pq.insert({ id: 2, priority: 1, timestamp: 100 });
+    pq.insert({ id: 3, priority: 1, timestamp: 200 });
+    pq.insert({ id: 4, priority: 2, timestamp: 50 });
+
+    // Priority 1 items should come first, ordered by timestamp
+    expect(pq.pop()?.id).toBe(2); // priority 1, timestamp 100
+    expect(pq.pop()?.id).toBe(3); // priority 1, timestamp 200
+    expect(pq.pop()?.id).toBe(1); // priority 1, timestamp 300
+    expect(pq.pop()?.id).toBe(4); // priority 2, timestamp 50
+  });
+});
+
+// =============================================================================
+// Heap Property Verification Tests
+// =============================================================================
+
+describe('PriorityQueue - Heap Property Verification', () => {
+  it('should maintain heap property after many mixed operations', () => {
+    const pq = new PriorityQueue<Item, number>({
+      d: 4,
+      comparator: minBy((item) => item.cost),
+      keyExtractor: (item) => item.id,
+    });
+
+    // Insert many items
+    for (let i = 0; i < 100; i++) {
+      pq.insert(createItem(i, Math.floor(Math.random() * 1000)));
+    }
+
+    // Perform random priority updates
+    for (let i = 0; i < 50; i++) {
+      const id = Math.floor(Math.random() * 100);
+      const newCost = Math.floor(Math.random() * 1000);
+      try {
+        pq.updatePriority(createItem(id, newCost));
+      } catch {
+        // Item may have been popped already
+      }
+    }
+
+    // Pop some items
+    for (let i = 0; i < 30; i++) {
+      pq.pop();
+    }
+
+    // Insert more items
+    for (let i = 100; i < 150; i++) {
+      pq.insert(createItem(i, Math.floor(Math.random() * 1000)));
+    }
+
+    // Verify heap property: items should come out in sorted order
+    let prev = -Infinity;
+    while (!pq.isEmpty()) {
+      const item = pq.pop()!;
+      expect(item.cost).toBeGreaterThanOrEqual(prev);
+      prev = item.cost;
+    }
+  });
+
+  it('should maintain heap property with different arities', () => {
+    for (const d of [2, 3, 4, 8]) {
+      const pq = new PriorityQueue<number, number>({
+        d,
+        comparator: minNumber,
+        keyExtractor: (n) => n,
+      });
+
+      // Random insertions
+      const values = Array.from({ length: 50 }, () =>
+        Math.floor(Math.random() * 100)
+      );
+      pq.insertMany(values);
+
+      // Verify sorted output
+      let prev = -Infinity;
+      while (!pq.isEmpty()) {
+        const val = pq.pop()!;
+        expect(val).toBeGreaterThanOrEqual(prev);
+        prev = val;
+      }
+    }
   });
 });

@@ -1,9 +1,11 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (TypeScript) v2.4.0
+# d-Heap Priority Queue (TypeScript) v2.5.0
 
 A high-performance, generic d-ary heap priority queue with O(1) item lookup, supporting both min-heap and max-heap behavior.
+
+**[Live Demo](https://pcfvw.github.io/d-Heap-priority-queue/)** — Interactive visualization with Dijkstra's algorithm
 
 ## Strengths
 
@@ -13,7 +15,7 @@ A high-performance, generic d-ary heap priority queue with O(1) item lookup, sup
   - O(log_d n): `insert()` and upward reheapification.
   - O(d · log_d n): delete-top (`pop()`), with up to d children examined per level.
 - **O(1) item lookup**: internal Map tracks positions by item key, enabling efficient priority updates.
-- **Practical API**: `insert`, `front`, `peek`, `pop`, `increasePriority`, `decreasePriority`, `isEmpty`, `len`, `contains`.
+- **Practical API**: `insert`, `front`, `peek`, `pop`, `increasePriority`, `decreasePriority`, `updatePriority`, `isEmpty`, `len`, `contains`.
 - **Unified API**: Cross-language standardized methods matching C++, Rust, and Zig implementations.
 - **TypeScript-native**: Full type safety, generics, and IDE support.
 - **Zero dependencies**: No runtime dependencies.
@@ -107,8 +109,12 @@ Options:
 | `increase_priority(item)` | Alias for `increasePriority()` (cross-language compatibility) | O(log_d n) |
 | `increasePriorityByIndex(i)` | Update by index (primary method) | O(log_d n) |
 | `increase_priority_by_index(i)` | Alias for `increasePriorityByIndex()` (cross-language compatibility) | O(log_d n) |
+| `decreasePriorityByIndex(i)` | Update by index (primary method) | O(d · log_d n) |
+| `decrease_priority_by_index(i)` | Alias for `decreasePriorityByIndex()` (cross-language compatibility) | O(d · log_d n) |
 | `decreasePriority(item)` | Update item to lower priority (primary method) | O(d · log_d n) |
 | `decrease_priority(item)` | Alias for `decreasePriority()` (cross-language compatibility) | O(d · log_d n) |
+| `updatePriority(item)` | Update item when direction unknown (primary method) | O((d+1) · log_d n) |
+| `update_priority(item)` | Alias for `updatePriority()` (cross-language compatibility) | O((d+1) · log_d n) |
 | `clear(newD?)` | Remove all items, optionally change arity | O(1) |
 
 ### Utility Methods
@@ -124,8 +130,8 @@ Options:
 
 This TypeScript implementation follows **camelCase** as the primary naming convention (TypeScript/JavaScript standard), with **snake_case aliases** provided for cross-language compatibility:
 
-- **Primary methods**: `isEmpty()`, `increasePriority()`, `decreasePriority()`, `toString()`
-- **Compatibility aliases**: `is_empty()`, `increase_priority()`, `decrease_priority()`, `to_string()`
+- **Primary methods**: `isEmpty()`, `increasePriority()`, `increasePriorityByIndex()`, `decreasePriority()`, `decreasePriorityByIndex()`, `updatePriority()`, `toString()`
+- **Compatibility aliases**: `is_empty()`, `increase_priority()`, `increase_priority_by_index()`, `decrease_priority()`, `decrease_priority_by_index()`, `update_priority()`, `to_string()`
 
 Use the primary camelCase methods for TypeScript/JavaScript projects, and the snake_case aliases when porting code from C++/Rust implementations.
 
@@ -167,7 +173,7 @@ The library provides opt-in instrumentation for counting comparisons during heap
 Instrumentation follows a zero-overhead design:
 - No performance impact when not using instrumentation
 - Existing code works unchanged
-- Per-operation tracking distinguishes insert/pop/decreasePriority comparisons
+- Per-operation tracking distinguishes insert/pop/increasePriority/decreasePriority/updatePriority comparisons
 
 ### Usage
 
@@ -200,7 +206,7 @@ pq.pop();
 
 // 4. Access statistics
 console.log(comparator.stats);
-// { insert: 3, pop: 2, decreasePriority: 0, total: 5 }
+// { insert: 3, pop: 2, decreasePriority: 0, increasePriority: 0, updatePriority: 0, total: 5 }
 
 // 5. Compare with theoretical bounds
 const n = 3;
@@ -216,12 +222,13 @@ comparator.stats.reset();
 
 For a d-ary heap with n elements:
 
-| Operation        | Comparisons (worst case)    |
-|------------------|----------------------------|
-| insert           | floor(log_d(n))            |
-| pop              | d × floor(log_d(n))        |
-| decreasePriority | floor(log_d(n)) (upward)   |
-| increasePriority | d × floor(log_d(n)) (downward) |
+| Operation        | Comparisons (worst case)       |
+|------------------|--------------------------------|
+| insert           | floor(log_d(n))                |
+| pop              | d × floor(log_d(n))            |
+| increasePriority | floor(log_d(n)) (moveUp only)  |
+| decreasePriority | d × floor(log_d(n)) (moveDown only) |
+| updatePriority   | (d+1) × floor(log_d(n)) (both) |
 
 ### Cross-Language Consistency
 
@@ -237,10 +244,16 @@ Currently, instrumentation is implemented in TypeScript only. The table below sh
 
 ## Priority Update Semantics
 
-The `increasePriority()` and `decreasePriority()` methods have an intentionally **asymmetric design**:
+This library uses **importance-based** semantics:
 
 - **`increasePriority()`**: Make an item **more important** (moves toward heap root). Only moves up for O(log_d n) performance.
-- **`decreasePriority()`**: Make an item **less important** (moves toward leaves). Checks both directions for robustness.
+- **`decreasePriority()`**: Make an item **less important** (moves toward leaves). Only moves down for O(d · log_d n) performance.
+- **`updatePriority()`**: Update when direction is **unknown**. Checks both directions for O((d+1) · log_d n) performance.
+
+**When to use each:**
+- Use `increasePriority()` when you know the item became more important
+- Use `decreasePriority()` when you know the item became less important
+- Use `updatePriority()` when you don't know which direction the priority changed
 
 **Heap Context:**
 - **Min-heap**: Lower priority values = higher importance

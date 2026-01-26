@@ -41,7 +41,7 @@ export function runDijkstraWithEvents(
   // Track cumulative comparisons to calculate per-operation deltas
   let lastInsertComparisons = 0;
   let lastPopComparisons = 0;
-  let lastDecreasePriorityComparisons = 0;
+  let lastIncreasePriorityComparisons = 0;
 
   // Create priority queue with instrumentation hooks
   const pq = new PriorityQueue<Vertex, string>({
@@ -70,10 +70,11 @@ export function runDijkstraWithEvents(
     return count;
   };
 
-  // Helper to get comparisons for the last decreasePriority operation
-  const getDecreasePriorityComparisons = (): number => {
-    const count = comparator.stats.decreasePriority - lastDecreasePriorityComparisons;
-    lastDecreasePriorityComparisons = comparator.stats.decreasePriority;
+  // Helper to get comparisons for the last increasePriority operation
+  // Note: In Dijkstra, "decrease-key" (lowering distance) increases importance in a min-heap
+  const getIncreasePriorityComparisons = (): number => {
+    const count = comparator.stats.increasePriority - lastIncreasePriorityComparisons;
+    lastIncreasePriorityComparisons = comparator.stats.increasePriority;
     return count;
   };
 
@@ -174,9 +175,11 @@ export function runDijkstraWithEvents(
         });
 
         // Update priority in queue
+        // Note: We use increasePriority() because lowering the distance makes the item
+        // more important (higher priority) in the min-heap - it should move toward the root
         if (pq.contains({ id: to, distance: 0 })) {
-          pq.decreasePriority({ id: to, distance: newDistance });
-          const decreaseComparisons = getDecreasePriorityComparisons();
+          pq.increasePriority({ id: to, distance: newDistance });
+          const decreaseComparisons = getIncreasePriorityComparisons();
 
           events.push({
             type: 'decrease_priority',

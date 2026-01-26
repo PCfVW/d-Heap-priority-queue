@@ -53,7 +53,7 @@
  *
  * // 4. Access statistics
  * console.log(comparator.stats);
- * // { insert: 1, pop: 2, decreasePriority: 0, total: 3 }
+ * // { insert: 1, pop: 2, decreasePriority: 0, increasePriority: 0, updatePriority: 0, total: 3 }
  *
  * // 5. Reset for next measurement
  * comparator.stats.reset();
@@ -63,12 +63,13 @@
  *
  * For a d-ary heap with n elements:
  *
- * | Operation        | Comparisons (worst case)    |
- * |------------------|----------------------------|
- * | insert           | ⌊log_d(n)⌋                 |
- * | pop              | d × ⌊log_d(n)⌋             |
- * | decreasePriority | ⌊log_d(n)⌋ (upward only)   |
- * | increasePriority | d × ⌊log_d(n)⌋ (downward)  |
+ * | Operation        | Comparisons (worst case)      |
+ * |------------------|-------------------------------|
+ * | insert           | ⌊log_d(n)⌋                    |
+ * | pop              | d × ⌊log_d(n)⌋                |
+ * | increasePriority | ⌊log_d(n)⌋ (moveUp only)      |
+ * | decreasePriority | d × ⌊log_d(n)⌋ (moveDown only)|
+ * | updatePriority   | (d+1) × ⌊log_d(n)⌋ (both)     |
  *
  * The demo visualization compares actual counts against these theoretical bounds.
  *
@@ -82,10 +83,10 @@ import type { Comparator } from './PriorityQueue';
 /**
  * Operation types that can be tracked.
  *
- * Note: `increasePriority` is tracked separately because in Dijkstra's algorithm
- * it manifests as decreasePriority (lowering distance = higher priority in min-heap).
+ * Note: `updatePriority` is tracked separately for when the caller doesn't know
+ * whether priority increased or decreased (checks both directions).
  */
-export type OperationType = 'insert' | 'pop' | 'decreasePriority' | 'increasePriority';
+export type OperationType = 'insert' | 'pop' | 'decreasePriority' | 'increasePriority' | 'updatePriority';
 
 /**
  * Statistics tracking comparison counts per operation type.
@@ -99,11 +100,14 @@ export interface ComparisonStats {
   /** Comparisons during pop operations (moveDown + bestChildPosition) */
   pop: number;
 
-  /** Comparisons during decreasePriority operations (moveUp + moveDown) */
+  /** Comparisons during decreasePriority operations (moveDown only) */
   decreasePriority: number;
 
-  /** Comparisons during increasePriority operations (moveUp) */
+  /** Comparisons during increasePriority operations (moveUp only) */
   increasePriority: number;
+
+  /** Comparisons during updatePriority operations (moveUp + moveDown) */
+  updatePriority: number;
 
   /** Total comparisons across all operation types */
   readonly total: number;
@@ -163,9 +167,10 @@ export function createComparisonStats(): ComparisonStats {
     pop: 0,
     decreasePriority: 0,
     increasePriority: 0,
+    updatePriority: 0,
 
     get total(): number {
-      return this.insert + this.pop + this.decreasePriority + this.increasePriority;
+      return this.insert + this.pop + this.decreasePriority + this.increasePriority + this.updatePriority;
     },
 
     reset(): void {
@@ -173,6 +178,7 @@ export function createComparisonStats(): ComparisonStats {
       this.pop = 0;
       this.decreasePriority = 0;
       this.increasePriority = 0;
+      this.updatePriority = 0;
     },
   };
 
@@ -286,17 +292,48 @@ export function theoreticalPopComparisons(n: number, d: number): number {
 }
 
 /**
- * Calculate theoretical comparison count for a decreasePriority operation.
+ * Calculate theoretical comparison count for an increasePriority operation.
  *
- * DecreasePriority in our implementation calls both moveUp and moveDown
- * for safety, but typically only moveUp executes (upward movement).
- * Worst case: ⌊log_d(n)⌋ comparisons.
+ * IncreasePriority performs only moveUp (item became more important).
+ * Worst case: ⌊log_d(n)⌋ comparisons (one per level).
  *
  * @param n - Number of elements in heap
  * @param d - Heap arity
- * @returns Theoretical worst-case comparison count (moveUp path)
+ * @returns Theoretical worst-case comparison count
+ */
+export function theoreticalIncreasePriorityComparisons(n: number, d: number): number {
+  if (n <= 1) return 0;
+  return Math.floor(Math.log(n) / Math.log(d));
+}
+
+/**
+ * Calculate theoretical comparison count for a decreasePriority operation.
+ *
+ * DecreasePriority performs only moveDown (item became less important).
+ * Worst case: d × ⌊log_d(n)⌋ comparisons.
+ *
+ * @param n - Number of elements in heap
+ * @param d - Heap arity
+ * @returns Theoretical worst-case comparison count
  */
 export function theoreticalDecreasePriorityComparisons(n: number, d: number): number {
   if (n <= 1) return 0;
-  return Math.floor(Math.log(n) / Math.log(d));
+  const height = Math.floor(Math.log(n) / Math.log(d));
+  return d * height;
+}
+
+/**
+ * Calculate theoretical comparison count for an updatePriority operation.
+ *
+ * UpdatePriority performs both moveUp and moveDown (direction unknown).
+ * Worst case: (d + 1) × ⌊log_d(n)⌋ comparisons.
+ *
+ * @param n - Number of elements in heap
+ * @param d - Heap arity
+ * @returns Theoretical worst-case comparison count
+ */
+export function theoreticalUpdatePriorityComparisons(n: number, d: number): number {
+  if (n <= 1) return 0;
+  const height = Math.floor(Math.log(n) / Math.log(d));
+  return (d + 1) * height;
 }

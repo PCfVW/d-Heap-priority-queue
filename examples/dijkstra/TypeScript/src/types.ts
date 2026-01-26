@@ -1,3 +1,5 @@
+// types.ts - Type definitions for the Dijkstra example
+
 export interface Graph {
   vertices: string[];
   edges: Edge[];

@@ -1,3 +1,7 @@
+// index.ts - Dijkstra's Algorithm Example
+//
+// Demonstrates Dijkstra's shortest path algorithm using d-ary heap priority queues.
+
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -16,8 +20,11 @@ function loadGraph(): Graph {
 function formatResults(distances: Record<string, number>, source: string): void {
   console.log(`Shortest paths from vertex ${source}:`);
   console.log('================================');
-  
-  for (const [vertex, distance] of Object.entries(distances)) {
+
+  // Sort vertices for consistent output
+  const vertices = Object.keys(distances).sort();
+  for (const vertex of vertices) {
+    const distance = distances[vertex];
     const distanceStr = distance === Infinity ? '∞' : distance.toString();
     console.log(`${source} → ${vertex}: ${distanceStr}`);
   }

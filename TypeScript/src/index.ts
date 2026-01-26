@@ -35,7 +35,9 @@ export {
   instrumentComparator,
   theoreticalInsertComparisons,
   theoreticalPopComparisons,
+  theoreticalIncreasePriorityComparisons,
   theoreticalDecreasePriorityComparisons,
+  theoreticalUpdatePriorityComparisons,
 } from './instrumentation';
 
 export type {

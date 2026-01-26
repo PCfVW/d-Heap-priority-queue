@@ -6,8 +6,9 @@
  * - Min-heap or max-heap behavior via comparator functions
  * - O(1) item lookup using Map for efficient priority updates
  * - O(1) access to highest-priority item
- * - O(log_d n) insert and priority increase operations
- * - O(d · log_d n) pop and priority decrease operations
+ * - O(log_d n) insert and increasePriority operations
+ * - O(d · log_d n) pop and decreasePriority operations
+ * - O((d+1) · log_d n) updatePriority (bidirectional)
  * - Optional instrumentation hooks for performance analysis
  *
  * @version 2.4.0
@@ -95,6 +96,7 @@ export interface PriorityQueueOptions<T, K> {
  * - pop(): O(d · log_d n)
  * - increasePriority(): O(log_d n)
  * - decreasePriority(): O(d · log_d n)
+ * - updatePriority(): O((d+1) · log_d n)
  * - contains(): O(1)
  * - len(), isEmpty(), d(): O(1)
  *
@@ -428,6 +430,30 @@ export class PriorityQueue<T, K = string | number> {
   }
 
   /**
+   * Decrease the priority of the item at the given index.
+   * Time complexity: O(d · log_d n)
+   *
+   * @param index - Index of the item in the heap array
+   * @throws Error if index is out of bounds
+   *
+   * @remarks
+   * This is a lower-level method. Prefer decreasePriority() with the item itself.
+   * The item at the given index should already have its priority value updated
+   * in the container before calling this method.
+   */
+  decreasePriorityByIndex(index: number): void {
+    if (index < 0 || index >= this.container.length) {
+      throw new Error('Index out of bounds');
+    }
+    this.moveDown(index);
+  }
+
+  /** Alias for decreasePriorityByIndex() - snake_case for cross-language consistency */
+  decrease_priority_by_index(index: number): void {
+    this.decreasePriorityByIndex(index);
+  }
+
+  /**
    * Decrease the priority of an existing item (move toward leaves).
    * Time complexity: O(d · log_d n)
    *
@@ -437,7 +463,7 @@ export class PriorityQueue<T, K = string | number> {
    * @remarks
    * For min-heap: increasing the priority value decreases importance.
    * For max-heap: decreasing the priority value decreases importance.
-   * This method checks both directions for robustness.
+   * This method only moves items downward. Use updatePriority() if direction is unknown.
    */
   decreasePriority(updatedItem: T): void {
     this.onBeforeOperation?.('decreasePriority');
@@ -451,8 +477,6 @@ export class PriorityQueue<T, K = string | number> {
     }
 
     this.container[index] = updatedItem;
-    // Check both directions since we don't know if priority actually decreased
-    this.moveUp(index);
     this.moveDown(index);
 
     this.onAfterOperation?.();
@@ -461,6 +485,42 @@ export class PriorityQueue<T, K = string | number> {
   /** Alias for decreasePriority() - snake_case for cross-language consistency */
   decrease_priority(updatedItem: T): void {
     this.decreasePriority(updatedItem);
+  }
+
+  /**
+   * Update the priority of an existing item when direction is unknown.
+   * Time complexity: O((d+1) · log_d n) - checks both directions
+   *
+   * @param updatedItem - Item with same identity but updated priority
+   * @throws Error if item not found
+   *
+   * @remarks
+   * Use this method when you don't know whether the priority increased or decreased.
+   * If you know the direction, prefer increasePriority() or decreasePriority() for
+   * better performance (log_d n vs (d+1) · log_d n comparisons).
+   */
+  updatePriority(updatedItem: T): void {
+    this.onBeforeOperation?.('updatePriority');
+
+    const key = this.keyExtractor(updatedItem);
+    const index = this.positions.get(key);
+
+    if (index === undefined) {
+      this.onAfterOperation?.();
+      throw new Error('Item not found in priority queue');
+    }
+
+    this.container[index] = updatedItem;
+    // Check both directions since we don't know which way priority changed
+    this.moveUp(index);
+    this.moveDown(index);
+
+    this.onAfterOperation?.();
+  }
+
+  /** Alias for updatePriority() - snake_case for cross-language consistency */
+  update_priority(updatedItem: T): void {
+    this.updatePriority(updatedItem);
   }
 
   /**

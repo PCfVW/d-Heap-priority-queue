@@ -2,7 +2,7 @@
 
 Interactive visualization of d-ary heap priority queues and Dijkstra's shortest path algorithm using React Flow.
 
-**[Live Demo](https://eric-jacopin.github.io/Priority-Queues/)**
+**[Live Demo](https://pcfvw.github.io/d-Heap-priority-queue/)**
 
 ## Quick Start
 
@@ -66,4 +66,4 @@ The demo is automatically deployed to GitHub Pages on push to master. See `.gith
 
 ---
 
-Part of the [d-Heap Priority Queue](https://github.com/eric-jacopin/Priority-Queues) project v2.4.0.
+Part of the [d-Heap Priority Queue](https://github.com/eric-jacopin/Priority-Queues) project v2.5.0.
