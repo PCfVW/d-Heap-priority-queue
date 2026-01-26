@@ -1,3 +1,5 @@
+// types.go - Type definitions for the Dijkstra example
+
 // Package main provides Dijkstra's shortest path algorithm example.
 package main
 

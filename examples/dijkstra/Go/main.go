@@ -1,3 +1,7 @@
+// main.go - Dijkstra's Algorithm Example
+//
+// Demonstrates Dijkstra's shortest path algorithm using d-ary heap priority queues.
+
 package main
 
 import (
@@ -5,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -36,7 +41,12 @@ func formatResults(distances map[string]int, source string) {
 	fmt.Println("================================")
 
 	// Sort vertices for consistent output
-	vertices := []string{"A", "B", "C", "D", "E", "F"}
+	vertices := make([]string, 0, len(distances))
+	for v := range distances {
+		vertices = append(vertices, v)
+	}
+	sort.Strings(vertices)
+
 	for _, v := range vertices {
 		distance := distances[v]
 		distanceStr := fmt.Sprintf("%d", distance)

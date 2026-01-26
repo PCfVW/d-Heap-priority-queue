@@ -1,9 +1,11 @@
+// dijkstra.go - Dijkstra's shortest path algorithm implementation
+
 package main
 
 import (
 	"math"
 
-	dheap "github.com/PCfVW/d-Heap-priority-queue/Go/src"
+	dheap "github.com/PCfVW/d-Heap-priority-queue/Go/v2/src"
 )
 
 // Infinity represents an unreachable distance.
@@ -65,6 +67,11 @@ func Dijkstra(graph Graph, source string, d int) DijkstraResult {
 			continue
 		}
 
+		// Skip if current distance is infinity (unreachable)
+		if current.Distance == Infinity {
+			continue
+		}
+
 		// Check all neighbors
 		for _, neighbor := range adjacency[current.ID] {
 			newDistance := current.Distance + neighbor.Weight
@@ -74,11 +81,10 @@ func Dijkstra(graph Graph, source string, d int) DijkstraResult {
 				pred := current.ID
 				predecessors[neighbor.To] = &pred
 
-				// Update priority in queue (decrease key operation)
-				// Note: In a min-heap, decreasing distance = increasing priority
+				// Update priority in queue
+				// In a min-heap, decreasing distance = increasing priority (more important)
 				if pq.Contains(Vertex{ID: neighbor.To}) {
-					// Use DecreasePriority which checks both directions
-					pq.DecreasePriority(Vertex{ID: neighbor.To, Distance: newDistance})
+					pq.IncreasePriority(Vertex{ID: neighbor.To, Distance: newDistance})
 				}
 			}
 		}

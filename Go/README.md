@@ -2,7 +2,7 @@
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 ![pkg.go.dev](https://pkg.go.dev/badge/github.com/PCfVW/d-Heap-priority-queue/Go.svg)
 
-# d-ary Heap Priority Queue (Go) v2.4.0
+# d-ary Heap Priority Queue (Go) v2.5.0
 
 **Wikipedia-standard d-ary heap implementation** with O(1) item lookup and configurable arity.
 
@@ -191,8 +191,11 @@ items := pq.PopMany(3) // [1, 2, 3]
 | `GetPositionByKey(key)` | O(1) | Get heap index by key |
 | `Insert(item)` | O(log_d n) | Add new item |
 | `InsertMany(items)` | O(n) | Bulk insert with heapify |
-| `IncreasePriority(item)` | O(log_d n) | Update to higher priority |
-| `DecreasePriority(item)` | O(d·log_d n) | Update to lower priority |
+| `IncreasePriority(item)` | O(log_d n) | Update to higher priority (moveUp only) |
+| `IncreasePriorityByIndex(index)` | O(log_d n) | Update by index (moveUp only) |
+| `DecreasePriority(item)` | O(d·log_d n) | Update to lower priority (moveDown only) |
+| `DecreasePriorityByIndex(index)` | O(d·log_d n) | Update by index (moveDown only) |
+| `UpdatePriority(item)` | O((d+1)·log_d n) | Update when direction unknown (both) |
 | `Pop()` | O(d·log_d n) | Remove highest priority item |
 | `PopMany(count)` | O(count·d·log_d n) | Remove multiple items |
 | `Clear(newD...)` | O(1) | Remove all items |
@@ -204,7 +207,10 @@ items := pq.PopMany(3) // [1, 2, 3]
 For cross-language consistency, these aliases are provided:
 - `Is_empty()` → `IsEmpty()`
 - `Increase_priority(item)` → `IncreasePriority(item)`
+- `Increase_priority_by_index(index)` → `IncreasePriorityByIndex(index)`
 - `Decrease_priority(item)` → `DecreasePriority(item)`
+- `Decrease_priority_by_index(index)` → `DecreasePriorityByIndex(index)`
+- `Update_priority(item)` → `UpdatePriority(item)`
 - `To_string()` → `String()`
 
 ### Pre-built Comparators
@@ -226,6 +232,23 @@ For cross-language consistency, these aliases are provided:
 | `MaxBy(keyFn)` | Create max-heap comparator from key extractor |
 | `Reverse(cmp)` | Reverse a comparator (min↔max) |
 | `Chain(cmps...)` | Compare by multiple keys in order |
+
+## Priority Update Semantics
+
+This library uses **importance-based** semantics:
+
+- **`IncreasePriority()`**: Make an item **more important** (moves toward heap root). Only moves up for O(log_d n) performance.
+- **`DecreasePriority()`**: Make an item **less important** (moves toward leaves). Only moves down for O(d·log_d n) performance.
+- **`UpdatePriority()`**: Update when direction is **unknown**. Checks both directions for O((d+1)·log_d n) performance.
+
+**When to use each:**
+- Use `IncreasePriority()` when you know the item became more important
+- Use `DecreasePriority()` when you know the item became less important
+- Use `UpdatePriority()` when you don't know which direction the priority changed
+
+**Heap Context:**
+- **Min-heap**: Lower priority values = higher importance
+- **Max-heap**: Higher priority values = higher importance
 
 ## Performance Considerations
 

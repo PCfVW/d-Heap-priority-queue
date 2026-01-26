@@ -66,6 +66,7 @@ type Options[T any, K comparable] struct {
 //   - IncreasePriority(): O(log_d n)
 //   - Pop(): O(d · log_d n)
 //   - DecreasePriority(): O(d · log_d n)
+//   - UpdatePriority(): O((d+1) · log_d n)
 //   - Clear(): O(1)
 //   - String(): O(n)
 //
@@ -427,13 +428,37 @@ func (pq *PriorityQueue[T, K]) Increase_priority_by_index(index Position) {
 	pq.IncreasePriorityByIndex(index)
 }
 
+// DecreasePriorityByIndex decreases the priority of the item at the given index.
+//
+// Time Complexity: O(d · log_d n)
+//
+// Panics if index is out of bounds.
+//
+// Note: The item at the given index should already have its priority value updated
+// in the container before calling this method. This is primarily useful for
+// internal operations or when you have direct access to the heap array.
+//
+// Cross-language equivalents:
+//   - TypeScript: decreasePriorityByIndex(index)
+func (pq *PriorityQueue[T, K]) DecreasePriorityByIndex(index Position) {
+	if index < 0 || index >= len(pq.container) {
+		panic("index out of bounds")
+	}
+	pq.moveDown(index)
+}
+
+// Decrease_priority_by_index is a snake_case alias for DecreasePriorityByIndex (cross-language consistency).
+func (pq *PriorityQueue[T, K]) Decrease_priority_by_index(index Position) {
+	pq.DecreasePriorityByIndex(index)
+}
+
 // DecreasePriority updates an existing item to have lower priority (moves toward leaves).
 //
 // Time Complexity: O(d · log_d n)
 //
 // Returns ErrItemNotFound if the item is not in the queue.
 //
-// Note: This method checks both directions for robustness (moveUp then moveDown).
+// Note: This method only moves down. Use UpdatePriority() if direction is unknown.
 //
 // Cross-language equivalents:
 //   - C++: decrease_priority(item)
@@ -448,10 +473,6 @@ func (pq *PriorityQueue[T, K]) DecreasePriority(updatedItem T) error {
 	}
 
 	pq.container[index] = updatedItem
-	// Check both directions since we don't know if priority actually decreased
-	pq.moveUp(index)
-	// Re-fetch position in case moveUp changed it
-	index = pq.positions[key]
 	pq.moveDown(index)
 	return nil
 }
@@ -459,6 +480,40 @@ func (pq *PriorityQueue[T, K]) DecreasePriority(updatedItem T) error {
 // Decrease_priority is a snake_case alias for DecreasePriority.
 func (pq *PriorityQueue[T, K]) Decrease_priority(updatedItem T) error {
 	return pq.DecreasePriority(updatedItem)
+}
+
+// UpdatePriority updates an existing item when the direction of priority change is unknown.
+//
+// Time Complexity: O((d+1) · log_d n)
+//
+// Returns ErrItemNotFound if the item is not in the queue.
+//
+// This method checks both directions (moveUp then moveDown), making it safe to use
+// when you don't know whether the priority increased or decreased.
+//
+// Use IncreasePriority() or DecreasePriority() for better performance when you
+// know the direction of the change.
+//
+// Cross-language equivalents:
+//   - TypeScript: updatePriority(item)
+func (pq *PriorityQueue[T, K]) UpdatePriority(updatedItem T) error {
+	key := pq.keyExtractor(updatedItem)
+	index, exists := pq.positions[key]
+	if !exists {
+		return ErrItemNotFound
+	}
+
+	pq.container[index] = updatedItem
+	pq.moveUp(index)
+	// Re-fetch position in case moveUp changed it
+	index = pq.positions[key]
+	pq.moveDown(index)
+	return nil
+}
+
+// Update_priority is a snake_case alias for UpdatePriority.
+func (pq *PriorityQueue[T, K]) Update_priority(updatedItem T) error {
+	return pq.UpdatePriority(updatedItem)
 }
 
 // Pop removes and returns the highest-priority item from the heap.
