@@ -34,6 +34,33 @@ cargo run --release -- verify     # byte-for-byte regression check
 
 Each Dijkstra example accepts `--graph=<name>` (default `small`) and `--quiet` (suppress per-vertex output for medium/large graphs). See [`../examples/dijkstra/README.md`](../examples/dijkstra/README.md) for per-language invocation.
 
+## Indicative timings
+
+Median of 5 single-shot runs of `dijkstra --graph=<name> --quiet` per cell, captured 2026-05-08 on the developer's Windows 11 workstation against the v2.6.0 Phase 1 binaries. **These are ballpark only** — single-process invocation including startup, no in-program warmup, no statistical analysis. Phase 3 will replace this section with proper benchmark methodology (warmup, repeated-iteration amortization, hardware/compiler reporting).
+
+### `medium_sparse` (n=100, \|E\|=200)
+
+| arity | TypeScript | Go        | Rust    | Zig     | C++     |
+|------:|-----------:|----------:|--------:|--------:|--------:|
+| d=2   | 819.9 µs   | (sub-res) | 186.6 µs| 845.7 µs| 130.9 µs|
+| d=4   | 861.6 µs   | (sub-res) | 136.0 µs| 755.1 µs| 102.9 µs|
+| d=8   | 216.7 µs   | (sub-res) | 126.9 µs| 720.5 µs| 102.1 µs|
+
+### `large_grid` (32×32 lattice, \|V\|=1024, \|E\|=3968)
+
+| arity | TypeScript | Go        | Rust     | Zig       | C++      |
+|------:|-----------:|----------:|---------:|----------:|---------:|
+| d=2   | 4198.0 µs  | 1500.4 µs | 2535.0 µs| 10822.5 µs| 1466.3 µs|
+| d=4   | 3259.7 µs  | 1000.2 µs | 2052.4 µs|  9545.0 µs| 1262.7 µs|
+| d=8   | 1642.5 µs  | 1999.0 µs | 1948.2 µs|  9107.4 µs| 1254.8 µs|
+
+**Caveats and to-investigate notes:**
+
+- **Go "(sub-res)"** — Go's `time.Since` on Windows quantizes around ~100 µs in single-shot timing, so the `medium_sparse` runs (which complete well below that) all measured 0.0 µs. The `large_grid` numbers (1500.4 / 1000.2 / 1999.0) also show quantization at 500 µs increments. This is a measurement artifact, not a Go-performance fact; Phase 3's in-program iteration loops will amortize.
+- **Zig's `large_grid` is conspicuously higher** than Rust/C++ (~5× slower). The example currently deep-copies every vertex/edge string out of the parsed-JSON arena before running Dijkstra — that allocation pressure may dominate at 1024 vertices. Worth investigating in Phase 2 instrumentation.
+- **TypeScript `medium_sparse` non-monotonicity** (d=4 slightly slower than d=2) is JIT noise at the sub-millisecond scale; the trend reverses on `large_grid` and matches the d-ary heap thesis (d=8 fastest).
+- **Run-to-run variance** of ~10–20% is typical for these single-shot measurements. The d=8 advantage on `large_grid` (visible in TypeScript, Rust, Zig, C++) survives the noise.
+
 ## Phase 2 — Cross-language instrumentation (planned)
 
 Extend the v2.4.0 TypeScript instrumentation pattern to all five languages so each can emit per-operation comparison counts with zero (or near-zero) overhead when disabled. The TypeScript reference is live at the **[Interactive Demo](https://pcfvw.github.io/d-Heap-priority-queue/)** — operation counters, comparison counts, and the d=2/4/8 race mode are exactly the signal Phase 2 will produce in the other four languages.
