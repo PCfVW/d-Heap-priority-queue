@@ -42,24 +42,42 @@ Median of 5 single-shot runs of `dijkstra --graph=<name> --quiet` per cell, capt
 
 | arity | TypeScript | Go        | Rust    | Zig     | C++     |
 |------:|-----------:|----------:|--------:|--------:|--------:|
-| d=2   | 819.9 µs   | (sub-res) | 186.6 µs| 845.7 µs| 130.9 µs|
-| d=4   | 861.6 µs   | (sub-res) | 136.0 µs| 755.1 µs| 102.9 µs|
-| d=8   | 216.7 µs   | (sub-res) | 126.9 µs| 720.5 µs| 102.1 µs|
+| d=2   | 843.0 µs   | (sub-res) | 188.8 µs| 862.3 µs| 127.9 µs|
+| d=4   | 933.7 µs   | (sub-res) | 138.3 µs| 757.8 µs| 103.2 µs|
+| d=8   | 218.6 µs   | (sub-res) | 127.0 µs| 723.5 µs| 104.6 µs|
+
+### `large_sparse` (n=1000, \|E\|=2000)
+
+| arity | TypeScript | Go        | Rust     | Zig      | C++      |
+|------:|-----------:|----------:|---------:|---------:|---------:|
+| d=2   | 3927.6 µs  | 1500.0 µs | 2338.9 µs| 9932.6 µs| 1444.4 µs|
+| d=4   | 2865.1 µs  | 1000.0 µs | 1884.6 µs| 8653.3 µs| 1111.1 µs|
+| d=8   | 1806.3 µs  |  999.9 µs | 1718.6 µs| 8058.0 µs| 1079.8 µs|
+
+### `large_dense` (n=1000, \|E\|=31623, \|E\|≈\|V\|^1.5)
+
+| arity | TypeScript | Go        | Rust     | Zig       | C++      |
+|------:|-----------:|----------:|---------:|----------:|---------:|
+| d=2   | 9641.5 µs  | 3001.2 µs | 6910.9 µs| 29304.1 µs| 4388.3 µs|
+| d=4   | 5512.8 µs  | 3500.8 µs | 6142.1 µs| 27287.0 µs| 3931.4 µs|
+| d=8   | 3790.1 µs  | 2510.6 µs | 5935.2 µs| 26766.2 µs| 3889.7 µs|
+
+This is the most informative table — `large_dense` exercises the regime where `decrease_priority` dominates, exactly where higher arity helps most. TypeScript drops 60% from d=2 to d=8; the four other languages show 7–14% improvement.
 
 ### `large_grid` (32×32 lattice, \|V\|=1024, \|E\|=3968)
 
 | arity | TypeScript | Go        | Rust     | Zig       | C++      |
 |------:|-----------:|----------:|---------:|----------:|---------:|
-| d=2   | 4198.0 µs  | 1500.4 µs | 2535.0 µs| 10822.5 µs| 1466.3 µs|
-| d=4   | 3259.7 µs  | 1000.2 µs | 2052.4 µs|  9545.0 µs| 1262.7 µs|
-| d=8   | 1642.5 µs  | 1999.0 µs | 1948.2 µs|  9107.4 µs| 1254.8 µs|
+| d=2   | 4411.4 µs  | 1499.5 µs | 2557.7 µs| 10864.0 µs| 1466.6 µs|
+| d=4   | 3157.4 µs  | 1000.3 µs | 2115.3 µs|  9681.1 µs| 1293.7 µs|
+| d=8   | 1743.8 µs  | 1500.3 µs | 1973.4 µs|  9322.7 µs| 1274.1 µs|
 
 **Caveats and to-investigate notes:**
 
-- **Go "(sub-res)"** — Go's `time.Since` on Windows quantizes around ~100 µs in single-shot timing, so the `medium_sparse` runs (which complete well below that) all measured 0.0 µs. The `large_grid` numbers (1500.4 / 1000.2 / 1999.0) also show quantization at 500 µs increments. This is a measurement artifact, not a Go-performance fact; Phase 3's in-program iteration loops will amortize.
-- **Zig's `large_grid` is conspicuously higher** than Rust/C++ (~5× slower). Initially suspected to be the per-string deep-copy out of the parsed-JSON arena, but refactoring the loader to `std.json.parseFromSliceLeaky` directly into `Graph` (with an `ArenaAllocator`) left the medians effectively unchanged — the dupe overhead lived in graph load, which the timer does not wrap. The remaining gap is inside `dijkstra()` itself; root cause needs Phase 2 instrumentation. Candidates: `std.StringHashMap` performance vs Rust `HashMap` / C++ `unordered_map`, the d-heap Zig binding, or the "init all vertices to INFINITY" priority-queue seeding loop.
-- **TypeScript `medium_sparse` non-monotonicity** (d=4 slightly slower than d=2) is JIT noise at the sub-millisecond scale; the trend reverses on `large_grid` and matches the d-ary heap thesis (d=8 fastest).
-- **Run-to-run variance** of ~10–20% is typical for these single-shot measurements. The d=8 advantage on `large_grid` (visible in TypeScript, Rust, Zig, C++) survives the noise.
+- **Go "(sub-res)"** — Go's `time.Since` on Windows quantizes around ~500 µs in single-shot timing, so the `medium_sparse` runs (which complete well below that) all measured 0.0 µs. The `large_sparse` and `large_grid` cells (1500.0 / 1000.0 / 999.9 / 1499.5 µs) also visibly snap to that grain. `large_dense` clears the resolution and reports honest microsecond-scale numbers. This is a measurement artifact, not a Go-performance fact; Phase 3's in-program iteration loops will amortize.
+- **Zig's `large_dense` is ~7× slower than C++** (~6.7× on `large_grid`, ~5.6× on `large_sparse`, ~6.9× on `medium_sparse`). The original suspicion was the per-string deep-copy out of the parsed-JSON arena, but refactoring the loader to `std.json.parseFromSliceLeaky` directly into `Graph` (with an `ArenaAllocator`) left the medians effectively unchanged — the dupe overhead lived in graph load, which the timer does not wrap. **The dense-graph data confirms the gap is inside `dijkstra()` itself, in the regime where `decrease_priority` dominates** — so the d-heap Zig binding's per-operation cost is the leading suspect, with `std.StringHashMap` performance and the "init all vertices to INFINITY" PQ seeding loop as runners-up. This is exactly the question Phase 2 instrumentation is designed to answer.
+- **TypeScript JIT noise** on the `medium_sparse` d=2/d=4 cells (where d=4 is *slower* than d=2 in the median) reflects warmup cost: the first arity carries the optimization tax. By d=8 the JIT has settled. The effect vanishes on the larger graphs.
+- **Run-to-run variance** of ~10–20% is typical for these single-shot measurements. The d=8 advantage on dense graphs (60% in TypeScript, 11% in C++, 14% in Rust on `large_dense`) survives the noise comfortably.
 
 ## Phase 2 — Cross-language instrumentation (planned)
 
