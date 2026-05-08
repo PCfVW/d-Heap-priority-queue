@@ -7,7 +7,6 @@ const dijkstra_mod = @import("dijkstra.zig");
 const types = @import("types.zig");
 
 const Graph = types.Graph;
-const Edge = types.Edge;
 const INFINITY = dijkstra_mod.INFINITY;
 
 const CliArgs = struct {
@@ -46,20 +45,26 @@ fn parseArgs(allocator: std.mem.Allocator) !CliArgs {
     return args;
 }
 
+/// Load a named graph using `allocator`. All allocations (path strings, file
+/// buffer, parsed JSON content, and the Graph's slices) live until `allocator`
+/// is freed, so callers should pass an ArenaAllocator and free it wholesale
+/// once the Graph is no longer needed. parseFromSliceLeaky deserializes
+/// directly into Graph (whose fields match the JSON schema) — no per-string
+/// dupe loop, no separate cleanup.
 fn loadGraph(name: []const u8, allocator: std.mem.Allocator) !Graph {
     const filename = try std.fmt.allocPrint(allocator, "{s}.json", .{name});
-    defer allocator.free(filename);
-
     const candidates = [_][]const u8{
         try std.fs.path.join(allocator, &[_][]const u8{ "..", "graphs", filename }),
         try std.fs.path.join(allocator, &[_][]const u8{ "examples", "dijkstra", "graphs", filename }),
     };
-    defer for (candidates) |c| allocator.free(c);
 
     for (candidates) |path| {
         if (std.fs.cwd().openFile(path, .{})) |file| {
             defer file.close();
-            return loadGraphFromFile(file, allocator);
+            const file_size = try file.getEndPos();
+            const buffer = try allocator.alloc(u8, file_size);
+            _ = try file.readAll(buffer);
+            return try std.json.parseFromSliceLeaky(Graph, allocator, buffer, .{});
         } else |err| switch (err) {
             error.FileNotFound => continue,
             else => return err,
@@ -70,48 +75,6 @@ fn loadGraph(name: []const u8, allocator: std.mem.Allocator) !Graph {
         .{name},
     );
     return error.FileNotFound;
-}
-
-fn loadGraphFromFile(file: std.fs.File, allocator: std.mem.Allocator) !Graph {
-    const file_size = try file.getEndPos();
-    const buffer = try allocator.alloc(u8, file_size);
-    defer allocator.free(buffer);
-
-    _ = try file.readAll(buffer);
-
-    const parsed = try std.json.parseFromSlice(
-        struct {
-            vertices: [][]const u8,
-            edges: []struct {
-                from: []const u8,
-                to: []const u8,
-                weight: i32,
-            },
-        },
-        allocator,
-        buffer,
-        .{},
-    );
-    defer parsed.deinit();
-
-    var vertices = try allocator.alloc([]const u8, parsed.value.vertices.len);
-    for (parsed.value.vertices, 0..) |v, i| {
-        vertices[i] = try allocator.dupe(u8, v);
-    }
-
-    var edges = try allocator.alloc(Edge, parsed.value.edges.len);
-    for (parsed.value.edges, 0..) |e, i| {
-        edges[i] = .{
-            .from = try allocator.dupe(u8, e.from),
-            .to = try allocator.dupe(u8, e.to),
-            .weight = e.weight,
-        };
-    }
-
-    return Graph{
-        .vertices = vertices,
-        .edges = edges,
-    };
 }
 
 fn formatResults(distances: std.StringHashMap(i32), source: []const u8, allocator: std.mem.Allocator) !void {
@@ -152,16 +115,9 @@ pub fn main() !void {
     defer if (args.source) |s| allocator.free(s);
     defer if (args.target) |t| allocator.free(t);
 
-    const graph = try loadGraph(args.graph, allocator);
-    defer {
-        for (graph.vertices) |v| allocator.free(v);
-        allocator.free(graph.vertices);
-        for (graph.edges) |e| {
-            allocator.free(e.from);
-            allocator.free(e.to);
-        }
-        allocator.free(graph.edges);
-    }
+    var graph_arena = std.heap.ArenaAllocator.init(allocator);
+    defer graph_arena.deinit();
+    const graph = try loadGraph(args.graph, graph_arena.allocator());
 
     const source = args.source orelse if (std.mem.eql(u8, args.graph, "small")) "A" else graph.vertices[0];
     const target = args.target orelse if (std.mem.eql(u8, args.graph, "small")) "F" else graph.vertices[graph.vertices.len - 1];
