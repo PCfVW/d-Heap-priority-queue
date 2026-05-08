@@ -42,13 +42,19 @@ graph LR
 ## Build and Run
 
 ```bash
-# Run directly (Cargo will compile automatically)
-cargo run
+# Run directly with the textbook graph
+cargo run --release
+
+# Run against a benchmark-scale graph
+cargo run --release -- --graph=medium_dense --quiet
+cargo run --release -- --graph=large_sparse --quiet
 
 # Or build and run separately
 cargo build --release
-./target/release/dijkstra-example
+./target/release/dijkstra-example --graph=large_grid --quiet
 ```
+
+Available graphs: `small` (default), `medium_sparse`, `medium_dense`, `medium_grid`, `large_sparse`, `large_dense`, `large_grid`. Source/target default to `A`/`F` for `small` and `v0`/`v{N-1}` otherwise; override with `--source <id>` and `--target <id>`.
 
 ## Expected Output
 

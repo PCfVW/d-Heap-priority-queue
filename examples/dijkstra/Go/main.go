@@ -6,6 +6,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,25 +15,29 @@ import (
 	"time"
 )
 
-func loadGraph() (Graph, error) {
-	// Get the directory of the current executable or source file
-	graphPath := filepath.Join("..", "graphs", "small.json")
+func loadGraph(name string) (Graph, error) {
+	filename := name + ".json"
+	candidates := []string{
+		filepath.Join("..", "graphs", filename),
+		filepath.Join("examples", "dijkstra", "graphs", filename),
+	}
 
-	data, err := os.ReadFile(graphPath)
-	if err != nil {
-		// Try alternative path for when running from project root
-		graphPath = filepath.Join("examples", "dijkstra", "graphs", "small.json")
-		data, err = os.ReadFile(graphPath)
-		if err != nil {
-			return Graph{}, fmt.Errorf("failed to read graph file: %w", err)
+	var data []byte
+	var err error
+	for _, p := range candidates {
+		data, err = os.ReadFile(p)
+		if err == nil {
+			break
 		}
+	}
+	if err != nil {
+		return Graph{}, fmt.Errorf("graph file not found for --graph=%s (looked in ../graphs/ and examples/dijkstra/graphs/)", name)
 	}
 
 	var graph Graph
 	if err := json.Unmarshal(data, &graph); err != nil {
 		return Graph{}, fmt.Errorf("failed to parse graph JSON: %w", err)
 	}
-
 	return graph, nil
 }
 
@@ -40,7 +45,6 @@ func formatResults(distances map[string]int, source string) {
 	fmt.Printf("Shortest paths from vertex %s:\n", source)
 	fmt.Println("================================")
 
-	// Sort vertices for consistent output
 	vertices := make([]string, 0, len(distances))
 	for v := range distances {
 		vertices = append(vertices, v)
@@ -58,22 +62,44 @@ func formatResults(distances map[string]int, source string) {
 }
 
 func main() {
-	graph, err := loadGraph()
+	graphName := flag.String("graph", "small", "graph name (small | medium_sparse | medium_dense | medium_grid | large_sparse | large_dense | large_grid)")
+	sourceFlag := flag.String("source", "", "source vertex ID (defaults to A for small, v0 otherwise)")
+	targetFlag := flag.String("target", "", "target vertex ID (defaults to F for small, last vertex otherwise)")
+	quiet := flag.Bool("quiet", false, "suppress per-vertex distance output")
+	flag.Parse()
+
+	graph, err := loadGraph(*graphName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 
-	source := "A"
-	target := "F"
+	source := *sourceFlag
+	target := *targetFlag
+	if source == "" {
+		if *graphName == "small" {
+			source = "A"
+		} else {
+			source = graph.Vertices[0]
+		}
+	}
+	if target == "" {
+		if *graphName == "small" {
+			target = "F"
+		} else {
+			target = graph.Vertices[len(graph.Vertices)-1]
+		}
+	}
 
 	fmt.Println("Dijkstra's Algorithm Example")
-	fmt.Println("Network Flows (Ahuja, Magnanti, Orlin) - Figure 4.7")
+	if *graphName == "small" {
+		fmt.Println("Network Flows (Ahuja, Magnanti, Orlin) - Figure 4.7")
+	} else {
+		fmt.Printf("graph: %s (|V|=%d, |E|=%d)\n", *graphName, len(graph.Vertices), len(graph.Edges))
+	}
 	fmt.Printf("Finding shortest path from %s to %s\n\n", source, target)
 
-	// Test with different heap arities
 	arities := []int{2, 4, 8}
-
 	for _, d := range arities {
 		fmt.Printf("--- Using %d-ary heap ---\n", d)
 
@@ -81,7 +107,9 @@ func main() {
 		result := Dijkstra(graph, source, d)
 		elapsed := time.Since(start)
 
-		formatResults(result.Distances, source)
+		if !*quiet {
+			formatResults(result.Distances, source)
+		}
 
 		path := ReconstructPath(result.Predecessors, source, target)
 		var pathStr string

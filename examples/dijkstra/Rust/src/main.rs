@@ -5,24 +5,48 @@
 mod dijkstra;
 mod types;
 
+use clap::Parser;
 use dijkstra::{dijkstra, reconstruct_path, INFINITY};
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
 use std::time::Instant;
 use types::Graph;
 
-fn load_graph() -> Result<Graph, Box<dyn std::error::Error>> {
-    // Try relative path from the example directory
-    let graph_path = Path::new("../graphs/small.json");
+#[derive(Parser, Debug)]
+#[command(version, about = "Dijkstra's Algorithm Example")]
+struct Args {
+    /// Graph name (small | medium_sparse | medium_dense | medium_grid | large_sparse | large_dense | large_grid)
+    #[arg(long, default_value = "small")]
+    graph: String,
 
-    let data = if graph_path.exists() {
-        fs::read_to_string(graph_path)?
-    } else {
-        // Try alternative path for when running from project root
-        let alt_path = Path::new("examples/dijkstra/graphs/small.json");
-        fs::read_to_string(alt_path)?
-    };
+    /// Source vertex ID (defaults to "A" for small, "v0" otherwise)
+    #[arg(long)]
+    source: Option<String>,
 
+    /// Target vertex ID (defaults to "F" for small, last vertex otherwise)
+    #[arg(long)]
+    target: Option<String>,
+
+    /// Suppress per-vertex distance output
+    #[arg(long)]
+    quiet: bool,
+}
+
+fn load_graph(name: &str) -> Result<Graph, Box<dyn std::error::Error>> {
+    let filename = format!("{}.json", name);
+    let candidates = [
+        PathBuf::from("..").join("graphs").join(&filename),
+        PathBuf::from("examples").join("dijkstra").join("graphs").join(&filename),
+    ];
+    let data = candidates
+        .iter()
+        .find_map(|p| fs::read_to_string(p).ok())
+        .ok_or_else(|| {
+            format!(
+                "graph file not found for --graph={} (looked in ../graphs/ and examples/dijkstra/graphs/)",
+                name
+            )
+        })?;
     let graph: Graph = serde_json::from_str(&data)?;
     Ok(graph)
 }
@@ -31,7 +55,6 @@ fn format_results(distances: &std::collections::HashMap<String, i32>, source: &s
     println!("Shortest paths from vertex {}:", source);
     println!("================================");
 
-    // Sort vertices for consistent output
     let mut vertices: Vec<&String> = distances.keys().collect();
     vertices.sort();
 
@@ -47,27 +70,50 @@ fn format_results(distances: &std::collections::HashMap<String, i32>, source: &s
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let graph = load_graph()?;
-    let source = "A";
-    let target = "F";
+    let args = Args::parse();
+    let graph = load_graph(&args.graph)?;
+
+    let source = args.source.unwrap_or_else(|| {
+        if args.graph == "small" {
+            "A".to_string()
+        } else {
+            graph.vertices.first().cloned().unwrap_or_default()
+        }
+    });
+    let target = args.target.unwrap_or_else(|| {
+        if args.graph == "small" {
+            "F".to_string()
+        } else {
+            graph.vertices.last().cloned().unwrap_or_default()
+        }
+    });
 
     println!("Dijkstra's Algorithm Example");
-    println!("Network Flows (Ahuja, Magnanti, Orlin) - Figure 4.7");
+    if args.graph == "small" {
+        println!("Network Flows (Ahuja, Magnanti, Orlin) - Figure 4.7");
+    } else {
+        println!(
+            "graph: {} (|V|={}, |E|={})",
+            args.graph,
+            graph.vertices.len(),
+            graph.edges.len()
+        );
+    }
     println!("Finding shortest path from {} to {}\n", source, target);
 
-    // Test with different heap arities
     let arities = vec![2, 4, 8];
-
     for d in arities {
         println!("--- Using {}-ary heap ---", d);
 
         let start = Instant::now();
-        let result = dijkstra(&graph, source, d);
+        let result = dijkstra(&graph, &source, d);
         let elapsed = start.elapsed();
 
-        format_results(&result.distances, source);
+        if !args.quiet {
+            format_results(&result.distances, &source);
+        }
 
-        let path = reconstruct_path(&result.predecessors, source, target);
+        let path = reconstruct_path(&result.predecessors, &source, &target);
         let path_str = if let Some(p) = &path {
             p.join(" → ")
         } else {
@@ -75,7 +121,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         println!("\nShortest path from {} to {}: {}", source, target, path_str);
-        println!("Path cost: {}", result.distances.get(target).unwrap());
+        if let Some(d) = result.distances.get(&target) {
+            println!("Path cost: {}", d);
+        }
         println!("Execution time: {:?}\n", elapsed);
     }
 

@@ -1,3 +1,4 @@
+// dijkstra.ts - Dijkstra's shortest path algorithm implementation
 import { PriorityQueue, minBy } from 'd-ary-heap';
 /**
  * Dijkstra's shortest path algorithm using a d-ary heap priority queue.
@@ -38,6 +39,10 @@ export function dijkstra(graph, source, d = 4) {
         if (current.distance > distances[current.id]) {
             continue;
         }
+        // Skip if current distance is infinity (unreachable)
+        if (current.distance === Infinity) {
+            continue;
+        }
         // Check all neighbors
         const neighbors = adjacency.get(current.id) || [];
         for (const { to, weight } of neighbors) {
@@ -45,9 +50,10 @@ export function dijkstra(graph, source, d = 4) {
             if (newDistance < distances[to]) {
                 distances[to] = newDistance;
                 predecessors[to] = current.id;
-                // Update priority in queue (decrease key operation)
+                // Update priority in queue
+                // In a min-heap, decreasing distance = increasing priority (more important)
                 if (pq.contains({ id: to, distance: 0 })) {
-                    pq.decreasePriority({ id: to, distance: newDistance });
+                    pq.increasePriority({ id: to, distance: newDistance });
                 }
             }
         }

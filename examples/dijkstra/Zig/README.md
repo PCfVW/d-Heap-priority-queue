@@ -42,15 +42,21 @@ graph LR
 ## Build and Run
 
 ```bash
-# Run directly (Zig will compile automatically)
+# Run directly with the textbook graph
 zig build run
+
+# Run against a benchmark-scale graph (forward args after `--`)
+zig build run -- --graph=medium_sparse --quiet
+zig build run -- --graph=large_grid --quiet
 
 # Or build and run separately
 zig build
-./zig-out/bin/dijkstra-example   # On Unix-like systems
+./zig-out/bin/dijkstra-example --graph=medium_dense   # On Unix-like systems
 # or
-.\zig-out\bin\dijkstra-example.exe   # On Windows
+.\zig-out\bin\dijkstra-example.exe --graph=large_sparse   # On Windows
 ```
+
+Available graphs: `small` (default), `medium_sparse`, `medium_dense`, `medium_grid`, `large_sparse`, `large_dense`, `large_grid`. Source/target default to `A`/`F` for `small` and `v0`/`v{N-1}` otherwise; override with `--source=<id>` and `--target=<id>`.
 
 ## Expected Output
 

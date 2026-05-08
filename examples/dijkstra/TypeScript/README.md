@@ -51,12 +51,18 @@ npm install
 # Build TypeScript to JavaScript
 npm run build
 
-# Run the compiled example
+# Run the compiled example with the textbook graph
 npm start
 
+# Run against a benchmark-scale graph (forward args after `--`)
+npm start -- --graph=medium_sparse --quiet
+npm start -- --graph=large_dense --quiet
+
 # Or run directly with tsx (development)
-npm run dev
+npm run dev -- --graph=medium_grid
 ```
+
+Available graphs: `small` (default), `medium_sparse`, `medium_dense`, `medium_grid`, `large_sparse`, `large_dense`, `large_grid`. Source/target default to `A`/`F` for `small` and `v0`/`v{N-1}` otherwise; override with `--source=<id>` and `--target=<id>`.
 
 ## Expected Output
 

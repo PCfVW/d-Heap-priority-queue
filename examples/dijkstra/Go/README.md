@@ -42,13 +42,19 @@ graph LR
 ## Build and Run
 
 ```bash
-# Run directly (Go will compile automatically)
+# Run directly with the textbook graph
 go run .
+
+# Run against a benchmark-scale graph
+go run . --graph=medium_sparse --quiet
+go run . --graph=large_dense --quiet
 
 # Or build and run separately
 go build -o dijkstra.exe .
-./dijkstra.exe
+./dijkstra.exe --graph=medium_grid
 ```
+
+Available graphs: `small` (default), `medium_sparse`, `medium_dense`, `medium_grid`, `large_sparse`, `large_dense`, `large_grid`. Source/target default to `A`/`F` for `small` and `v0`/`v{N-1}` otherwise; override with `--source=<id>` and `--target=<id>`.
 
 ## Expected Output
 
