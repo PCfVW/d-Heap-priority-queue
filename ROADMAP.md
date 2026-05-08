@@ -137,12 +137,36 @@ All implementations:
 
 With API parity and Dijkstra examples complete in all five languages, we can now add cross-language instrumentation for performance analysis and benchmarking.
 
-### Phase 1: Additional Test Graphs
+### Phase 1: Test Graphs, Generator, Grammar Spec
 
-Larger graphs for benchmarking:
+Larger graphs for benchmarking, plus the tooling and specification needed to generate them reproducibly. The C++ example stays dependency-free by parsing a constrained JSON subset with a small hand-rolled parser.
 
-- [ ] `examples/dijkstra/graphs/medium.json` — ~100 node graph
-- [ ] `examples/dijkstra/graphs/large.json` — ~1000 node graph
+#### Tooling
+
+- [x] `benchmarks/scripts/graphgen/` — Rust binary crate (`petgraph` + seeded `rand`) that reads `benchmarks/graphs.toml` and emits canonical JSON. Provides `generate` and `verify` subcommands. Standalone crate (no root workspace).
+- [x] `benchmarks/graphs.toml` — single source of truth for graph specifications: `{name, kind, n | rows×cols, seed, weight_range, target_edges?}` per graph.
+
+#### Specification
+
+- [x] `examples/dijkstra/graphs/GRAMMAR.md` — ISO/IEC 14977 EBNF grammar for the graph file format (a constrained, deterministic subset of RFC 8259 JSON), plus a byte-level canonical-output spec.
+
+#### Test graphs (committed to git)
+
+Density buckets match Phase 3 dense/sparse analysis. Edge counts target sparse `|E|≈2|V|`, dense `|E|≈|V|^1.5`. Erdős–Rényi graphs are post-processed to be connected (spanning-tree pre-pass).
+
+- [x] `examples/dijkstra/graphs/medium_sparse.json` — n=100, |E|=200
+- [x] `examples/dijkstra/graphs/medium_dense.json` — n=100, |E|=1000
+- [x] `examples/dijkstra/graphs/medium_grid.json` — 10×10 lattice (|E|=360)
+- [x] `examples/dijkstra/graphs/large_sparse.json` — n=1000, |E|=2000
+- [x] `examples/dijkstra/graphs/large_dense.json` — n=1000, |E|=31623
+- [x] `examples/dijkstra/graphs/large_grid.json` — 32×32 lattice (1024 vertices, |E|=3968)
+
+#### Loader extension
+
+All five Dijkstra examples gain a `--graph=<name>` flag (default `small`) and an explicit `--quiet` flag for large graphs.
+
+- [x] TypeScript, Go, Rust, Zig — extend existing JSON loaders for new graph names
+- [x] C++ — new `graph_parser.h` (~150 LOC, validates against GRAMMAR.md, fixture-tested with 18/18 cases passing). Preserves the dependency-free `small` graph path; routes other graphs through the file parser.
 
 ### Phase 2: Cross-Language Instrumentation
 
