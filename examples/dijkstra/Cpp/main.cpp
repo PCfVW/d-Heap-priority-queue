@@ -89,6 +89,7 @@ struct CliArgs {
     std::optional<std::string> source;
     std::optional<std::string> target;
     bool quiet = false;
+    bool stats = false;  // Phase 2: count comparisons via InstrumentedPriorityQueue
 };
 
 CliArgs parse_args(int argc, char* argv[]) {
@@ -106,9 +107,11 @@ CliArgs parse_args(int argc, char* argv[]) {
             args.target = std::string(arg.substr(target_prefix.size()));
         } else if (arg == "--quiet") {
             args.quiet = true;
+        } else if (arg == "--stats") {
+            args.stats = true;
         } else {
             std::cerr << "unknown argument: " << arg << "\n"
-                      << "usage: dijkstra [--graph=NAME] [--source=ID] [--target=ID] [--quiet]\n";
+                      << "usage: dijkstra [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats]\n";
             std::exit(2);
         }
     }
@@ -152,8 +155,20 @@ int main(int argc, char* argv[]) {
     for (size_t d : arities) {
         std::cout << "--- Using " << d << "-ary heap ---\n";
 
+        DijkstraResult result;
+        std::optional<TOOLS::ComparisonStats> captured_stats;
+
         auto start = std::chrono::high_resolution_clock::now();
-        DijkstraResult result = dijkstra(graph, source, d);
+        if (args.stats) {
+            // Phase 2: instrumented run. Build an InstrumentedPriorityQueue locally,
+            // pass it to the algorithm template, and snapshot pq.stats() into
+            // captured_stats so we can print after the timing/path-cost block.
+            TOOLS::InstrumentedPriorityQueue<Vertex, VertexHash, VertexCompare, VertexEqual> pq(d);
+            result = dijkstra_with_pq(graph, source, pq);
+            captured_stats = pq.stats();
+        } else {
+            result = dijkstra(graph, source, d);
+        }
         auto elapsed = std::chrono::high_resolution_clock::now() - start;
 
         if (!args.quiet) format_results(result.distances, source);
@@ -177,7 +192,17 @@ int main(int argc, char* argv[]) {
         }
 
         const double elapsed_us = std::chrono::duration<double, std::micro>(elapsed).count();
-        std::cout << std::format("Execution time: {:.1f}µs\n\n", elapsed_us);
+        std::cout << std::format("Execution time: {:.1f}µs\n", elapsed_us);
+
+        if (captured_stats) {
+            const auto& s = *captured_stats;
+            std::cout << std::format(
+                "Comparison counts: insert={}, pop={}, decrease_priority={}, "
+                "increase_priority={}, update_priority={}, total={}\n",
+                s.insert, s.pop, s.decrease_priority, s.increase_priority, s.update_priority, s.total());
+        }
+
+        std::cout << "\n";
     }
 
     return 0;

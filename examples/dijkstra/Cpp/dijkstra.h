@@ -10,16 +10,20 @@
 /// Infinity represents an unreachable distance.
 constexpr int INFINITY_DISTANCE = std::numeric_limits<int>::max();
 
-/// Dijkstra's shortest path algorithm using a d-ary heap priority queue.
+/// Dijkstra's shortest path algorithm, parameterised over the priority queue type.
 ///
-/// Finds the shortest paths from a source vertex to all other vertices in a weighted
-/// graph with non-negative edge weights.
+/// The body lives here so it can be invoked with either the default
+/// `TOOLS::PriorityQueue<Vertex, ...>` (zero overhead) or
+/// `TOOLS::InstrumentedPriorityQueue<Vertex, ...>` (Phase 2 comparison counts).
+/// Both heap variants expose the same public API used below.
 ///
-/// @param graph  The input graph with vertices and weighted edges
-/// @param source The source vertex to find shortest paths from
-/// @param d      The arity of the heap (typically 4 for optimal performance)
+/// @tparam PQ    A heap type compatible with this algorithm's API.
+/// @param graph  The input graph with vertices and weighted edges.
+/// @param source The source vertex to find shortest paths from.
+/// @param pq     A constructed-but-empty heap; caller picks d and any policy parameters.
 /// @return A DijkstraResult containing distances and predecessors for path reconstruction.
-inline DijkstraResult dijkstra(const Graph& graph, const std::string& source, size_t d) {
+template <typename PQ>
+inline DijkstraResult dijkstra_with_pq(const Graph& graph, const std::string& source, PQ& pq) {
     // Build adjacency list for efficient neighbor lookup
     std::unordered_map<std::string, std::vector<std::pair<std::string, int>>> adjacency;
     for (const auto& vertex : graph.vertices) {
@@ -32,9 +36,6 @@ inline DijkstraResult dijkstra(const Graph& graph, const std::string& source, si
     // Initialize distances and predecessors
     std::unordered_map<std::string, int> distances;
     std::unordered_map<std::string, std::optional<std::string>> predecessors;
-
-    // Create priority queue with min-heap by distance
-    TOOLS::PriorityQueue<Vertex, VertexHash, VertexCompare, VertexEqual> pq(d);
 
     // Set initial distances and add to priority queue
     for (const auto& vertex : graph.vertices) {
@@ -78,6 +79,13 @@ inline DijkstraResult dijkstra(const Graph& graph, const std::string& source, si
     }
 
     return DijkstraResult{distances, predecessors};
+}
+
+/// Default-heap convenience wrapper. Constructs a zero-overhead
+/// `TOOLS::PriorityQueue<Vertex, ...>(d)` and delegates to `dijkstra_with_pq`.
+inline DijkstraResult dijkstra(const Graph& graph, const std::string& source, size_t d) {
+    TOOLS::PriorityQueue<Vertex, VertexHash, VertexCompare, VertexEqual> pq(d);
+    return dijkstra_with_pq(graph, source, pq);
 }
 
 /// Reconstructs the shortest path from source to target using predecessors.

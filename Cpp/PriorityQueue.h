@@ -168,6 +168,7 @@
 ///
 #include <cassert>          // Visibility for assert
 #include <concepts>         // Visibility for std::convertible_to, std::ranges::range (C++20)
+#include <cstdint>          // Visibility for std::uint64_t / std::uint8_t (instrumentation counters)
 #include <expected>         // Visibility for std::expected (C++23)
 #include <iostream>         // Visibility for std::ostream
 #include <optional>         // Visibility for std::optional
@@ -222,12 +223,119 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		return os << to_string(e);
 	}
 	///
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Instrumentation policy types (Phase 2)
+	///
+	/// Comparison-count instrumentation. Mirrors the contract established by
+	/// TypeScript/src/instrumentation.ts: count *comparisons* (not operations),
+	/// bucketed by which heap operation triggered them.
+	///
+	/// The heap is parameterized on a TStats policy class. The default NoOpStats
+	/// is empty and (with [[no_unique_address]] / [[msvc::no_unique_address]])
+	/// occupies zero bytes — the heap pays nothing when instrumentation is off.
+	/// ComparisonStats holds five uint64_t counters plus a current-operation tag.
+	/// Use the InstrumentedPriorityQueue alias (declared after the class) to opt in.
+	///
+	/// Cross-language equivalents:
+	///   - TypeScript: ComparisonStats from instrumentation.ts (v2.4.0)
+	///   - Rust: StatsCollector trait (Phase 2, planned)
+	///   - Go: Stats struct + nil pointer (Phase 2, planned)
+	///   - Zig: comptime bool parameter (Phase 2, planned)
+
+	// MSVC ignores standard [[no_unique_address]] for ABI stability;
+	// [[msvc::no_unique_address]] is the vendor attribute that actually elides the
+	// empty member. Macro picks the right one for the compiler in use.
+	#if defined(_MSC_VER)
+		#define DHEAP_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+	#else
+		#define DHEAP_NO_UNIQUE_ADDRESS [[no_unique_address]]
+	#endif
+
+	enum class OperationType : std::uint8_t
+	{
+		None = 0,
+		Insert,
+		Pop,
+		DecreasePriority,
+		IncreasePriority,
+		UpdatePriority
+	};
+
+	/// Empty policy. Every method is a constexpr no-op; with DHEAP_NO_UNIQUE_ADDRESS
+	/// the heap pays zero bytes for the stats member.
+	struct NoOpStats
+	{
+		constexpr void start_operation(OperationType) noexcept {}
+		constexpr void end_operation() noexcept {}
+		constexpr void count_comparison() noexcept {}
+		[[nodiscard]] constexpr std::uint64_t total() const noexcept { return 0; }
+		constexpr void reset() noexcept {}
+	};
+
+	/// Real comparison-count policy. Five buckets indexed by the active OperationType.
+	/// The heap's RAII OperationGuard sets / clears the active operation around each
+	/// public mutator; each comparison the heap performs increments the matching bucket.
+	struct ComparisonStats
+	{
+		std::uint64_t insert{0};
+		std::uint64_t pop{0};
+		std::uint64_t decrease_priority{0};
+		std::uint64_t increase_priority{0};
+		std::uint64_t update_priority{0};
+
+		void start_operation(OperationType op) noexcept { current_op_ = op; }
+		void end_operation() noexcept { current_op_ = OperationType::None; }
+		void count_comparison() noexcept
+		{
+			switch (current_op_)
+			{
+				case OperationType::Insert:           ++insert; break;
+				case OperationType::Pop:              ++pop; break;
+				case OperationType::DecreasePriority: ++decrease_priority; break;
+				case OperationType::IncreasePriority: ++increase_priority; break;
+				case OperationType::UpdatePriority:   ++update_priority; break;
+				case OperationType::None:             break; // unattributed comparisons (none expected)
+			}
+		}
+
+		[[nodiscard]] std::uint64_t total() const noexcept
+		{
+			return insert + pop + decrease_priority + increase_priority + update_priority;
+		}
+
+		void reset() noexcept
+		{
+			insert = pop = decrease_priority = increase_priority = update_priority = 0;
+			current_op_ = OperationType::None;
+		}
+
+	private:
+		OperationType current_op_{OperationType::None};
+	};
+
+	/// RAII guard that brackets a single heap operation. Used internally by
+	/// PriorityQueue; users never instantiate this directly. With NoOpStats the
+	/// constructor and destructor inline to nothing.
+	template <typename TStats>
+	struct OperationGuard
+	{
+		TStats& stats_ref;
+
+		OperationGuard(TStats& s, OperationType op) noexcept : stats_ref(s) { s.start_operation(op); }
+		~OperationGuard() noexcept { stats_ref.end_operation(); }
+
+		OperationGuard(const OperationGuard&) = delete;
+		OperationGuard& operator=(const OperationGuard&) = delete;
+		OperationGuard(OperationGuard&&) = delete;
+		OperationGuard& operator=(OperationGuard&&) = delete;
+	};
+	///
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Class declaration
 	///
 	template <	class T,										/* items in the queue */
 				typename THash = std::hash<T>,					/* O(1) access to positions */
 				typename TComparisonPredicate = std::less<T>,	/* std::less by default implements min cost priority queues: is the priority of one item less than the priority of another item? */
-				typename TEqual = std::equal_to<T>				/* O(1) access to items */
+				typename TEqual = std::equal_to<T>,				/* O(1) access to items */
+				typename TStats = NoOpStats						/* Phase 2 instrumentation policy; default has zero size */
 			 > class PriorityQueue
 	{
 	// --------------------------
@@ -285,6 +393,16 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		/* inline */ size_t len() const { return container.size(); }
 		/* inline */ bool is_empty() const { return container.empty(); }
 		/* inline */ size_t d() const { return depth; }
+
+		/// Read-only access to the comparison-count stats. With TStats = NoOpStats
+		/// (the default), this returns a reference to a zero-sized object whose
+		/// methods are no-ops. Use the InstrumentedPriorityQueue alias for an
+		/// instance that actually counts.
+		[[nodiscard]] const TStats& stats() const noexcept { return stats_; }
+
+		/// Mutable access to the stats — primarily so callers can stats().reset()
+		/// between phases of an algorithm without recreating the heap.
+		[[nodiscard]] TStats& stats() noexcept { return stats_; }
 
 		// ----- Check if an item with the given identity exists in the queue. O(1) time complexity.
 		bool contains(const T& item) const { return positions.find(item) != positions.end(); }
@@ -353,6 +471,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		// ----- Insert item t in the queue according to its priority
 		void insert(const T& t)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::Insert);
 			// First insert item t at the very end of the queue container
 			container.push_back(t);
 			ItemPositionInPriorityQueue last_position_in_the_queue = static_cast<ItemPositionInPriorityQueue>(container.size() - 1);
@@ -374,6 +493,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		template <typename InputIt>
 		void insert_many(InputIt first, InputIt last)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::Insert);
 			if (first == last) return;
 
 			size_t start_idx = container.size();
@@ -415,6 +535,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		/// This version uses assert for backward compatibility.
 		void increase_priority(ItemPositionInPriorityQueue i)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::IncreasePriority);
 			if (TOOLS::INCLUDE_ASSERT) assert(i < container.size());
 			move_up(i);
 		}
@@ -428,6 +549,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		///   - Go: IncreasePriorityByIndex(index) returns error
 		[[nodiscard]] std::expected<void, Error> increase_priority_by_index(Position i)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::IncreasePriority);
 			if (i >= container.size()) return std::unexpected(Error::IndexOutOfBounds);
 			move_up(static_cast<ItemPositionInPriorityQueue>(i));
 			return {};
@@ -437,6 +559,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		/// This version uses assert for backward compatibility.
 		void increase_priority(const T& updated_item)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::IncreasePriority);
 			// Get the position of the item in the queue container
 			QueueIterator it = positions.find(updated_item);		// Find the position of item t in the queue
 			if (TOOLS::INCLUDE_ASSERT) assert(positions.end() != it);			// t is expected to be in the queue and this should not be included
@@ -462,6 +585,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		///   - Go: IncreasePriority(item) returns error
 		[[nodiscard]] std::expected<void, Error> try_increase_priority(const T& updated_item)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::IncreasePriority);
 			auto it = positions.find(updated_item);
 			if (it == positions.end()) return std::unexpected(Error::ItemNotFound);
 
@@ -484,6 +608,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		///   - Go: DecreasePriorityByIndex(index) returns error
 		[[nodiscard]] std::expected<void, Error> decrease_priority_by_index(Position i)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::DecreasePriority);
 			if (i >= container.size()) return std::unexpected(Error::IndexOutOfBounds);
 			move_down(static_cast<ItemPositionInPriorityQueue>(i));
 			return {};
@@ -493,6 +618,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		/// This version uses assert for backward compatibility. Only moves downward.
 		void decrease_priority(const T& updated_item)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::DecreasePriority);
 			// Get the position of the item in the queue container
 			QueueIterator it = positions.find(updated_item);		// Find the position of item t in the queue
 			if (TOOLS::INCLUDE_ASSERT) assert(positions.end() != it);			// t is expected to be in the queue and this should not be included
@@ -518,6 +644,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		///   - Go: DecreasePriority(item) returns error
 		[[nodiscard]] std::expected<void, Error> try_decrease_priority(const T& updated_item)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::DecreasePriority);
 			auto it = positions.find(updated_item);
 			if (it == positions.end()) return std::unexpected(Error::ItemNotFound);
 
@@ -539,6 +666,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		///   - TypeScript: Not available (use updatePriority with item)
 		[[nodiscard]] std::expected<void, Error> update_priority_by_index(Position i)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::UpdatePriority);
 			if (i >= container.size()) return std::unexpected(Error::IndexOutOfBounds);
 			ItemPositionInPriorityQueue pos = static_cast<ItemPositionInPriorityQueue>(i);
 			move_up(pos);
@@ -550,6 +678,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		/// Use this when you don't know whether the item's priority increased or decreased.
 		void update_priority(const T& updated_item)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::UpdatePriority);
 			QueueIterator it = positions.find(updated_item);
 			if (TOOLS::INCLUDE_ASSERT) assert(positions.end() != it);
 
@@ -570,6 +699,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		///   - Go: UpdatePriority(item) returns error
 		[[nodiscard]] std::expected<void, Error> try_update_priority(const T& updated_item)
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::UpdatePriority);
 			auto it = positions.find(updated_item);
 			if (it == positions.end()) return std::unexpected(Error::ItemNotFound);
 
@@ -587,6 +717,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		/// Remove the highest priority item from the queue. (Legacy: no return value)
 		void pop()
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::Pop);
 			if (container.empty()) return;
 
 			// First exchange the very first (highest priority) item and the very last item in the queue container
@@ -614,6 +745,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		///   - Go: Pop() -> (T, bool)
 		std::optional<T> pop_front()
 		{
+			OperationGuard<TStats> guard(stats_, OperationType::Pop);
 			if (container.empty()) return std::nullopt;
 
 			T result = container.front();
@@ -703,6 +835,17 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		typedef typename std::unordered_map<T, ItemPositionInPriorityQueue, THash, TEqual>::iterator QueueIterator;	// Easy typing
 		TComparisonPredicate comparator;																			// Comparing the priority of two items in the queue
 		ItemPositionInPriorityQueue depth;																			// What is the maximum number of children per node? Set when a queue is declared; once set, cannot be modified.
+		DHEAP_NO_UNIQUE_ADDRESS mutable TStats stats_{};															// Comparison-count policy. Empty struct (zero bytes) by default; non-zero only with InstrumentedPriorityQueue. `mutable` so const helpers like best_child_position can still count comparisons.
+
+		// ----- Comparator wrapper that increments the stats counter for the
+		// ----- currently-active operation. With TStats = NoOpStats, both the
+		// ----- count_comparison() call and the wrapper itself inline to the bare
+		// ----- comparator(...) invocation — zero overhead.
+		[[nodiscard]] /* inline */ bool compare_(const T& a, const T& b) const
+		{
+			stats_.count_comparison();
+			return comparator(a, b);
+		}
 
 		// ----- Return the smallest of 2 item positions
 		/* inline */ ItemPositionInPriorityQueue min(ItemPositionInPriorityQueue ip1, ItemPositionInPriorityQueue ip2) const
@@ -728,7 +871,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 			// Scan all items in the [left, right] interval of the container to find the position of the minimum child
 			ItemPositionInPriorityQueue position_of_minimum_child = left;
 			for (ItemPositionInPriorityQueue p = left + 1; p <= right; ++p)
-				if (comparator(container[p], container[position_of_minimum_child]))
+				if (compare_(container[p], container[position_of_minimum_child]))
 					position_of_minimum_child = p;
 
 			return position_of_minimum_child;
@@ -754,7 +897,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 			while (0 < i)
 			{
 				ItemPositionInPriorityQueue higher_priority_position = parent(i);
-				if (comparator(container[i], container[higher_priority_position]))
+				if (compare_(container[i], container[higher_priority_position]))
 				{
 					swap(i, higher_priority_position);
 					i = higher_priority_position;
@@ -774,7 +917,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 					break; // i has no children
 
 				ItemPositionInPriorityQueue position_of_minimum_child = best_child_position(i);
-				if (comparator(container[position_of_minimum_child], container[i]))
+				if (compare_(container[position_of_minimum_child], container[i]))
 				{
 					swap(i, position_of_minimum_child);
 					i = position_of_minimum_child;
@@ -784,6 +927,15 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 			}
 		}
 	};
+
+	/// Convenience alias: a PriorityQueue parameterised over ComparisonStats.
+	/// Use this when you want comparison-count instrumentation; the default
+	/// PriorityQueue<T, ...> stays zero-overhead via NoOpStats.
+	template <class T,
+	          typename THash = std::hash<T>,
+	          typename TComparisonPredicate = std::less<T>,
+	          typename TEqual = std::equal_to<T>>
+	using InstrumentedPriorityQueue = PriorityQueue<T, THash, TComparisonPredicate, TEqual, ComparisonStats>;
 	///
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///
