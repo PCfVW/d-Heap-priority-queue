@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	dheap "github.com/PCfVW/d-Heap-priority-queue/Go/v2/src"
 )
 
 func loadGraph(name string) (Graph, error) {
@@ -62,10 +64,11 @@ func formatResults(distances map[string]int, source string) {
 }
 
 func main() {
-	graphName := flag.String("graph", "small", "graph name (small | medium_sparse | medium_dense | medium_grid | large_sparse | large_dense | large_grid)")
+	graphName := flag.String("graph", "small", "graph name (small | medium_sparse | medium_dense | medium_grid | large_sparse | large_dense | large_grid | huge_dense)")
 	sourceFlag := flag.String("source", "", "source vertex ID (defaults to A for small, v0 otherwise)")
 	targetFlag := flag.String("target", "", "target vertex ID (defaults to F for small, last vertex otherwise)")
 	quiet := flag.Bool("quiet", false, "suppress per-vertex distance output")
+	statsFlag := flag.Bool("stats", false, "enable comparison-count instrumentation and print per-arity buckets")
 	flag.Parse()
 
 	graph, err := loadGraph(*graphName)
@@ -103,8 +106,15 @@ func main() {
 	for _, d := range arities {
 		fmt.Printf("--- Using %d-ary heap ---\n", d)
 
+		var result DijkstraResult
+		var stats *dheap.Stats
+
 		start := time.Now()
-		result := Dijkstra(graph, source, d)
+		if *statsFlag {
+			result, stats = DijkstraInstrumented(graph, source, d)
+		} else {
+			result = Dijkstra(graph, source, d)
+		}
 		elapsed := time.Since(start)
 
 		if !*quiet {
@@ -122,6 +132,14 @@ func main() {
 		fmt.Printf("\nShortest path from %s to %s: %s\n", source, target, pathStr)
 		fmt.Printf("Path cost: %d\n", result.Distances[target])
 		elapsedUs := float64(elapsed.Nanoseconds()) / 1000.0
-		fmt.Printf("Execution time: %.1fµs\n\n", elapsedUs)
+		fmt.Printf("Execution time: %.1fµs\n", elapsedUs)
+
+		if stats != nil {
+			fmt.Printf("Comparison counts: insert=%d, pop=%d, decrease_priority=%d, increase_priority=%d, update_priority=%d, total=%d\n",
+				stats.Insert, stats.Pop, stats.DecreasePriority,
+				stats.IncreasePriority, stats.UpdatePriority, stats.Total())
+		}
+
+		fmt.Println()
 	}
 }

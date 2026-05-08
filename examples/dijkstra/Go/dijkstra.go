@@ -21,6 +21,25 @@ const Infinity = math.MaxInt
 //
 // Returns a DijkstraResult containing distances and predecessors for path reconstruction.
 func Dijkstra(graph Graph, source string, d int) DijkstraResult {
+	return dijkstraImpl(graph, source, d, nil)
+}
+
+// DijkstraInstrumented runs the algorithm with comparison-count instrumentation
+// attached to the underlying priority queue. Returns the result alongside a
+// pointer to the populated dheap.Stats so the caller can read per-operation
+// comparison counts (Insert / Pop / IncreasePriority / DecreasePriority /
+// UpdatePriority — only Insert / Pop / IncreasePriority are exercised by this
+// algorithm).
+func DijkstraInstrumented(graph Graph, source string, d int) (DijkstraResult, *dheap.Stats) {
+	stats := &dheap.Stats{}
+	result := dijkstraImpl(graph, source, d, stats)
+	return result, stats
+}
+
+// dijkstraImpl is the shared algorithm body. When stats is nil, the heap runs
+// with no instrumentation; when non-nil, every comparison is bucketed into the
+// matching operation counter inside *stats.
+func dijkstraImpl(graph Graph, source string, d int, stats *dheap.Stats) DijkstraResult {
 	// Build adjacency list for efficient neighbor lookup
 	adjacency := make(map[string][]struct {
 		To     string
@@ -45,6 +64,7 @@ func Dijkstra(graph Graph, source string, d int) DijkstraResult {
 		D:            d,
 		Comparator:   dheap.MinBy(func(v Vertex) int { return v.Distance }),
 		KeyExtractor: func(v Vertex) string { return v.ID },
+		Stats:        stats, // nil == no instrumentation
 	})
 
 	// Set initial distances and add to priority queue

@@ -48,6 +48,12 @@ type Options[T any, K comparable] struct {
 
 	// InitialCapacity is a hint for pre-allocation.
 	InitialCapacity int
+
+	// Stats is an optional pointer to a *Stats value that the heap will populate
+	// with per-operation comparison counts. When nil (the default), the heap
+	// performs a single well-predicted nil check per comparison and bypasses
+	// counter updates. See instrumentation.go for the Stats type.
+	Stats *Stats
 }
 
 // PriorityQueue is a generic d-ary heap with O(1) item lookup.
@@ -81,6 +87,11 @@ type PriorityQueue[T any, K comparable] struct {
 	depth        int
 	comparator   Comparator[T]
 	keyExtractor KeyExtractor[T, K]
+	// stats is nil unless the user opted in via Options.Stats. When non-nil,
+	// the heap brackets each public mutator with startOperation/endOperation
+	// and increments the counter bucket inside compareLess for every
+	// comparison.
+	stats *Stats
 }
 
 // ErrEmptyQueue is returned when attempting to access items in an empty queue.
@@ -135,6 +146,7 @@ func New[T any, K comparable](opts Options[T, K]) *PriorityQueue[T, K] {
 		depth:        d,
 		comparator:   opts.Comparator,
 		keyExtractor: opts.KeyExtractor,
+		stats:        opts.Stats, // nil unless user opted in
 	}
 }
 
@@ -192,6 +204,18 @@ func (pq *PriorityQueue[T, K]) IsEmpty() bool {
 // Is_empty is a snake_case alias for IsEmpty (cross-language consistency).
 func (pq *PriorityQueue[T, K]) Is_empty() bool {
 	return pq.IsEmpty()
+}
+
+// Stats returns the *Stats pointer attached at construction (via Options.Stats),
+// or nil if instrumentation was not requested. With nil stats, the heap performs
+// a single well-predicted nil check per comparison; with a real Stats, every
+// comparison increments the bucket of the active operation.
+//
+// Cross-language equivalents:
+//   - C++: pq.stats() (returns const TStats& / TStats&)
+//   - TypeScript: instrumentedComparator.stats
+func (pq *PriorityQueue[T, K]) Stats() *Stats {
+	return pq.stats
 }
 
 // D returns the arity (number of children per node) of the heap.
@@ -310,6 +334,11 @@ func (pq *PriorityQueue[T, K]) Peek() (T, bool) {
 //   - Zig: insert(item)
 //   - TypeScript: insert(item)
 func (pq *PriorityQueue[T, K]) Insert(item T) {
+	if pq.stats != nil {
+		pq.stats.startOperation(OpInsert)
+		defer pq.stats.endOperation()
+	}
+
 	index := len(pq.container)
 	pq.container = append(pq.container, item)
 
@@ -333,6 +362,11 @@ func (pq *PriorityQueue[T, K]) Insert(item T) {
 // Cross-language equivalents:
 //   - TypeScript: insertMany(items)
 func (pq *PriorityQueue[T, K]) InsertMany(items []T) {
+	if pq.stats != nil {
+		pq.stats.startOperation(OpInsert)
+		defer pq.stats.endOperation()
+	}
+
 	if len(items) == 0 {
 		return
 	}
@@ -391,6 +425,11 @@ func (pq *PriorityQueue[T, K]) heapify() {
 //   - Zig: increasePriority(item)
 //   - TypeScript: increasePriority(item)
 func (pq *PriorityQueue[T, K]) IncreasePriority(updatedItem T) error {
+	if pq.stats != nil {
+		pq.stats.startOperation(OpIncreasePriority)
+		defer pq.stats.endOperation()
+	}
+
 	key := pq.keyExtractor(updatedItem)
 	index, exists := pq.positions[key]
 	if !exists {
@@ -417,6 +456,11 @@ func (pq *PriorityQueue[T, K]) Increase_priority(updatedItem T) error {
 //   - Rust: increase_priority_by_index(index)
 //   - TypeScript: increasePriorityByIndex(index)
 func (pq *PriorityQueue[T, K]) IncreasePriorityByIndex(index Position) {
+	if pq.stats != nil {
+		pq.stats.startOperation(OpIncreasePriority)
+		defer pq.stats.endOperation()
+	}
+
 	if index < 0 || index >= len(pq.container) {
 		panic("index out of bounds")
 	}
@@ -441,6 +485,11 @@ func (pq *PriorityQueue[T, K]) Increase_priority_by_index(index Position) {
 // Cross-language equivalents:
 //   - TypeScript: decreasePriorityByIndex(index)
 func (pq *PriorityQueue[T, K]) DecreasePriorityByIndex(index Position) {
+	if pq.stats != nil {
+		pq.stats.startOperation(OpDecreasePriority)
+		defer pq.stats.endOperation()
+	}
+
 	if index < 0 || index >= len(pq.container) {
 		panic("index out of bounds")
 	}
@@ -466,6 +515,11 @@ func (pq *PriorityQueue[T, K]) Decrease_priority_by_index(index Position) {
 //   - Zig: decreasePriority(item)
 //   - TypeScript: decreasePriority(item)
 func (pq *PriorityQueue[T, K]) DecreasePriority(updatedItem T) error {
+	if pq.stats != nil {
+		pq.stats.startOperation(OpDecreasePriority)
+		defer pq.stats.endOperation()
+	}
+
 	key := pq.keyExtractor(updatedItem)
 	index, exists := pq.positions[key]
 	if !exists {
@@ -497,6 +551,11 @@ func (pq *PriorityQueue[T, K]) Decrease_priority(updatedItem T) error {
 // Cross-language equivalents:
 //   - TypeScript: updatePriority(item)
 func (pq *PriorityQueue[T, K]) UpdatePriority(updatedItem T) error {
+	if pq.stats != nil {
+		pq.stats.startOperation(OpUpdatePriority)
+		defer pq.stats.endOperation()
+	}
+
 	key := pq.keyExtractor(updatedItem)
 	index, exists := pq.positions[key]
 	if !exists {
@@ -528,6 +587,11 @@ func (pq *PriorityQueue[T, K]) Update_priority(updatedItem T) error {
 //   - Zig: pop()
 //   - TypeScript: pop()
 func (pq *PriorityQueue[T, K]) Pop() (T, bool) {
+	if pq.stats != nil {
+		pq.stats.startOperation(OpPop)
+		defer pq.stats.endOperation()
+	}
+
 	n := len(pq.container)
 	if n == 0 {
 		var zero T
@@ -655,6 +719,17 @@ func (pq *PriorityQueue[T, K]) swap(i, j Position) {
 	pq.positions[pq.keyExtractor(pq.container[j])] = j
 }
 
+// compareLess wraps the user comparator to count comparisons when
+// instrumentation is enabled. When pq.stats is nil (the default), the only
+// runtime cost is a single nil check — the branch is well-predicted because
+// it has the same outcome for the entire lifetime of the heap.
+func (pq *PriorityQueue[T, K]) compareLess(a, b T) bool {
+	if pq.stats != nil {
+		pq.stats.countComparison()
+	}
+	return pq.comparator(a, b)
+}
+
 // bestChildPosition finds the child with highest priority among all children of node i.
 // Children of node i are at indices: left = i*d+1 through i*d+d (inclusive), i.e., [left, left+d-1].
 func (pq *PriorityQueue[T, K]) bestChildPosition(i Position) Position {
@@ -674,7 +749,7 @@ func (pq *PriorityQueue[T, K]) bestChildPosition(i Position) Position {
 	}
 
 	for j := left + 1; j < rightBound; j++ {
-		if pq.comparator(pq.container[j], pq.container[best]) {
+		if pq.compareLess(pq.container[j], pq.container[best]) {
 			best = j
 		}
 	}
@@ -688,7 +763,7 @@ func (pq *PriorityQueue[T, K]) moveUp(i Position) {
 
 	for i > 0 {
 		p := (i - 1) / d
-		if pq.comparator(pq.container[i], pq.container[p]) {
+		if pq.compareLess(pq.container[i], pq.container[p]) {
 			pq.swap(i, p)
 			i = p
 		} else {
@@ -709,7 +784,7 @@ func (pq *PriorityQueue[T, K]) moveDown(i Position) {
 		}
 
 		best := pq.bestChildPosition(i)
-		if pq.comparator(pq.container[best], pq.container[i]) {
+		if pq.compareLess(pq.container[best], pq.container[i]) {
 			pq.swap(i, best)
 			i = best
 		} else {
