@@ -1,0 +1,65 @@
+# Graph generator specifications.
+#
+# Each [[graph]] entry produces examples/dijkstra/graphs/<name>.json conforming
+# to GRAMMAR.md. Generated files are committed; `graphgen verify` re-emits and
+# compares byte-for-byte.
+#
+# Density buckets target Phase 3 dense/sparse analysis:
+#   sparse: |E| ≈ 2|V|
+#   dense:  |E| ≈ |V|^1.5
+#   grid:   regular 4-connected lattice
+#
+# Weight range frozen at [1, 100] across all graphs to keep weight-distribution
+# effects out of the cross-bucket comparison.
+
+# ---- Medium (n=100) ----------------------------------------------------------
+
+[[graph]]
+kind         = "erdos_renyi"
+name         = "medium_sparse"
+n            = 100
+target_edges = 200          # ~2|V|
+seed         = 42
+weight_range = [1, 100]
+
+[[graph]]
+kind         = "erdos_renyi"
+name         = "medium_dense"
+n            = 100
+target_edges = 1000         # ~|V|^1.5 = 1000
+seed         = 43
+weight_range = [1, 100]
+
+[[graph]]
+kind         = "grid"
+name         = "medium_grid"
+rows         = 10
+cols         = 10           # 100 vertices, 360 directed edges (180 undirected × 2)
+seed         = 44
+weight_range = [1, 100]
+
+# ---- Large (n=1000) ----------------------------------------------------------
+
+[[graph]]
+kind         = "erdos_renyi"
+name         = "large_sparse"
+n            = 1000
+target_edges = 2000         # ~2|V|
+seed         = 142
+weight_range = [1, 100]
+
+[[graph]]
+kind         = "erdos_renyi"
+name         = "large_dense"
+n            = 1000
+target_edges = 31623        # ~|V|^1.5 = 31622.77...
+seed         = 143
+weight_range = [1, 100]
+
+[[graph]]
+kind         = "grid"
+name         = "large_grid"
+rows         = 32
+cols         = 32           # 1024 vertices, ~3968 directed edges
+seed         = 144
+weight_range = [1, 100]

@@ -1,10 +1,27 @@
 ﻿# IDE and build system directories
 Cpp/.vs
+Cpp/build
 Rust/target
 zig/.zig-cache
 zig/zig-out
 TypeScript/node_modules
 TypeScript/dist
+
+# v2.6.0 build artifacts (per-language Dijkstra examples + graphgen crate)
+benchmarks/scripts/graphgen/target
+examples/dijkstra/Cpp/build
+examples/dijkstra/Rust/target
+examples/dijkstra/Zig/.zig-cache
+examples/dijkstra/Zig/zig-out
+
+# AIware 2026 paper artifact bundle source — preserved in the companion repo
+# at C:\Users\Eric JACOPIN\Documents\Writings\Conférences\AIware 2026\
+#   dheap-llm-codegen-aiware2026  (commit a96841f, has its own git history).
+# NOTE: experiments/ (plural) holds POST-bundle work (zeta-2-rust/, etc.) for
+# the arxiv V2 of the long paper. NOT archived in the companion bundle.
+# See gitignore/aiware-cleanup-plan.md for the recovery plan.
+test-corpus/
+experiments/
 
 # Compiled binaries and libraries
 *.exe
