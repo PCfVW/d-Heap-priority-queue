@@ -11,24 +11,29 @@ const Edge = types.Edge;
 const INFINITY = dijkstra_mod.INFINITY;
 
 const CliArgs = struct {
-    graph: []const u8 = "small",
+    // `graph` is always allocator-owned (default duped in parseArgs) so the
+    // caller can free it unconditionally — no string-comparison guard needed.
+    graph: []const u8,
     source: ?[]const u8 = null,
     target: ?[]const u8 = null,
     quiet: bool = false,
 };
 
 fn parseArgs(allocator: std.mem.Allocator) !CliArgs {
-    var args = CliArgs{};
+    var args = CliArgs{ .graph = try allocator.dupe(u8, "small") };
     var it = try std.process.argsWithAllocator(allocator);
     defer it.deinit();
     _ = it.next(); // skip program name
 
     while (it.next()) |arg| {
         if (std.mem.startsWith(u8, arg, "--graph=")) {
+            allocator.free(args.graph);
             args.graph = try allocator.dupe(u8, arg["--graph=".len..]);
         } else if (std.mem.startsWith(u8, arg, "--source=")) {
+            if (args.source) |s| allocator.free(s);
             args.source = try allocator.dupe(u8, arg["--source=".len..]);
         } else if (std.mem.startsWith(u8, arg, "--target=")) {
+            if (args.target) |t| allocator.free(t);
             args.target = try allocator.dupe(u8, arg["--target=".len..]);
         } else if (std.mem.eql(u8, arg, "--quiet")) {
             args.quiet = true;
@@ -143,7 +148,7 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     const args = try parseArgs(allocator);
-    defer if (!std.mem.eql(u8, args.graph, "small")) allocator.free(args.graph);
+    defer allocator.free(args.graph);
     defer if (args.source) |s| allocator.free(s);
     defer if (args.target) |t| allocator.free(t);
 

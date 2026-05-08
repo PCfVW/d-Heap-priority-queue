@@ -12,11 +12,13 @@
 
 #include "types.h"
 
+#include <charconv>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 namespace graph_parser {
 
@@ -114,19 +116,19 @@ private:
 
     int parse_int() {
         skip_ws();
-        std::size_t start = pos_;
+        const std::size_t start = pos_;
         if (!eof() && text_[pos_] == '-') ++pos_;
-        std::size_t digits_start = pos_;
+        const std::size_t digits_start = pos_;
         while (!eof() && is_digit(text_[pos_])) ++pos_;
         if (pos_ == digits_start) throw error("expected integer");
         if (!eof() && (text_[pos_] == '.' || text_[pos_] == 'e' || text_[pos_] == 'E')) {
             throw error("only integer weights are allowed (no decimal or exponent)");
         }
-        try {
-            return std::stoi(text_.substr(start, pos_ - start));
-        } catch (const std::exception&) {
-            throw error("integer out of range");
-        }
+        int value = 0;
+        const auto fc = std::from_chars(text_.data() + start, text_.data() + pos_, value);
+        if (fc.ec == std::errc::result_out_of_range) throw error("integer out of range");
+        if (fc.ec != std::errc{}) throw error("invalid integer");
+        return value;
     }
 
     void parse_vertex_array(std::vector<std::string>& vertices) {

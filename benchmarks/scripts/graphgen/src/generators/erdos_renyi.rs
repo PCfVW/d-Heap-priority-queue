@@ -40,9 +40,6 @@ pub fn generate(spec: &ErdosRenyiSpec) -> Result<Wg> {
         ));
     }
     let [w_lo, w_hi] = spec.weight_range;
-    if w_lo > w_hi {
-        return Err(anyhow!("weight_range invalid: [{}, {}]", w_lo, w_hi));
-    }
 
     let mut rng = ChaCha8Rng::seed_from_u64(spec.seed);
     let mut g = empty(n);

@@ -16,7 +16,11 @@
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
+#include <format>
+#include <fstream>
 #include <iostream>
+#include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -41,9 +45,8 @@ Graph load_small_embedded() {
     return graph;
 }
 
-/// Resolve a graph name to a JSON file path, trying both the example directory
-/// and the project-root paths used by the other language implementations.
-std::filesystem::path resolve_graph_path(const std::string& name) {
+Graph load_graph(const std::string& name) {
+    if (name == "small") return load_small_embedded();
     namespace fs = std::filesystem;
     const std::string filename = name + ".json";
     const fs::path candidates[] = {
@@ -51,15 +54,15 @@ std::filesystem::path resolve_graph_path(const std::string& name) {
         fs::path("examples") / "dijkstra" / "graphs" / filename
     };
     for (const auto& p : candidates) {
-        if (fs::exists(p)) return p;
+        std::ifstream f(p);
+        if (f) {
+            std::stringstream ss;
+            ss << f.rdbuf();
+            return graph_parser::parse(ss.str());
+        }
     }
     throw std::runtime_error("graph file not found for --graph=" + name
                              + " (looked in ../graphs/ and examples/dijkstra/graphs/)");
-}
-
-Graph load_graph(const std::string& name) {
-    if (name == "small") return load_small_embedded();
-    return graph_parser::parse_file(resolve_graph_path(name).string());
 }
 
 void format_results(const std::unordered_map<std::string, int>& distances,
@@ -74,8 +77,8 @@ void format_results(const std::unordered_map<std::string, int>& distances,
 
     for (const auto& vertex : vertices) {
         auto it = distances.find(vertex);
-        std::cout << source << " \xe2\x86\x92 " << vertex << ": ";
-        if (it->second == INFINITY_DISTANCE) std::cout << "inf";
+        std::cout << source << " → " << vertex << ": ";
+        if (it->second == INFINITY_DISTANCE) std::cout << "∞";
         else std::cout << it->second;
         std::cout << "\n";
     }
@@ -83,8 +86,8 @@ void format_results(const std::unordered_map<std::string, int>& distances,
 
 struct CliArgs {
     std::string graph = "small";
-    std::string source = "A";
-    std::string target = "F";
+    std::optional<std::string> source;
+    std::optional<std::string> target;
     bool quiet = false;
 };
 
@@ -109,17 +112,6 @@ CliArgs parse_args(int argc, char* argv[]) {
             std::exit(2);
         }
     }
-    // For non-textbook graphs the default vertex IDs ("A"/"F") don't exist;
-    // pick canonical generated IDs unless the user overrode them.
-    if (args.graph != "small") {
-        if (args.source == "A") args.source = "v0";
-        if (args.target == "F") {
-            // Last vertex is "v{n-1}" for generated graphs; we don't know n here
-            // without loading, so the caller can override --target= explicitly.
-            // Default to v0 reachable target; resolved after load.
-            args.target.clear();
-        }
-    }
     return args;
 }
 
@@ -134,10 +126,16 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // For generated graphs, default target to the last vertex if unset.
-    if (args.target.empty() && !graph.vertices.empty()) {
-        args.target = graph.vertices.back();
+    if (graph.vertices.empty()) {
+        std::cerr << "error: graph has no vertices\n";
+        return 1;
     }
+
+    // Default endpoints: textbook A→F for `small`; v0→v(N-1) otherwise.
+    const std::string source = args.source.value_or(
+        args.graph == "small" ? "A" : graph.vertices.front());
+    const std::string target = args.target.value_or(
+        args.graph == "small" ? "F" : graph.vertices.back());
 
     std::cout << "Dijkstra's Algorithm Example\n";
     if (args.graph == "small") {
@@ -147,25 +145,25 @@ int main(int argc, char* argv[]) {
                   << " (|V|=" << graph.vertices.size()
                   << ", |E|=" << graph.edges.size() << ")\n";
     }
-    std::cout << "Finding shortest path from " << args.source
-              << " to " << args.target << "\n\n";
+    std::cout << "Finding shortest path from " << source
+              << " to " << target << "\n\n";
 
     std::vector<size_t> arities = {2, 4, 8};
     for (size_t d : arities) {
         std::cout << "--- Using " << d << "-ary heap ---\n";
 
         auto start = std::chrono::high_resolution_clock::now();
-        DijkstraResult result = dijkstra(graph, args.source, d);
+        DijkstraResult result = dijkstra(graph, source, d);
         auto elapsed = std::chrono::high_resolution_clock::now() - start;
 
-        if (!args.quiet) format_results(result.distances, args.source);
+        if (!args.quiet) format_results(result.distances, source);
 
-        auto path = reconstruct_path(result.predecessors, args.source, args.target);
-        std::cout << "\nShortest path from " << args.source
-                  << " to " << args.target << ": ";
+        auto path = reconstruct_path(result.predecessors, source, target);
+        std::cout << "\nShortest path from " << source
+                  << " to " << target << ": ";
         if (path.has_value()) {
             for (size_t i = 0; i < path->size(); ++i) {
-                if (i > 0) std::cout << " \xe2\x86\x92 ";
+                if (i > 0) std::cout << " → ";
                 std::cout << (*path)[i];
             }
         } else {
@@ -173,13 +171,13 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "\n";
 
-        auto target_dist_it = result.distances.find(args.target);
+        auto target_dist_it = result.distances.find(target);
         if (target_dist_it != result.distances.end()) {
             std::cout << "Path cost: " << target_dist_it->second << "\n";
         }
 
-        auto elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-        std::cout << "Execution time: " << elapsed_us << "us\n\n";
+        const double elapsed_us = std::chrono::duration<double, std::micro>(elapsed).count();
+        std::cout << std::format("Execution time: {:.1f}µs\n\n", elapsed_us);
     }
 
     return 0;

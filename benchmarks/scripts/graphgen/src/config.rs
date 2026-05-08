@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -43,6 +43,30 @@ impl GraphSpec {
             GraphSpec::Grid(s) => &s.name,
         }
     }
+
+    fn weight_range(&self) -> [i64; 2] {
+        match self {
+            GraphSpec::ErdosRenyi(s) => s.weight_range,
+            GraphSpec::Grid(s) => s.weight_range,
+        }
+    }
+}
+
+impl Config {
+    fn validate(&self) -> Result<()> {
+        for spec in &self.graph {
+            let [lo, hi] = spec.weight_range();
+            if lo > hi {
+                return Err(anyhow!(
+                    "graph {}: weight_range invalid: [{}, {}]",
+                    spec.name(),
+                    lo,
+                    hi
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 pub fn load(path: &Path) -> Result<Config> {
@@ -50,5 +74,6 @@ pub fn load(path: &Path) -> Result<Config> {
         .with_context(|| format!("reading config from {}", path.display()))?;
     let cfg: Config = toml::from_str(&text)
         .with_context(|| format!("parsing config at {}", path.display()))?;
+    cfg.validate()?;
     Ok(cfg)
 }

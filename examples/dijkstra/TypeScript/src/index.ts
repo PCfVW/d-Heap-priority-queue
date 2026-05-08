@@ -85,7 +85,8 @@ function main(): void {
 
     console.log(`\nShortest path from ${source} to ${target}: ${pathStr}`);
     console.log(`Path cost: ${result.distances[target]}`);
-    console.log(`Execution time: ${(end - start).toFixed(3)}ms\n`);
+    const elapsedUs = (end - start) * 1000;
+    console.log(`Execution time: ${elapsedUs.toFixed(1)}µs\n`);
   }
 }
 

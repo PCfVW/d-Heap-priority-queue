@@ -121,6 +121,7 @@ func main() {
 
 		fmt.Printf("\nShortest path from %s to %s: %s\n", source, target, pathStr)
 		fmt.Printf("Path cost: %d\n", result.Distances[target])
-		fmt.Printf("Execution time: %v\n\n", elapsed)
+		elapsedUs := float64(elapsed.Nanoseconds()) / 1000.0
+		fmt.Printf("Execution time: %.1fµs\n\n", elapsedUs)
 	}
 }

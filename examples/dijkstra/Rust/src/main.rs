@@ -77,14 +77,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if args.graph == "small" {
             "A".to_string()
         } else {
-            graph.vertices.first().cloned().unwrap_or_default()
+            graph.vertices.first().cloned().expect("graph has at least one vertex")
         }
     });
     let target = args.target.unwrap_or_else(|| {
         if args.graph == "small" {
             "F".to_string()
         } else {
-            graph.vertices.last().cloned().unwrap_or_default()
+            graph.vertices.last().cloned().expect("graph has at least one vertex")
         }
     });
 
@@ -124,7 +124,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(d) = result.distances.get(&target) {
             println!("Path cost: {}", d);
         }
-        println!("Execution time: {:?}\n", elapsed);
+        let elapsed_us = elapsed.as_secs_f64() * 1_000_000.0;
+        println!("Execution time: {:.1}µs\n", elapsed_us);
     }
 
     Ok(())

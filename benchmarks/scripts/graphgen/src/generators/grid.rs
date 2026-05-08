@@ -15,9 +15,6 @@ pub fn generate(spec: &GridSpec) -> Result<Wg> {
         return Err(anyhow!("grid dimensions must be > 0, got {}x{}", rows, cols));
     }
     let [w_lo, w_hi] = spec.weight_range;
-    if w_lo > w_hi {
-        return Err(anyhow!("weight_range invalid: [{}, {}]", w_lo, w_hi));
-    }
 
     let n = rows * cols;
     let mut rng = ChaCha8Rng::seed_from_u64(spec.seed);
