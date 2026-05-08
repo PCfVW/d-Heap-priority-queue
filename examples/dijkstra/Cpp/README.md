@@ -6,7 +6,9 @@ This directory contains a C++ implementation of Dijkstra's shortest path algorit
 
 - `types.h` - Type definitions (Graph, Edge, Vertex, DijkstraResult)
 - `dijkstra.h` - Algorithm implementation (dijkstra, reconstruct_path)
+- `graph_parser.h` - Strict parser for the GRAMMAR.md JSON subset (no third-party deps)
 - `main.cpp` - Example driver program
+- `test_graph_parser.cpp` - Fixture tests for the parser
 - `CMakeLists.txt` - CMake build configuration
 
 ## Building
@@ -22,8 +24,13 @@ cmake --build build --config Release
 ## Running
 
 ```bash
-./build/Release/dijkstra
+./build/Release/dijkstra                              # default: --graph=small (embedded)
+./build/Release/dijkstra --graph=medium_sparse        # load via graph_parser.h
+./build/Release/dijkstra --graph=large_grid --quiet   # suppress per-vertex output
+./build/Release/test_graph_parser examples/dijkstra/graphs   # run parser fixture tests
 ```
+
+Available graph names: `small`, `medium_sparse`, `medium_dense`, `medium_grid`, `large_sparse`, `large_dense`, `large_grid`. See [`../graphs/GRAMMAR.md`](../graphs/GRAMMAR.md) for the format spec.
 
 ## Expected Output
 
@@ -59,18 +66,11 @@ Execution time: ...us
 - The Vertex type uses ID-based equality and hashing (distance is ignored for lookups)
 - Tests heap arities 2, 4, and 8 to demonstrate d-ary heap flexibility
 
-## Why No JSON Loading?
+## Why a hand-rolled parser instead of nlohmann/json?
 
-Unlike the TypeScript, Go, Rust, and Zig implementations that load from `../graphs/small.json`,
-this C++ version embeds the graph data directly. This is because:
+C++ has no standard-library JSON support, and the other four implementations (TypeScript, Go, Rust, Zig) get JSON parsing for free from their standard libraries. To keep this C++ example dependency-free while still loading the same graph files as its siblings, the project defines a constrained, deterministic JSON subset in [`../graphs/GRAMMAR.md`](../graphs/GRAMMAR.md) — fixed key order, ASCII-only vertex IDs, integer weights — and parses it with [`graph_parser.h`](graph_parser.h) (~150 lines, no external deps, fixture-tested).
 
-1. **No standard library JSON support**: C++ does not include JSON parsing in its standard
-   library (not in C++23, nor in the upcoming C++26)
-2. **Pedagogical simplicity**: Adding a third-party library (e.g., nlohmann/json) would
-   introduce external dependencies, complicating the build for a simple example
-3. **Self-contained**: The embedded data keeps the example dependency-free and easy to compile
-
-The graph data in `load_graph()` matches `../graphs/small.json` exactly
+The `--graph=small` path additionally keeps its data embedded in `main.cpp`, so the default tutorial invocation needs no file I/O at all.
 
 ## Cross-Language Alignment
 
