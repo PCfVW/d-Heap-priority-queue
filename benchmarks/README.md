@@ -23,6 +23,7 @@ Performance comparisons for d-ary heap operations across the five language imple
 | `large_sparse` | 1000 | 2000 | Erdős–Rényi, \|E\|≈2\|V\| |
 | `large_dense` | 1000 | 31623 | Erdős–Rényi, \|E\|≈\|V\|^1.5 |
 | `large_grid` | 1024 | 3968 | 32×32 lattice |
+| `huge_dense` | 2500 | 125000 | Erdős–Rényi, \|E\|=\|V\|^1.5 (~6 MB JSON) |
 
 Erdős–Rényi graphs are post-processed for connectivity (every vertex reachable from `v0`). Weight range is frozen at `[1, 100]` across the corpus to keep weight-distribution effects out of the cross-bucket comparison. All randomness flows from a single per-graph `seed` through `rand_chacha::ChaCha8Rng`, so generation is fully deterministic — `graphgen verify` re-emits each graph and `diff`s against the committed file; non-zero exit on drift.
 
@@ -71,6 +72,16 @@ This is the most informative table — `large_dense` exercises the regime where 
 | d=2   | 4411.4 µs  | 1499.5 µs | 2557.7 µs| 10864.0 µs| 1466.6 µs|
 | d=4   | 3157.4 µs  | 1000.3 µs | 2115.3 µs|  9681.1 µs| 1293.7 µs|
 | d=8   | 1743.8 µs  | 1500.3 µs | 1973.4 µs|  9322.7 µs| 1274.1 µs|
+
+### `huge_dense` (n=2500, \|E\|=125000, \|E\|=\|V\|^1.5)
+
+| arity | TypeScript | Go         | Rust       | Zig         | C++        |
+|------:|-----------:|-----------:|-----------:|------------:|-----------:|
+| d=2   | 23674.5 µs | 11508.4 µs | 25367.4 µs | 105500.0 µs | 15813.3 µs |
+| d=4   | 25198.0 µs | 10516.6 µs | 24027.2 µs |  99648.3 µs | 14910.1 µs |
+| d=8   | 16351.2 µs | 10007.6 µs | 23253.5 µs |  98443.2 µs | 14868.4 µs |
+
+The largest committed graph (~6 MB JSON). At this scale runtime spread is unambiguous: Zig at ~98 ms is visibly separable from the other four (10–25 ms range), and the d=2 → d=8 progression is smooth enough to read as signal rather than noise. Two surprises worth flagging for Phase 2: **Go is the fastest of the five on every dense cell** (here, on `large_dense`, even on the noisier `large_sparse` if you discount the timer quantization), and **Rust is consistently slower than C++** (~1.6× here) — likely the SipHash-based DOS-resistant `std::collections::HashMap` versus C++'s non-cryptographic `std::unordered_map`. Phase 2 instrumentation will tell us how much of the gap is hashing vs. heap operations.
 
 **Caveats and to-investigate notes:**
 

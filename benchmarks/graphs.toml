@@ -63,3 +63,17 @@ rows         = 32
 cols         = 32           # 1024 vertices, ~3968 directed edges
 seed         = 144
 weight_range = [1, 100]
+
+# ---- Huge (n=2500) -----------------------------------------------------------
+# Dense-only at this size: dense is the regime that exercises the d-ary heap
+# decrease_priority path most aggressively, and the comparable sparse/grid
+# buckets at 2500 vertices add little discrimination beyond what large_* show.
+# JSON file size ~6 MB (125k edges × ~48 bytes/edge).
+
+[[graph]]
+kind         = "erdos_renyi"
+name         = "huge_dense"
+n            = 2500
+target_edges = 125000       # |V|^1.5 = 125000 exactly
+seed         = 243
+weight_range = [1, 100]

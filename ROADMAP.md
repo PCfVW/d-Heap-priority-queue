@@ -160,6 +160,7 @@ Density buckets match Phase 3 dense/sparse analysis. Edge counts target sparse `
 - [x] `examples/dijkstra/graphs/large_sparse.json` — n=1000, |E|=2000
 - [x] `examples/dijkstra/graphs/large_dense.json` — n=1000, |E|=31623
 - [x] `examples/dijkstra/graphs/large_grid.json` — 32×32 lattice (1024 vertices, |E|=3968)
+- [x] `examples/dijkstra/graphs/huge_dense.json` — n=2500, |E|=125000 (~6 MB, added post-Phase-1 to give the indicative-timings table a discrimination-rich row)
 
 #### Loader extension
 
