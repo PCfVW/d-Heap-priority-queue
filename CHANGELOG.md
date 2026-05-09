@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-In-progress v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph corpus + tooling + GRAMMAR spec) complete; Phase 2 (cross-language comparison-count instrumentation) complete for C++ and Go, planned for Rust and Zig (TypeScript instrumentation already shipped in v2.4.0); Phase 3 (benchmark runners + results) not started.
+In-progress v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph corpus + tooling + GRAMMAR spec) complete; Phase 2 (cross-language comparison-count instrumentation) complete for C++, Go, and Rust, planned for Zig (TypeScript instrumentation already shipped in v2.4.0); Phase 3 (benchmark runners + results) not started.
 
 ### Added
 
@@ -24,8 +24,10 @@ In-progress v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph 
 - **C++ tests** (`Cpp/test_instrumentation.cpp`): 12 cases including 3 compile-time `static_assert`s that prove zero-bytes elision via `[[no_unique_address]]` (or `[[msvc::no_unique_address]]` on MSVC) — `sizeof(InstrumentedPriorityQueue<int>) - sizeof(PriorityQueue<int>) == sizeof(ComparisonStats)` (152 − 104 = 48 bytes on MSVC).
 - **Go**: `Options.Stats *Stats` opt-in field on heap construction; nil-by-default. Conditional bracketing via `if pq.stats != nil { startOperation(OpX); defer endOperation() }` on each public mutator.
 - **Go tests** (`Go/src/instrumentation_test.go`): 10 cases including a lockstep pop-order check (default vs instrumented heaps must produce identical pop sequences) and a nil-safe-`Total()`/`Reset()` regression test.
-- **`--stats` CLI flag** in the C++ and Go Dijkstra examples; per-arity print format byte-for-byte identical between the two languages.
-- **Documentation of the value-vs-pointer ownership asymmetry** in both `Cpp/PriorityQueue.h` and `Go/src/instrumentation.go`: C++ owns the stats by value (zero-bytes via attribute); Go has user-owned storage with a `*Stats` pointer in the heap. Both deliberate; readers porting between the two now know why.
+- **Rust**: 5th defaulted template parameter `S = NoOpStats` on `PriorityQueue<T, C, S>`; new `InstrumentedPriorityQueue<T, C>` alias for the `ComparisonStats` variant. Constructor split: `PriorityQueue::new(d, c)` and `with_first(d, c, t)` on the NoOpStats impl; `with_stats(d, c)` on the ComparisonStats impl. Required because Rust's defaulted type parameters do not feed into method resolution — a single generic-over-S `new` would force every existing doctest to add a type annotation. Closure-based `bracket(op, |s| ...)` instead of an RAII guard (the borrow checker rejects guards that hold `&self.stats` across the body's `&mut self` heap-method calls). With `S = NoOpStats`, monomorphization elides every trait call; the `stats` field collapses to zero bytes via Rust's standard ZST layout — no attribute needed (unlike C++'s `[[no_unique_address]]`).
+- **Rust tests** (`Rust/tests/instrumentation.rs`): 11 cases including a lockstep pop-order check, a runtime size-equality assertion as Rust's analog to C++'s `static_assert` (`size_of::<NoOpStats>() == 0`, `size_of::<PriorityQueue<…>>() == size_of::<PriorityQueue<…, NoOpStats>>()`, and the size delta to the `ComparisonStats` variant equals exactly `size_of::<ComparisonStats>()`).
+- **`--stats` CLI flag** in the C++, Go, and Rust Dijkstra examples; per-arity print format byte-for-byte identical across the three languages.
+- **Documentation of ownership-model asymmetry** in `Cpp/PriorityQueue.h`, `Go/src/instrumentation.go`, and `Rust/src/instrumentation.rs`: C++ owns the stats by value (zero-bytes via `[[no_unique_address]]`); Rust also owns by value (zero-bytes via ZST layout for `NoOpStats`); Go has user-owned storage with a `*Stats` pointer in the heap. The C++/Rust convergence reflects that both have compile-time mechanisms for zero-bytes empty members; the Go split is forced by Go not having that mechanism.
 
 #### Project documentation
 - **`Rust/CONVENTIONS.md`**: synthesis of the Grit-base conventions adapted to a generic data-structure crate (no async / I/O / FFI / ML overlays). Lists target lint floor and surfaces drift between convention and live code.
@@ -65,10 +67,15 @@ In-progress v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph 
 
 ### Findings worth recording
 
-The Phase 2 instrumentation already produced one notable cross-language result, captured in `benchmarks/README.md`:
+The Phase 2 instrumentation produced one notable cross-language result that is now durable across **three** language implementations:
 
-- **Go and C++ produce byte-for-byte identical comparison counts on `huge_dense`** (`insert=2499, pop=46094, increase_priority=11384, total=59977` at d=4; equivalent at d=8). The plan predicted divergence because Go map iteration order is randomized; the data says the algorithm produces the same heap-operation sequence on this graph regardless.
-- **Wall-time gap remains**: Go ~10 ms vs C++ ~15 ms on `huge_dense` at d=8. Same comparison counts, different time-per-comparison. Phase 3 work will attribute the gap (leading suspect: MSVC's chained-bucket `std::unordered_map` vs Go's flat-bucket-of-8 map).
+- **C++, Go, and Rust produce byte-for-byte identical comparison counts on `huge_dense`** at every arity:
+  - d=2: `insert=2499, pop=43593, increase_priority=16224, total=62316`
+  - d=4: `insert=2499, pop=46094, increase_priority=11384, total=59977`
+  - d=8: `insert=2499, pop=63710, increase_priority=9727, total=75936`
+  
+  All three languages have randomized hash-map iteration order (C++ `unordered_map`, Go `map`, Rust `HashMap`), yet the heap-operation sequence is identical on this graph. The plan predicted divergence; the data says the algorithm is map-iteration-order-insensitive at this seed and corpus.
+- **Wall-time gap is therefore entirely time-per-operation**: Go ~10 ms vs C++ ~15 ms vs Rust ~23 ms on `huge_dense` at d=8. Same operation counts, different cost per heap operation. Phase 3 will attribute the gap — leading suspects: MSVC's chained-bucket `std::unordered_map` (C++), `std::collections::HashMap`'s SipHash hasher (Rust), Go map's flat-bucket-of-8 design (Go).
 
 ## [2.5.0] - 2026-01-24
 
