@@ -23,6 +23,9 @@
 //!
 //! All implementations share identical time complexities and method semantics.
 
+pub mod instrumentation;
+pub use instrumentation::{ComparisonStats, NoOpStats, OperationType, StatsCollector};
+
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::hash::Hash;
@@ -130,7 +133,7 @@ pub trait PriorityCompare<T> {
 /// - `contains()`: O(1)
 /// - `len()`/`is_empty()`/`d()`: O(1)
 #[derive(Debug)]
-pub struct PriorityQueue<T, C>
+pub struct PriorityQueue<T, C, S = NoOpStats>
 where
     T: Eq + Hash + Clone,
 {
@@ -138,86 +141,33 @@ where
     positions: HashMap<T, Position>,
     comparator: C,
     depth: usize,
+    /// Phase 2 instrumentation policy. With the default `NoOpStats` (a
+    /// zero-sized type), this field collapses to zero bytes via Rust's ZST
+    /// layout — no runtime cost. With `ComparisonStats` (via the
+    /// `InstrumentedPriorityQueue` alias), it holds five `Cell<u64>` counters.
+    stats: S,
 }
 
-impl<T, C> PriorityQueue<T, C>
+/// Convenience alias for a heap parameterised over `ComparisonStats`. Use this
+/// when you want comparison-count instrumentation; the default
+/// `PriorityQueue<T, C>` stays zero-overhead via `NoOpStats`.
+pub type InstrumentedPriorityQueue<T, C> = PriorityQueue<T, C, ComparisonStats>;
+
+impl<T, C, S> PriorityQueue<T, C, S>
 where
     T: Eq + Hash + Clone,
     C: PriorityCompare<T>,
+    S: StatsCollector,
 {
-    /// Creates a new empty d-ary heap with specified arity and comparator.
-    ///
-    /// # Arguments
-    ///
-    /// * `d` - Arity (number of children per node). Must be ≥ 1.
-    /// * `comparator` - Defines priority order (min-heap or max-heap)
-    ///
-    /// # Errors
-    ///
-    /// Returns `Error::InvalidArity` if `d == 0`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use d_ary_heap::{PriorityQueue, MinBy, MaxBy, Error};
-    ///
-    /// // Binary heap (d=2) with min-heap ordering
-    /// let mut heap = PriorityQueue::new(2, MinBy(|x: &i32| *x)).unwrap();
-    ///
-    /// // Quaternary heap (d=4) with max-heap ordering
-    /// let mut heap = PriorityQueue::new(4, MaxBy(|x: &i32| *x)).unwrap();
-    ///
-    /// // Invalid arity returns error
-    /// assert!(PriorityQueue::new(0, MinBy(|x: &i32| *x)).is_err());
-    /// ```
-    ///
-    /// **Cross-language equivalents**:
-    /// - C++: `PriorityQueue<T>(d)`
-    /// - Zig: `DHeap.init(d, comparator, allocator)` (returns `!T`)
-    /// - TypeScript: `new PriorityQueue({d, comparator, keyExtractor})` (throws)
-    /// - Go: `New(d, comparator)` (returns `*T, error`)
-    pub fn new(d: usize, comparator: C) -> Result<Self, Error> {
-        if d == 0 {
-            return Err(Error::InvalidArity);
-        }
-        Ok(Self { container: Vec::new(), positions: HashMap::new(), comparator, depth: d })
-    }
-
-    /// Creates a new d-ary heap with specified arity, inserting the first item.
-    ///
-    /// # Arguments
-    ///
-    /// * `d` - Arity (number of children per node). Must be ≥ 1.
-    /// * `comparator` - Defines priority order
-    /// * `t` - First item to insert
-    ///
-    /// # Errors
-    ///
-    /// Returns `Error::InvalidArity` if `d == 0`.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use d_ary_heap::{PriorityQueue, MinBy};
-    ///
-    /// let mut heap = PriorityQueue::with_first(3, MinBy(|x: &i32| *x), 42).unwrap();
-    /// assert_eq!(heap.front(), &42);
-    /// ```
-    ///
-    /// **Cross-language equivalents**:
-    /// - C++: `PriorityQueue(d, t)`
-    /// - Zig: Not directly available (use `init` + `insert`)
-    /// - TypeScript: `PriorityQueue.withFirst(options, item)`
-    /// - Go: `WithFirst(d, comparator, item)` (returns `*T, error`)
-    pub fn with_first(d: usize, comparator: C, t: T) -> Result<Self, Error> {
-        if d == 0 {
-            return Err(Error::InvalidArity);
-        }
-        let container = vec![t.clone()];
-        let mut positions = HashMap::with_capacity(1);
-        positions.insert(t, 0);
-        Ok(Self { container, positions, comparator, depth: d })
-    }
+    // The `new` and `with_first` constructors live on the dedicated
+    // `impl PriorityQueue<T, C, NoOpStats>` block at the bottom of this file.
+    // Rationale: with a single generic-over-S `new`, Rust cannot infer `S` at
+    // a call site like `PriorityQueue::new(...)` because defaulted type
+    // parameters do not feed into method resolution. Pinning `new` to the
+    // NoOpStats impl makes the call unambiguous (and keeps every existing
+    // doctest compiling without a type annotation). Instrumented heaps use a
+    // distinct constructor `PriorityQueue::with_stats(d, c)` on the
+    // ComparisonStats impl, also at the bottom of this file.
 
     /// Returns the arity (number of children per node) of this heap.
     ///
@@ -461,10 +411,12 @@ where
     /// - Zig: `insert(item)`
     /// - TypeScript: `insert(item)`
     pub fn insert(&mut self, t: T) {
-        self.container.push(t.clone());
-        let i = self.container.len() - 1;
-        self.positions.insert(t, i);
-        self.move_up(i);
+        self.bracket(OperationType::Insert, |s| {
+            s.container.push(t.clone());
+            let i = s.container.len() - 1;
+            s.positions.insert(t, i);
+            s.move_up(i);
+        });
     }
 
     /// Increases priority of item at specified index (moves up if needed).
@@ -497,11 +449,13 @@ where
     /// - TypeScript: `increasePriorityByIndex(index)` (throws)
     /// - Go: `IncreasePriorityByIndex(index)` (returns `error`)
     pub fn increase_priority_by_index(&mut self, i: usize) -> Result<(), Error> {
-        if i >= self.container.len() {
-            return Err(Error::IndexOutOfBounds);
-        }
-        self.move_up(i);
-        Ok(())
+        self.bracket(OperationType::IncreasePriority, |s| {
+            if i >= s.container.len() {
+                return Err(Error::IndexOutOfBounds);
+            }
+            s.move_up(i);
+            Ok(())
+        })
     }
 
     /// Decreases priority of item at specified index (moves down if needed).
@@ -534,11 +488,13 @@ where
     /// - TypeScript: `decreasePriorityByIndex(index)` (throws)
     /// - Go: `DecreasePriorityByIndex(index)` (returns `error`)
     pub fn decrease_priority_by_index(&mut self, i: usize) -> Result<(), Error> {
-        if i >= self.container.len() {
-            return Err(Error::IndexOutOfBounds);
-        }
-        self.move_down(i);
-        Ok(())
+        self.bracket(OperationType::DecreasePriority, |s| {
+            if i >= s.container.len() {
+                return Err(Error::IndexOutOfBounds);
+            }
+            s.move_down(i);
+            Ok(())
+        })
     }
 
     /// Updates priority of item at specified index (moves in correct direction).
@@ -574,12 +530,14 @@ where
     /// - TypeScript: Not available
     /// - Go: Not available
     pub fn update_priority_by_index(&mut self, i: usize) -> Result<(), Error> {
-        if i >= self.container.len() {
-            return Err(Error::IndexOutOfBounds);
-        }
-        self.move_up(i);
-        self.move_down(i);
-        Ok(())
+        self.bracket(OperationType::UpdatePriority, |s| {
+            if i >= s.container.len() {
+                return Err(Error::IndexOutOfBounds);
+            }
+            s.move_up(i);
+            s.move_down(i);
+            Ok(())
+        })
     }
 
     /// Increases priority of existing item (moves toward root if needed).
@@ -616,20 +574,22 @@ where
     /// - TypeScript: `increasePriority(item)` (throws)
     /// - Go: `IncreasePriority(item)` (returns `error`)
     pub fn increase_priority(&mut self, updated_item: &T) -> Result<(), Error> {
-        let &i = self.positions
-            .get(updated_item)
-            .ok_or(Error::ItemNotFound)?;
+        self.bracket(OperationType::IncreasePriority, |s| {
+            let &i = s.positions
+                .get(updated_item)
+                .ok_or(Error::ItemNotFound)?;
 
-        // Update positions: remove old key and insert the new (updated) item.
-        // Since Hash/Eq are based on identity (not priority), updated_item can be used
-        // directly to remove the old entry — no need to clone the old item.
-        self.positions.remove(updated_item);
-        self.positions.insert(updated_item.clone(), i);
-        self.container[i] = updated_item.clone();
+            // Update positions: remove old key and insert the new (updated) item.
+            // Since Hash/Eq are based on identity (not priority), updated_item can be used
+            // directly to remove the old entry — no need to clone the old item.
+            s.positions.remove(updated_item);
+            s.positions.insert(updated_item.clone(), i);
+            s.container[i] = updated_item.clone();
 
-        // Move up after priority increase
-        self.move_up(i);
-        Ok(())
+            // Move up after priority increase
+            s.move_up(i);
+            Ok(())
+        })
     }
 
     /// Decreases priority of existing item (moves toward leaves if needed).
@@ -671,20 +631,22 @@ where
     /// - TypeScript: `decreasePriority(item)` (throws)
     /// - Go: `DecreasePriority(item)` (returns `error`)
     pub fn decrease_priority(&mut self, updated_item: &T) -> Result<(), Error> {
-        let &i = self.positions
-            .get(updated_item)
-            .ok_or(Error::ItemNotFound)?;
+        self.bracket(OperationType::DecreasePriority, |s| {
+            let &i = s.positions
+                .get(updated_item)
+                .ok_or(Error::ItemNotFound)?;
 
-        // Update positions: remove old key and insert the new (updated) item.
-        // Since Hash/Eq are based on identity (not priority), updated_item can be used
-        // directly to remove the old entry — no need to clone the old item.
-        self.positions.remove(updated_item);
-        self.positions.insert(updated_item.clone(), i);
-        self.container[i] = updated_item.clone();
+            // Update positions: remove old key and insert the new (updated) item.
+            // Since Hash/Eq are based on identity (not priority), updated_item can be used
+            // directly to remove the old entry — no need to clone the old item.
+            s.positions.remove(updated_item);
+            s.positions.insert(updated_item.clone(), i);
+            s.container[i] = updated_item.clone();
 
-        // Move down after priority decrease (item became less important)
-        self.move_down(i);
-        Ok(())
+            // Move down after priority decrease (item became less important)
+            s.move_down(i);
+            Ok(())
+        })
     }
 
     /// Updates priority of existing item, moving it in the correct direction.
@@ -720,19 +682,21 @@ where
     /// - TypeScript: `updatePriority(item)` (throws)
     /// - Go: `UpdatePriority(item)` (returns `error`)
     pub fn update_priority(&mut self, updated_item: &T) -> Result<(), Error> {
-        let &i = self.positions
-            .get(updated_item)
-            .ok_or(Error::ItemNotFound)?;
+        self.bracket(OperationType::UpdatePriority, |s| {
+            let &i = s.positions
+                .get(updated_item)
+                .ok_or(Error::ItemNotFound)?;
 
-        // Update positions: remove old key and insert the new (updated) item.
-        self.positions.remove(updated_item);
-        self.positions.insert(updated_item.clone(), i);
-        self.container[i] = updated_item.clone();
+            // Update positions: remove old key and insert the new (updated) item.
+            s.positions.remove(updated_item);
+            s.positions.insert(updated_item.clone(), i);
+            s.container[i] = updated_item.clone();
 
-        // Check both directions since we don't know if priority increased or decreased
-        self.move_up(i);
-        self.move_down(i);
-        Ok(())
+            // Check both directions since we don't know if priority increased or decreased
+            s.move_up(i);
+            s.move_down(i);
+            Ok(())
+        })
     }
 
     /// Removes and returns the highest-priority item from the heap.
@@ -763,15 +727,17 @@ where
     /// - TypeScript: `pop()` (returns `T | undefined`)
     /// - Go: `Pop()` (returns `T, bool`)
     pub fn pop(&mut self) -> Option<T> {
-        if self.container.is_empty() { return None; }
-        let last = self.container.len() - 1;
-        self.swap(0, last);
-        let removed = self.container.pop().unwrap();
-        self.positions.remove(&removed);
-        if !self.container.is_empty() {
-            self.move_down(0);
-        }
-        Some(removed)
+        self.bracket(OperationType::Pop, |s| {
+            if s.container.is_empty() { return None; }
+            let last = s.container.len() - 1;
+            s.swap(0, last);
+            let removed = s.container.pop().unwrap();
+            s.positions.remove(&removed);
+            if !s.container.is_empty() {
+                s.move_down(0);
+            }
+            Some(removed)
+        })
     }
 
     /// Returns a copy of the heap contents as a Vec.
@@ -831,26 +797,28 @@ where
     /// - TypeScript: `insertMany(items)`
     /// - Go: `InsertMany(items)`
     pub fn insert_many(&mut self, items: impl IntoIterator<Item = T>) {
-        let items: Vec<T> = items.into_iter().collect();
-        if items.is_empty() {
-            return;
-        }
-
-        // Add all items to container and positions
-        let start_idx = self.container.len();
-        for (i, item) in items.into_iter().enumerate() {
-            self.positions.insert(item.clone(), start_idx + i);
-            self.container.push(item);
-        }
-
-        // Floyd's heapify: sift down from the last non-leaf to the root
-        // This achieves O(n) instead of O(n log n) for individual inserts
-        if self.container.len() > 1 {
-            let last_non_leaf = (self.container.len() - 2) / self.depth;
-            for i in (0..=last_non_leaf).rev() {
-                self.move_down(i);
+        self.bracket(OperationType::Insert, |s| {
+            let items: Vec<T> = items.into_iter().collect();
+            if items.is_empty() {
+                return;
             }
-        }
+
+            // Add all items to container and positions
+            let start_idx = s.container.len();
+            for (i, item) in items.into_iter().enumerate() {
+                s.positions.insert(item.clone(), start_idx + i);
+                s.container.push(item);
+            }
+
+            // Floyd's heapify: sift down from the last non-leaf to the root
+            // This achieves O(n) instead of O(n log n) for individual inserts
+            if s.container.len() > 1 {
+                let last_non_leaf = (s.container.len() - 2) / s.depth;
+                for i in (0..=last_non_leaf).rev() {
+                    s.move_down(i);
+                }
+            }
+        });
     }
 
     /// Removes and returns multiple highest-priority items from the heap.
@@ -884,6 +852,12 @@ where
     /// - TypeScript: `popMany(count)`
     /// - Go: `PopMany(count)`
     pub fn pop_many(&mut self, count: usize) -> Vec<T> {
+        // Phase 2 instrumentation note: this method intentionally does NOT
+        // bracket itself with `begin_op`. It delegates to `pop()` which
+        // brackets each call individually, attributing every comparison to
+        // `OpPop` correctly. Adding an outer guard here would nest with the
+        // inner guards and leave `current_op` set to `OpPop` until the outer
+        // guard's `Drop` runs — a subtle attribution bug.
         let actual_count = count.min(self.container.len());
         let mut result = Vec::with_capacity(actual_count);
         for _ in 0..actual_count {
@@ -891,6 +865,48 @@ where
                 result.push(item);
             }
         }
+        result
+    }
+
+    /// Read-only access to the heap's stats collector. With the default
+    /// `S = NoOpStats`, this returns a reference to a zero-sized type whose
+    /// query methods all return 0 — matching the C++ `pq.stats()` semantics.
+    /// Use the `InstrumentedPriorityQueue` alias to get a heap whose `stats()`
+    /// actually counts.
+    #[inline]
+    #[must_use]
+    pub fn stats(&self) -> &S {
+        &self.stats
+    }
+
+    /// Comparator wrapper that increments the stats counter for the
+    /// currently-active operation. With `S = NoOpStats`, the
+    /// `count_comparison()` call is an empty inline body and the wrapper
+    /// inlines to a bare `comparator.higher_priority(a, b)` — zero overhead.
+    #[inline]
+    fn compare(&self, a: &T, b: &T) -> bool {
+        self.stats.count_comparison();
+        self.comparator.higher_priority(a, b)
+    }
+
+    /// Bracket a single public mutator with `start_operation` / `end_operation`
+    /// around `f`. Closure-based instead of RAII because Rust's borrow checker
+    /// rejects an RAII guard that holds `&self.stats` while the body wants
+    /// `&mut self` for `move_up` / `move_down`. The closure captures `&mut Self`
+    /// only for its own duration; after it returns, the bracket calls
+    /// `end_operation` on the now-free reference. With `S = NoOpStats`, both
+    /// trait calls are empty and the entire bracket inlines away.
+    ///
+    /// Note: panic-safety is intentionally NOT preserved (a panic inside `f`
+    /// skips `end_operation`). Acceptable because (a) panics in the heap are
+    /// programmer-error territory, (b) the next operation calls
+    /// `start_operation` which overwrites `current_op`, so stats remain
+    /// internally consistent across operations.
+    #[inline]
+    fn bracket<R>(&mut self, op: OperationType, f: impl FnOnce(&mut Self) -> R) -> R {
+        self.stats.start_operation(op);
+        let result = f(self);
+        self.stats.end_operation();
         result
     }
 
@@ -907,7 +923,7 @@ where
         let right = ((i + 1) * self.depth).min(n - 1);
         let mut best = left;
         for p in (left + 1)..=right {
-            if self.comparator.higher_priority(&self.container[p], &self.container[best]) {
+            if self.compare(&self.container[p], &self.container[best]) {
                 best = p;
             }
         }
@@ -926,7 +942,7 @@ where
     fn move_up(&mut self, mut i: usize) {
         while i > 0 {
             let p = self.parent(i);
-            if self.comparator.higher_priority(&self.container[i], &self.container[p]) {
+            if self.compare(&self.container[i], &self.container[p]) {
                 self.swap(i, p);
                 i = p;
             } else {
@@ -941,13 +957,148 @@ where
             let first_child = i * self.depth + 1;
             if first_child >= n { break; }
             let best = self.best_child_position(i);
-            if self.comparator.higher_priority(&self.container[best], &self.container[i]) {
+            if self.compare(&self.container[best], &self.container[i]) {
                 self.swap(i, best);
                 i = best;
             } else {
                 break;
             }
         }
+    }
+}
+
+/// Constructors that produce the default (zero-overhead) heap. These live on
+/// the concrete `PriorityQueue<T, C, NoOpStats>` (= `PriorityQueue<T, C>` via
+/// the struct's defaulted type parameter) so that calls like
+/// `PriorityQueue::new(d, c)` resolve without requiring a type annotation.
+impl<T, C> PriorityQueue<T, C, NoOpStats>
+where
+    T: Eq + Hash + Clone,
+    C: PriorityCompare<T>,
+{
+    /// Creates a new empty d-ary heap with specified arity and comparator.
+    ///
+    /// # Arguments
+    ///
+    /// * `d` - Arity (number of children per node). Must be ≥ 1.
+    /// * `comparator` - Defines priority order (min-heap or max-heap)
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error::InvalidArity` if `d == 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use d_ary_heap::{PriorityQueue, MinBy, MaxBy};
+    ///
+    /// // Binary heap (d=2) with min-heap ordering
+    /// let mut heap = PriorityQueue::new(2, MinBy(|x: &i32| *x)).unwrap();
+    ///
+    /// // Quaternary heap (d=4) with max-heap ordering
+    /// let mut heap = PriorityQueue::new(4, MaxBy(|x: &i32| *x)).unwrap();
+    ///
+    /// // Invalid arity returns error
+    /// assert!(PriorityQueue::new(0, MinBy(|x: &i32| *x)).is_err());
+    /// ```
+    ///
+    /// **Cross-language equivalents**:
+    /// - C++: `PriorityQueue<T>(d)`
+    /// - Zig: `DHeap.init(d, comparator, allocator)` (returns `!T`)
+    /// - TypeScript: `new PriorityQueue({d, comparator, keyExtractor})` (throws)
+    /// - Go: `New(d, comparator)` (returns `*T, error`)
+    pub fn new(d: usize, comparator: C) -> Result<Self, Error> {
+        if d == 0 {
+            return Err(Error::InvalidArity);
+        }
+        Ok(Self {
+            container: Vec::new(),
+            positions: HashMap::new(),
+            comparator,
+            depth: d,
+            stats: NoOpStats,
+        })
+    }
+
+    /// Creates a new d-ary heap with specified arity, inserting the first item.
+    ///
+    /// # Arguments
+    ///
+    /// * `d` - Arity (number of children per node). Must be ≥ 1.
+    /// * `comparator` - Defines priority order
+    /// * `t` - First item to insert
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error::InvalidArity` if `d == 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use d_ary_heap::{PriorityQueue, MinBy};
+    ///
+    /// let mut heap = PriorityQueue::with_first(3, MinBy(|x: &i32| *x), 42).unwrap();
+    /// assert_eq!(heap.front(), &42);
+    /// ```
+    pub fn with_first(d: usize, comparator: C, t: T) -> Result<Self, Error> {
+        if d == 0 {
+            return Err(Error::InvalidArity);
+        }
+        let container = vec![t.clone()];
+        let mut positions = HashMap::with_capacity(1);
+        positions.insert(t, 0);
+        Ok(Self {
+            container,
+            positions,
+            comparator,
+            depth: d,
+            stats: NoOpStats,
+        })
+    }
+}
+
+/// Constructor that produces the instrumented (`ComparisonStats`) heap.
+/// Distinct name from `new` so `PriorityQueue::new(...)` stays unambiguous on
+/// the default heap.
+impl<T, C> PriorityQueue<T, C, ComparisonStats>
+where
+    T: Eq + Hash + Clone,
+    C: PriorityCompare<T>,
+{
+    /// Creates a new instrumented d-ary heap. The companion to `new` for
+    /// callers that want comparison-count statistics. Counters start at zero.
+    ///
+    /// # Arguments
+    ///
+    /// * `d` - Arity (number of children per node). Must be ≥ 1.
+    /// * `comparator` - Defines priority order (min-heap or max-heap)
+    ///
+    /// # Errors
+    ///
+    /// Returns `Error::InvalidArity` if `d == 0`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use d_ary_heap::{InstrumentedPriorityQueue, MinBy, PriorityQueue, StatsCollector};
+    ///
+    /// let mut heap: InstrumentedPriorityQueue<i32, MinBy<_>>
+    ///     = PriorityQueue::with_stats(2, MinBy(|x: &i32| *x)).unwrap();
+    /// heap.insert(5);
+    /// heap.insert(3);
+    /// assert_eq!(heap.stats().total(), heap.stats().insert());
+    /// ```
+    pub fn with_stats(d: usize, comparator: C) -> Result<Self, Error> {
+        if d == 0 {
+            return Err(Error::InvalidArity);
+        }
+        Ok(Self {
+            container: Vec::new(),
+            positions: HashMap::new(),
+            comparator,
+            depth: d,
+            stats: ComparisonStats::default(),
+        })
     }
 }
 
@@ -972,7 +1123,7 @@ where
 /// // Uses Display trait
 /// println!("{}", heap); // Output: {3, 5}
 /// ```
-impl<T, C> Display for PriorityQueue<T, C>
+impl<T, C, S> Display for PriorityQueue<T, C, S>
 where
     T: Eq + Hash + Clone + Display,
 {

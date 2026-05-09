@@ -6,7 +6,8 @@ mod dijkstra;
 mod types;
 
 use clap::Parser;
-use dijkstra::{dijkstra, reconstruct_path, INFINITY};
+use d_ary_heap::StatsCollector;
+use dijkstra::{dijkstra, dijkstra_instrumented, reconstruct_path, INFINITY};
 use std::fs;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -30,6 +31,10 @@ struct Args {
     /// Suppress per-vertex distance output
     #[arg(long)]
     quiet: bool,
+
+    /// Enable comparison-count instrumentation; print per-arity buckets.
+    #[arg(long)]
+    stats: bool,
 }
 
 fn load_graph(name: &str) -> Result<Graph, Box<dyn std::error::Error>> {
@@ -106,7 +111,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("--- Using {}-ary heap ---", d);
 
         let start = Instant::now();
-        let result = dijkstra(&graph, &source, d);
+        let (result, stats) = if args.stats {
+            let (r, s) = dijkstra_instrumented(&graph, &source, d);
+            (r, Some(s))
+        } else {
+            (dijkstra(&graph, &source, d), None)
+        };
         let elapsed = start.elapsed();
 
         if !args.quiet {
@@ -125,7 +135,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Path cost: {}", d);
         }
         let elapsed_us = elapsed.as_secs_f64() * 1_000_000.0;
-        println!("Execution time: {:.1}µs\n", elapsed_us);
+        println!("Execution time: {:.1}µs", elapsed_us);
+
+        if let Some(s) = stats {
+            println!(
+                "Comparison counts: insert={}, pop={}, decrease_priority={}, increase_priority={}, update_priority={}, total={}",
+                s.insert(),
+                s.pop(),
+                s.decrease_priority(),
+                s.increase_priority(),
+                s.update_priority(),
+                s.total()
+            );
+        }
+
+        println!();
     }
 
     Ok(())

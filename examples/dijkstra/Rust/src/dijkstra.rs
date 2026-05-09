@@ -1,7 +1,7 @@
 //! dijkstra.rs - Dijkstra's shortest path algorithm implementation
 
 use crate::types::{DijkstraResult, Graph, Vertex};
-use d_ary_heap::{MinBy, PriorityQueue};
+use d_ary_heap::{ComparisonStats, MinBy, PriorityCompare, PriorityQueue, StatsCollector};
 use std::collections::HashMap;
 
 /// Infinity represents an unreachable distance.
@@ -22,6 +22,36 @@ pub const INFINITY: i32 = i32::MAX;
 ///
 /// A `DijkstraResult` containing distances and predecessors for path reconstruction.
 pub fn dijkstra(graph: &Graph, source: &str, d: usize) -> DijkstraResult {
+    let mut pq = PriorityQueue::new(d, MinBy(|v: &Vertex| v.distance)).unwrap();
+    dijkstra_with_pq(graph, source, &mut pq)
+}
+
+/// Like [`dijkstra`], but constructs an instrumented heap and returns its
+/// `ComparisonStats` alongside the result. Use this when you want
+/// per-operation comparison counts (e.g., for the `--stats` example flag).
+pub fn dijkstra_instrumented(
+    graph: &Graph,
+    source: &str,
+    d: usize,
+) -> (DijkstraResult, ComparisonStats) {
+    let mut pq = PriorityQueue::with_stats(d, MinBy(|v: &Vertex| v.distance)).unwrap();
+    let result = dijkstra_with_pq(graph, source, &mut pq);
+    (result, pq.stats().clone())
+}
+
+/// Generic algorithm body: parameterised over both the comparator type `C` and
+/// the stats type `S`. Both `dijkstra` and `dijkstra_instrumented` delegate
+/// here; monomorphization specializes each call site, so the default-stats
+/// path inlines the empty `NoOpStats` methods to nothing.
+fn dijkstra_with_pq<C, S>(
+    graph: &Graph,
+    source: &str,
+    pq: &mut PriorityQueue<Vertex, C, S>,
+) -> DijkstraResult
+where
+    C: PriorityCompare<Vertex>,
+    S: StatsCollector,
+{
     // Build adjacency list for efficient neighbor lookup
     let mut adjacency: HashMap<String, Vec<(String, i32)>> = HashMap::new();
     for vertex in &graph.vertices {
@@ -37,9 +67,6 @@ pub fn dijkstra(graph: &Graph, source: &str, d: usize) -> DijkstraResult {
     // Initialize distances and predecessors
     let mut distances: HashMap<String, i32> = HashMap::new();
     let mut predecessors: HashMap<String, Option<String>> = HashMap::new();
-
-    // Create priority queue with min-heap by distance
-    let mut pq = PriorityQueue::new(d, MinBy(|v: &Vertex| v.distance)).unwrap();
 
     // Set initial distances and add to priority queue
     for vertex in &graph.vertices {
