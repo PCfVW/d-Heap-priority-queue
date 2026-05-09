@@ -77,7 +77,7 @@ pub fn main() !void {
             }
             last_cost_min = top.cost;
         }
-        _ = pq_less.pop();
+        _ = try pq_less.pop();
         try printPQ(&pq_less, allocator);
     }
 
@@ -120,7 +120,7 @@ pub fn main() !void {
             }
             last_cost_max = top.cost;
         }
-        _ = pq_greater.pop();
+        _ = try pq_greater.pop();
         try printPQ(&pq_greater, allocator);
     }
 
