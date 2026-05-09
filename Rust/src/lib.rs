@@ -1,3 +1,6 @@
+#![forbid(unsafe_code)]
+#![deny(warnings)]
+
 //! # d-ary Heap Priority Queue
 //!
 //! Cross-language implementation of d-ary heap (d-heap) priority queue with O(1) item lookup.
@@ -31,6 +34,7 @@ use std::hash::Hash;
 /// - Zig: `error.DepthMustBePositive`, `error.ItemNotFound`, `error.IndexOutOfBounds`
 /// - TypeScript: Throws Error with messages
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Error {
     /// Arity (d) must be >= 1.
     InvalidArity,
@@ -209,8 +213,7 @@ where
         if d == 0 {
             return Err(Error::InvalidArity);
         }
-        let mut container = Vec::with_capacity(1);
-        container.push(t.clone());
+        let container = vec![t.clone()];
         let mut positions = HashMap::with_capacity(1);
         positions.insert(t, 0);
         Ok(Self { container, positions, comparator, depth: d })
@@ -234,7 +237,8 @@ where
     /// - Zig: `d()`
     /// - TypeScript: `d()`
     #[inline]
-    pub fn d(&self) -> usize { self.depth }
+    #[must_use]
+    pub const fn d(&self) -> usize { self.depth }
 
     /// Returns the number of items in the heap.
     ///
@@ -256,7 +260,8 @@ where
     /// - Zig: `len()`
     /// - TypeScript: `len()`
     #[inline]
-    pub fn len(&self) -> usize { self.container.len() }
+    #[must_use]
+    pub const fn len(&self) -> usize { self.container.len() }
 
     /// Returns `true` if the heap is empty.
     ///
@@ -278,7 +283,8 @@ where
     /// - Zig: `isEmpty()`
     /// - TypeScript: `isEmpty()`
     #[inline]
-    pub fn is_empty(&self) -> bool { self.container.is_empty() }
+    #[must_use]
+    pub const fn is_empty(&self) -> bool { self.container.is_empty() }
 
     /// Checks if an item exists in the heap by identity (O(1) lookup).
     ///
@@ -300,6 +306,7 @@ where
     /// - Zig: `contains(item)`
     /// - TypeScript: `contains(item)`
     #[inline]
+    #[must_use]
     pub fn contains(&self, item: &T) -> bool { self.positions.contains_key(item) }
 
     /// Returns the position (index) of an item in the heap, or `None` if not found.
@@ -327,6 +334,7 @@ where
     /// - TypeScript: `getPosition(item)`
     /// - Go: `GetPosition(item)`
     #[inline]
+    #[must_use]
     pub fn get_position(&self, item: &T) -> Option<Position> {
         self.positions.get(item).copied()
     }
@@ -402,6 +410,7 @@ where
     /// - TypeScript: `front()` (throws if empty)
     ///
     /// **Safe alternative**: Use `peek()` instead.
+    #[must_use]
     pub fn front(&self) -> &T {
         self.container.first().expect("front() called on empty priority queue")
     }
@@ -427,6 +436,7 @@ where
     /// - Zig: `front()` / `peek()`
     /// - TypeScript: `peek()`
     /// - Go: `Peek()`
+    #[must_use]
     pub fn peek(&self) -> Option<&T> { self.container.first() }
 
     /// Inserts an item into the heap according to its priority.
@@ -791,6 +801,7 @@ where
     /// - Zig: `toArray()`
     /// - TypeScript: `toArray()`
     /// - Go: `ToArray()`
+    #[must_use]
     pub fn to_array(&self) -> Vec<T> {
         self.container.clone()
     }
@@ -975,39 +986,12 @@ where
     }
 }
 
-/// Additional methods available when T implements Display.
-impl<T, C> PriorityQueue<T, C>
-where
-    T: Eq + Hash + Clone + Display,
-{
-    /// Produces a string representation of the heap contents.
-    ///
-    /// **Time Complexity**: O(n)
-    ///
-    /// This method provides explicit string conversion for API parity with
-    /// C++, Zig, and TypeScript implementations.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use d_ary_heap::{PriorityQueue, MinBy};
-    ///
-    /// let mut heap = PriorityQueue::new(2, MinBy(|x: &i32| *x)).unwrap();
-    /// heap.insert(5);
-    /// heap.insert(3);
-    ///
-    /// assert_eq!(heap.to_string(), "{3, 5}");
-    /// ```
-    ///
-    /// **Cross-language equivalents**:
-    /// - C++: `to_string()`
-    /// - Zig: `toString()` / `to_string()`
-    /// - TypeScript: `toString()` / `to_string()`
-    #[inline]
-    pub fn to_string(&self) -> String {
-        format!("{}", self)
-    }
-}
+// Note on `pq.to_string()`: the `impl Display` above gives `PriorityQueue<T, C>`
+// the `to_string()` method automatically via the blanket `ToString` impl in std,
+// providing API parity with the C++ / Zig / TypeScript / Go `to_string()` /
+// `toString()` methods. No inherent `to_string` method is defined here — that
+// would shadow the Display-driven one and trip
+// `clippy::inherent_to_string_shadow_display`.
 
 /// Convenience comparator for min-heap behavior.
 ///
