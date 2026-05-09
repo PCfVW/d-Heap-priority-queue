@@ -94,21 +94,22 @@ The largest committed graph (~6 MB JSON). At this scale runtime spread is unambi
 
 Phase 2 instrumentation lets us divide median wall time by total comparison count, yielding an apples-to-apples "ns of wall time amortized over heap operations" metric. Comparison counts on `huge_dense` are **byte-for-byte identical** across **all five** languages — TypeScript, C++, Go, Rust, and Zig (verified via each language's `--stats` output), so the totals below are the exact same number for every column.
 
-| arity | total cmp | TypeScript | Go     | C++    | Rust   |
-|------:|----------:|-----------:|-------:|-------:|-------:|
-| d=2   |    62 316 |    380 ns  | 185 ns | 254 ns | 407 ns |
-| d=4   |    59 977 |    420 ns  | 175 ns | 249 ns | 401 ns |
-| d=8   |    75 936 |    215 ns  | 132 ns | 196 ns | 306 ns |
+| arity | total cmp | TypeScript | Go     | Zig    | C++    | Rust   |
+|------:|----------:|-----------:|-------:|-------:|-------:|-------:|
+| d=2   |    62 316 |    380 ns  | 185 ns | 241 ns | 254 ns | 407 ns |
+| d=4   |    59 977 |    420 ns  | 175 ns | 229 ns | 249 ns | 401 ns |
+| d=8   |    75 936 |    215 ns  | 132 ns | 157 ns | 196 ns | 306 ns |
 
-(Zig's column is pending — fresh median-of-5 with the new `--stats` build is needed before being added. A single-run probe with `-Doptimize=ReleaseFast` lands at ~149 ns/cmp at d=8, between Go and C++.)
+(Zig timings are median-of-5 ReleaseFast runs of the Dijkstra example without `--stats`, captured after commit `fa2d3fe`. Other columns are unchanged from the original Phase 2 capture.)
 
 Two findings:
 
-1. **d=8 cuts ns/cmp by 20–50% in every language.** The cache-locality story made quantitative: at d=8 the children of a heap node are 8 contiguous slots in the backing array — one cache line of dense access, where d=2 forces a separate cache line per level. Phase 3 micro-timing will pin this down inside the heap, but the four-language consistency of the drop is already strong evidence.
+1. **d=8 cuts ns/cmp by 20–50% in every language.** The cache-locality story made quantitative: at d=8 the children of a heap node are 8 contiguous slots in the backing array — one cache line of dense access, where d=2 forces a separate cache line per level. Phase 3 micro-timing will pin this down inside the heap, but the five-language consistency of the drop is already strong evidence.
 
-2. **Cross-language ratio at d=8 is Go : C++ : TypeScript : Rust ≈ 1.0 : 1.5 : 1.6 : 2.3.** Same operation counts, ~2.3× spread in time-per-operation. Leading suspects per language (to attribute in Phase 3):
+2. **Cross-language ratio at d=8 is Go : Zig : C++ : TypeScript : Rust ≈ 1.0 : 1.19 : 1.49 : 1.63 : 2.32.** Same operation counts, ~2.3× spread in time-per-operation. Leading suspects per language (to attribute in Phase 3):
    - **Go** (132 ns) — flat-bucket-of-8 `map`, AES-NI hashing for string keys.
-   - **C++** (196 ns) — chained-bucket `std::unordered_map` (MSVC); cache-locality cost vs. Go's flat layout.
+   - **Zig** (157 ns) — `std.StringHashMap` with Wyhash; close to Go's profile (similar flat layout, similar hash cost), within ~19% — the AOT-compiled non-GC languages cluster together.
+   - **C++** (196 ns) — chained-bucket `std::unordered_map` (MSVC); cache-locality cost vs. Go's / Zig's flat layout.
    - **TypeScript** (215 ns) — V8 JIT'd `Map<string, …>` matching C++ surprisingly closely; the JIT pays a per-call dispatch tax that the AOT-compiled languages don't.
    - **Rust** (306 ns) — SipHash-based DOS-resistant `std::collections::HashMap`; per-call `String` clones in the `positions: HashMap<T, Position>` lookup path.
 
