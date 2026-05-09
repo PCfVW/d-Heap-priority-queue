@@ -26,7 +26,7 @@ In-progress v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph 
 - **Go tests** (`Go/src/instrumentation_test.go`): 10 cases including a lockstep pop-order check (default vs instrumented heaps must produce identical pop sequences) and a nil-safe-`Total()`/`Reset()` regression test.
 - **Rust**: 5th defaulted template parameter `S = NoOpStats` on `PriorityQueue<T, C, S>`; new `InstrumentedPriorityQueue<T, C>` alias for the `ComparisonStats` variant. Constructor split: `PriorityQueue::new(d, c)` and `with_first(d, c, t)` on the NoOpStats impl; `with_stats(d, c)` on the ComparisonStats impl. Required because Rust's defaulted type parameters do not feed into method resolution — a single generic-over-S `new` would force every existing doctest to add a type annotation. Closure-based `bracket(op, |s| ...)` instead of an RAII guard (the borrow checker rejects guards that hold `&self.stats` across the body's `&mut self` heap-method calls). With `S = NoOpStats`, monomorphization elides every trait call; the `stats` field collapses to zero bytes via Rust's standard ZST layout — no attribute needed (unlike C++'s `[[no_unique_address]]`).
 - **Rust tests** (`Rust/tests/instrumentation.rs`): 11 cases including a lockstep pop-order check, a runtime size-equality assertion as Rust's analog to C++'s `static_assert` (`size_of::<NoOpStats>() == 0`, `size_of::<PriorityQueue<…>>() == size_of::<PriorityQueue<…, NoOpStats>>()`, and the size delta to the `ComparisonStats` variant equals exactly `size_of::<ComparisonStats>()`).
-- **`--stats` CLI flag** in the C++, Go, and Rust Dijkstra examples; per-arity print format byte-for-byte identical across the three languages.
+- **`--stats` CLI flag** in the TypeScript, C++, Go, and Rust Dijkstra examples; per-arity print format byte-for-byte identical across the four languages. (TypeScript: the heap library shipped instrumentation in v2.4.0 but the Dijkstra example only exposed it via `--stats` later — `examples/dijkstra/TypeScript/src/dijkstra.ts` gains a `dijkstraInstrumented` companion that wraps the comparator with `instrumentComparator` and wires the `onBeforeOperation` / `onAfterOperation` hooks; the algorithm body is shared with the default `dijkstra` via a private `runDijkstra` helper, mirroring the C++/Go/Rust pattern.)
 - **Documentation of ownership-model asymmetry** in `Cpp/PriorityQueue.h`, `Go/src/instrumentation.go`, and `Rust/src/instrumentation.rs`: C++ owns the stats by value (zero-bytes via `[[no_unique_address]]`); Rust also owns by value (zero-bytes via ZST layout for `NoOpStats`); Go has user-owned storage with a `*Stats` pointer in the heap. The C++/Rust convergence reflects that both have compile-time mechanisms for zero-bytes empty members; the Go split is forced by Go not having that mechanism.
 
 #### Project documentation
@@ -67,15 +67,15 @@ In-progress v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph 
 
 ### Findings worth recording
 
-The Phase 2 instrumentation produced one notable cross-language result that is now durable across **three** language implementations:
+The Phase 2 instrumentation produced one notable cross-language result that is now durable across **four** language implementations:
 
-- **C++, Go, and Rust produce byte-for-byte identical comparison counts on `huge_dense`** at every arity:
+- **TypeScript, C++, Go, and Rust produce byte-for-byte identical comparison counts on `huge_dense`** at every arity:
   - d=2: `insert=2499, pop=43593, increase_priority=16224, total=62316`
   - d=4: `insert=2499, pop=46094, increase_priority=11384, total=59977`
   - d=8: `insert=2499, pop=63710, increase_priority=9727, total=75936`
-  
-  All three languages have randomized hash-map iteration order (C++ `unordered_map`, Go `map`, Rust `HashMap`), yet the heap-operation sequence is identical on this graph. The plan predicted divergence; the data says the algorithm is map-iteration-order-insensitive at this seed and corpus.
-- **Wall-time gap is therefore entirely time-per-operation**: Go ~10 ms vs C++ ~15 ms vs Rust ~23 ms on `huge_dense` at d=8. Same operation counts, different cost per heap operation. Phase 3 will attribute the gap — leading suspects: MSVC's chained-bucket `std::unordered_map` (C++), `std::collections::HashMap`'s SipHash hasher (Rust), Go map's flat-bucket-of-8 design (Go).
+
+  Three of the four languages have randomized hash-map iteration order (C++ `unordered_map`, Go `map`, Rust `HashMap`); TypeScript's `Map<K, V>` preserves insertion order. Despite the iteration-order differences, the heap-operation sequence is identical on this graph. The plan predicted divergence; the data says the algorithm is map-iteration-order-insensitive at this seed and corpus.
+- **Wall-time gap is therefore entirely time-per-operation**: Go ~10 ms vs C++ ~15 ms vs TypeScript ~15 ms vs Rust ~23 ms on `huge_dense` at d=8. Same operation counts, different cost per heap operation. The new `Cost per heap comparison` table in `benchmarks/README.md` makes this concrete: ns-per-comparison at d=8 is Go 132 / C++ 196 / TypeScript 215 / Rust 306. Phase 3 will attribute the gap with per-section timing — leading suspects: MSVC's chained-bucket `std::unordered_map` (C++), `std::collections::HashMap`'s SipHash hasher and per-call `String` clone in the positions lookup (Rust), V8's per-call dispatch overhead on JIT'd map ops (TypeScript).
 
 ## [2.5.0] - 2026-01-24
 

@@ -1,5 +1,5 @@
 // dijkstra.ts - Dijkstra's shortest path algorithm implementation
-import { PriorityQueue, minBy } from 'd-ary-heap';
+import { PriorityQueue, minBy, instrumentComparator } from 'd-ary-heap';
 /**
  * Dijkstra's shortest path algorithm using a d-ary heap priority queue.
  *
@@ -9,6 +9,38 @@ import { PriorityQueue, minBy } from 'd-ary-heap';
  * @returns Object with distances and predecessors for path reconstruction
  */
 export function dijkstra(graph, source, d = 4) {
+    const pq = new PriorityQueue({
+        d,
+        comparator: minBy((v) => v.distance),
+        keyExtractor: (v) => v.id
+    });
+    return runDijkstra(graph, source, pq);
+}
+/**
+ * Like {@link dijkstra} but constructs an instrumented heap and returns its
+ * `ComparisonStats` alongside the result. Use this when you want per-operation
+ * comparison counts (e.g., for the `--stats` example flag).
+ *
+ * Mirrors C++ `dijkstra_with_stats`, Go `DijkstraInstrumented`, and Rust
+ * `dijkstra_instrumented`.
+ */
+export function dijkstraInstrumented(graph, source, d = 4) {
+    const cmp = instrumentComparator(minBy((v) => v.distance));
+    const pq = new PriorityQueue({
+        d,
+        comparator: cmp,
+        keyExtractor: (v) => v.id,
+        onBeforeOperation: (op) => cmp.startOperation(op),
+        onAfterOperation: () => cmp.endOperation(),
+    });
+    const result = runDijkstra(graph, source, pq);
+    return { result, stats: cmp.stats };
+}
+/**
+ * Shared algorithm body — parameterised over an already-constructed `PriorityQueue`.
+ * Both `dijkstra` and `dijkstraInstrumented` delegate here.
+ */
+function runDijkstra(graph, source, pq) {
     // Build adjacency list for efficient neighbor lookup
     const adjacency = new Map();
     for (const vertex of graph.vertices) {
@@ -17,14 +49,9 @@ export function dijkstra(graph, source, d = 4) {
     for (const edge of graph.edges) {
         adjacency.get(edge.from)?.push({ to: edge.to, weight: edge.weight });
     }
-    // Initialize distances, predecessors, and priority queue
+    // Initialize distances and predecessors
     const distances = {};
     const predecessors = {};
-    const pq = new PriorityQueue({
-        d,
-        comparator: minBy((v) => v.distance),
-        keyExtractor: (v) => v.id
-    });
     // Set initial distances and add to priority queue
     for (const vertex of graph.vertices) {
         const distance = vertex === source ? 0 : Infinity;

@@ -1,36 +1,74 @@
 // dijkstra.ts - Dijkstra's shortest path algorithm implementation
 
-import { PriorityQueue, minBy } from 'd-ary-heap';
+import { PriorityQueue, minBy, instrumentComparator } from 'd-ary-heap';
+import type { ComparisonStats } from 'd-ary-heap';
 import type { Graph, Vertex, DijkstraResult } from './types.js';
 
 /**
  * Dijkstra's shortest path algorithm using a d-ary heap priority queue.
- * 
+ *
  * @param graph - The input graph with vertices and weighted edges
  * @param source - The source vertex to find shortest paths from
  * @param d - The arity of the heap (default: 4 for optimal performance)
  * @returns Object with distances and predecessors for path reconstruction
  */
 export function dijkstra(graph: Graph, source: string, d: number = 4): DijkstraResult {
-  // Build adjacency list for efficient neighbor lookup
-  const adjacency = new Map<string, Array<{ to: string; weight: number }>>();
-  
-  for (const vertex of graph.vertices) {
-    adjacency.set(vertex, []);
-  }
-  
-  for (const edge of graph.edges) {
-    adjacency.get(edge.from)?.push({ to: edge.to, weight: edge.weight });
-  }
-
-  // Initialize distances, predecessors, and priority queue
-  const distances: Record<string, number> = {};
-  const predecessors: Record<string, string | null> = {};
   const pq = new PriorityQueue<Vertex, string>({
     d,
     comparator: minBy((v: Vertex) => v.distance),
     keyExtractor: (v: Vertex) => v.id
   });
+  return runDijkstra(graph, source, pq);
+}
+
+/**
+ * Like {@link dijkstra} but constructs an instrumented heap and returns its
+ * `ComparisonStats` alongside the result. Use this when you want per-operation
+ * comparison counts (e.g., for the `--stats` example flag).
+ *
+ * Mirrors C++ `dijkstra_with_stats`, Go `DijkstraInstrumented`, and Rust
+ * `dijkstra_instrumented`.
+ */
+export function dijkstraInstrumented(
+  graph: Graph,
+  source: string,
+  d: number = 4
+): { result: DijkstraResult; stats: ComparisonStats } {
+  const cmp = instrumentComparator(minBy((v: Vertex) => v.distance));
+  const pq = new PriorityQueue<Vertex, string>({
+    d,
+    comparator: cmp,
+    keyExtractor: (v: Vertex) => v.id,
+    onBeforeOperation: (op) => cmp.startOperation(op),
+    onAfterOperation: () => cmp.endOperation(),
+  });
+  const result = runDijkstra(graph, source, pq);
+  return { result, stats: cmp.stats };
+}
+
+/**
+ * Shared algorithm body — parameterised over an already-constructed `PriorityQueue`.
+ * Both `dijkstra` and `dijkstraInstrumented` delegate here.
+ */
+function runDijkstra(
+  graph: Graph,
+  source: string,
+  pq: PriorityQueue<Vertex, string>
+): DijkstraResult {
+  // Build adjacency list for efficient neighbor lookup
+  const adjacency = new Map<string, Array<{ to: string; weight: number }>>();
+
+  for (const vertex of graph.vertices) {
+    adjacency.set(vertex, []);
+  }
+
+  for (const edge of graph.edges) {
+    adjacency.get(edge.from)?.push({ to: edge.to, weight: edge.weight });
+  }
+
+  // Initialize distances and predecessors
+  const distances: Record<string, number> = {};
+  const predecessors: Record<string, string | null> = {};
 
   // Set initial distances and add to priority queue
   for (const vertex of graph.vertices) {
@@ -58,11 +96,11 @@ export function dijkstra(graph: Graph, source: string, d: number = 4): DijkstraR
     const neighbors = adjacency.get(current.id) || [];
     for (const { to, weight } of neighbors) {
       const newDistance = current.distance + weight;
-      
+
       if (newDistance < distances[to]) {
         distances[to] = newDistance;
         predecessors[to] = current.id;
-        
+
         // Update priority in queue
         // In a min-heap, decreasing distance = increasing priority (more important)
         if (pq.contains({ id: to, distance: 0 })) {

@@ -1,3 +1,4 @@
+import type { ComparisonStats } from 'd-ary-heap';
 import type { Graph, DijkstraResult } from './types.js';
 /**
  * Dijkstra's shortest path algorithm using a d-ary heap priority queue.
@@ -8,6 +9,18 @@ import type { Graph, DijkstraResult } from './types.js';
  * @returns Object with distances and predecessors for path reconstruction
  */
 export declare function dijkstra(graph: Graph, source: string, d?: number): DijkstraResult;
+/**
+ * Like {@link dijkstra} but constructs an instrumented heap and returns its
+ * `ComparisonStats` alongside the result. Use this when you want per-operation
+ * comparison counts (e.g., for the `--stats` example flag).
+ *
+ * Mirrors C++ `dijkstra_with_stats`, Go `DijkstraInstrumented`, and Rust
+ * `dijkstra_instrumented`.
+ */
+export declare function dijkstraInstrumented(graph: Graph, source: string, d?: number): {
+    result: DijkstraResult;
+    stats: ComparisonStats;
+};
 /**
  * Reconstruct the shortest path from source to target using predecessors.
  *

@@ -90,17 +90,43 @@ The largest committed graph (~6 MB JSON). At this scale runtime spread is unambi
 - **TypeScript JIT noise** on the `medium_sparse` d=2/d=4 cells (where d=4 is *slower* than d=2 in the median) reflects warmup cost: the first arity carries the optimization tax. By d=8 the JIT has settled. The effect vanishes on the larger graphs.
 - **Run-to-run variance** of ~10–20% is typical for these single-shot measurements. The d=8 advantage on dense graphs (60% in TypeScript, 11% in C++, 14% in Rust on `large_dense`) survives the noise comfortably.
 
-## Phase 2 — Cross-language instrumentation (planned)
+### Cost per heap comparison (`huge_dense`, derived from `--stats`)
 
-Extend the v2.4.0 TypeScript instrumentation pattern to all five languages so each can emit per-operation comparison counts with zero (or near-zero) overhead when disabled. The TypeScript reference is live at the **[Interactive Demo](https://pcfvw.github.io/d-Heap-priority-queue/)** — operation counters, comparison counts, and the d=2/4/8 race mode are exactly the signal Phase 2 will produce in the other four languages.
+Phase 2 instrumentation lets us divide median wall time by total comparison count, yielding an apples-to-apples "ns of wall time amortized over heap operations" metric. Comparison counts on `huge_dense` are **byte-for-byte identical** across TypeScript, C++, Go, and Rust (verified via each language's `--stats` output in commits `983df98`, `5490423`, `3669d0b`, and the TypeScript `--stats` wiring), so the totals below are the exact same number for every column.
 
-| Language | Mechanism | Overhead when disabled |
-|----------|-----------|------------------------|
-| C++ | Template policy class | Zero (inlining) |
-| Go | Nil stats pointer | ~1 cycle (nil check) |
-| Rust | Generic over `StatsCollector` trait | Zero (monomorphization) |
-| TypeScript | Existing implementation (v2.4.0) | — |
-| Zig | Comptime bool parameter | Zero (branch elimination) |
+| arity | total cmp | TypeScript | Go     | C++    | Rust   |
+|------:|----------:|-----------:|-------:|-------:|-------:|
+| d=2   |    62 316 |    380 ns  | 185 ns | 254 ns | 407 ns |
+| d=4   |    59 977 |    420 ns  | 175 ns | 249 ns | 401 ns |
+| d=8   |    75 936 |    215 ns  | 132 ns | 196 ns | 306 ns |
+
+(Zig is omitted — Phase 2 instrumentation not yet implemented; the column would otherwise read ≈1 300 ns at d=8 from the wall-time table above.)
+
+Two findings:
+
+1. **d=8 cuts ns/cmp by 20–50% in every language.** The cache-locality story made quantitative: at d=8 the children of a heap node are 8 contiguous slots in the backing array — one cache line of dense access, where d=2 forces a separate cache line per level. Phase 3 micro-timing will pin this down inside the heap, but the four-language consistency of the drop is already strong evidence.
+
+2. **Cross-language ratio at d=8 is Go : C++ : TypeScript : Rust ≈ 1.0 : 1.5 : 1.6 : 2.3.** Same operation counts, ~2.3× spread in time-per-operation. Leading suspects per language (to attribute in Phase 3):
+   - **Go** (132 ns) — flat-bucket-of-8 `map`, AES-NI hashing for string keys.
+   - **C++** (196 ns) — chained-bucket `std::unordered_map` (MSVC); cache-locality cost vs. Go's flat layout.
+   - **TypeScript** (215 ns) — V8 JIT'd `Map<string, …>` matching C++ surprisingly closely; the JIT pays a per-call dispatch tax that the AOT-compiled languages don't.
+   - **Rust** (306 ns) — SipHash-based DOS-resistant `std::collections::HashMap`; per-call `String` clones in the `positions: HashMap<T, Position>` lookup path.
+
+Caveat: this is *amortized* time, not "time inside the comparator". Phase 3 per-section timing (around hash lookups, comparator calls, and `Vec` indexing) is needed to attribute the gap precisely.
+
+## Phase 2 — Cross-language instrumentation
+
+Extend the v2.4.0 TypeScript instrumentation pattern to all five languages so each can emit per-operation comparison counts with zero (or near-zero) overhead when disabled. The TypeScript reference is live at the **[Interactive Demo](https://pcfvw.github.io/d-Heap-priority-queue/)** — operation counters, comparison counts, and the d=2/4/8 race mode are exactly the signal Phase 2 produces in the other languages via `--stats`.
+
+| Language | Mechanism | Overhead when disabled | Status |
+|----------|-----------|------------------------|--------|
+| TypeScript | `instrumentComparator` + `onBeforeOperation` / `onAfterOperation` hooks | JIT-elided when `--stats` not passed | ✅ shipped (v2.4.0 lib, `--stats` flag added later) |
+| C++ | Template policy class with `[[no_unique_address]]` | Zero (inlining + ZST collapse) | ✅ commit `983df98` |
+| Go | Nil stats pointer | ~1 cycle (nil check) | ✅ commit `5490423` |
+| Rust | Generic over `StatsCollector` trait | Zero (monomorphization + ZST layout) | ✅ commit `3669d0b` |
+| Zig | Comptime bool parameter | Zero (branch elimination) | 🚧 planned |
+
+The four shipped implementations produce **byte-for-byte identical comparison counts** on `huge_dense` (see "Cost per heap comparison" above), so the cross-language wall-time gap is entirely time-per-operation.
 
 Operations to count: `insert`, `pop`, `decreasePriority`, `updatePriority`.
 

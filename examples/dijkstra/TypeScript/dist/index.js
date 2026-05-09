@@ -4,11 +4,11 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { dijkstra, reconstructPath } from './dijkstra.js';
+import { dijkstra, dijkstraInstrumented, reconstructPath } from './dijkstra.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 function parseArgs(argv) {
-    const args = { graph: 'small', source: null, target: null, quiet: false };
+    const args = { graph: 'small', source: null, target: null, quiet: false, stats: false };
     for (const arg of argv.slice(2)) {
         if (arg.startsWith('--graph='))
             args.graph = arg.slice('--graph='.length);
@@ -18,9 +18,11 @@ function parseArgs(argv) {
             args.target = arg.slice('--target='.length);
         else if (arg === '--quiet')
             args.quiet = true;
+        else if (arg === '--stats')
+            args.stats = true;
         else {
             console.error(`unknown argument: ${arg}`);
-            console.error('usage: npm start -- [--graph=NAME] [--source=ID] [--target=ID] [--quiet]');
+            console.error('usage: npm start -- [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats]');
             process.exit(2);
         }
     }
@@ -62,7 +64,12 @@ function main() {
     for (const d of arities) {
         console.log(`--- Using ${d}-ary heap ---`);
         const start = performance.now();
-        const result = dijkstra(graph, source, d);
+        const { result, stats } = args.stats
+            ? (() => {
+                const r = dijkstraInstrumented(graph, source, d);
+                return { result: r.result, stats: r.stats };
+            })()
+            : { result: dijkstra(graph, source, d), stats: null };
         const end = performance.now();
         if (!args.quiet)
             formatResults(result.distances, source);
@@ -71,7 +78,14 @@ function main() {
         console.log(`\nShortest path from ${source} to ${target}: ${pathStr}`);
         console.log(`Path cost: ${result.distances[target]}`);
         const elapsedUs = (end - start) * 1000;
-        console.log(`Execution time: ${elapsedUs.toFixed(1)}µs\n`);
+        console.log(`Execution time: ${elapsedUs.toFixed(1)}µs`);
+        if (stats !== null) {
+            console.log(`Comparison counts: insert=${stats.insert}, pop=${stats.pop}, ` +
+                `decrease_priority=${stats.decreasePriority}, ` +
+                `increase_priority=${stats.increasePriority}, ` +
+                `update_priority=${stats.updatePriority}, total=${stats.total}`);
+        }
+        console.log();
     }
 }
 main();
