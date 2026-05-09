@@ -64,4 +64,23 @@ pub fn build(b: *std.Build) void {
     const run_unit_tests = b.addRunArtifact(unit_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_unit_tests.step);
+
+    // Phase 2 instrumentation tests — separate compile unit so the new
+    // contract (StatsCollector / OperationType buckets) is exercised in
+    // isolation. Both test artefacts run under the single `test` step.
+    const instrumentation_test_module = b.createModule(.{
+        .root_source_file = b.path("src/tests/instrumentation_tests.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "d_heap", .module = d_heap_module },
+        },
+    });
+
+    const instrumentation_tests = b.addTest(.{
+        .root_module = instrumentation_test_module,
+    });
+
+    const run_instrumentation_tests = b.addRunArtifact(instrumentation_tests);
+    test_step.dependOn(&run_instrumentation_tests.step);
 }

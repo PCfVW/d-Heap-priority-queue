@@ -22,6 +22,20 @@ const Neighbor = struct {
     weight: i32,
 };
 
+/// Comptime helpers — both heap variants reuse the same `(Context, Comparator)`
+/// pair, so we name them here once.
+const VertexContext = d_heap.HashContext(Vertex);
+const VertexComparator = d_heap.Comparator(Vertex);
+
+/// `dijkstraInstrumented` returns this — the algorithm result paired with the
+/// per-bucket comparison counts collected during the run. Mirrors C++'s
+/// `DijkstraResultWithStats`, Go's `DijkstraInstrumented` return tuple, and
+/// Rust's `(DijkstraResult, ComparisonStats)` tuple.
+pub const DijkstraInstrumentedResult = struct {
+    result: DijkstraResult,
+    stats: d_heap.ComparisonStats,
+};
+
 /// Dijkstra's shortest path algorithm using a d-ary heap priority queue.
 ///
 /// Finds the shortest paths from a source vertex to all other vertices in a weighted
@@ -41,6 +55,39 @@ pub fn dijkstra(
     graph: Graph,
     source: []const u8,
     d: usize,
+    allocator: std.mem.Allocator,
+) !DijkstraResult {
+    const PriorityQueue = d_heap.DHeap(Vertex, VertexContext, VertexComparator);
+    var pq = try PriorityQueue.init(d, .{ .cmp = minByDistance }, allocator);
+    defer pq.deinit();
+    return runDijkstra(PriorityQueue, graph, source, &pq, allocator);
+}
+
+/// Like `dijkstra`, but with Phase 2 comparison-count instrumentation enabled.
+/// Returns the algorithm result alongside the per-operation comparison-count
+/// buckets. Mirrors C++ `dijkstra_with_stats`, Go `DijkstraInstrumented`, and
+/// Rust `dijkstra_instrumented`.
+pub fn dijkstraInstrumented(
+    graph: Graph,
+    source: []const u8,
+    d: usize,
+    allocator: std.mem.Allocator,
+) !DijkstraInstrumentedResult {
+    const PriorityQueue = d_heap.InstrumentedDHeap(Vertex, VertexContext, VertexComparator);
+    var pq = try PriorityQueue.init(d, .{ .cmp = minByDistance }, allocator);
+    defer pq.deinit();
+    const result = try runDijkstra(PriorityQueue, graph, source, &pq, allocator);
+    return .{ .result = result, .stats = pq.stats };
+}
+
+/// Shared algorithm body, generic over the priority-queue type so both
+/// `dijkstra` (no stats) and `dijkstraInstrumented` (stats on) reuse it.
+/// `comptime PQ: type` is monomorphised by Zig — no runtime cost.
+fn runDijkstra(
+    comptime PQ: type,
+    graph: Graph,
+    source: []const u8,
+    pq: *PQ,
     allocator: std.mem.Allocator,
 ) !DijkstraResult {
     // Build adjacency list for efficient neighbor lookup
@@ -66,14 +113,6 @@ pub fn dijkstra(
     // Initialize distances and predecessors
     var distances = std.StringHashMap(i32).init(allocator);
     var predecessors = std.StringHashMap(?[]const u8).init(allocator);
-
-    // Create priority queue with min-heap by distance
-    const VertexContext = d_heap.HashContext(Vertex);
-    const VertexComparator = d_heap.Comparator(Vertex);
-    const PriorityQueue = d_heap.DHeap(Vertex, VertexContext, VertexComparator);
-
-    var pq = try PriorityQueue.init(d, .{ .cmp = minByDistance }, allocator);
-    defer pq.deinit();
 
     // Set initial distances and add to priority queue
     for (graph.vertices) |vertex| {

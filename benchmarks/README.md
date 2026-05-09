@@ -7,7 +7,7 @@ Performance comparisons for d-ary heap operations across the five language imple
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 1 | Test graph corpus, generator, grammar spec | ✅ Done (v2.6.0) |
-| 2 | Cross-language instrumentation | 🚧 Planned |
+| 2 | Cross-language instrumentation | ✅ Done (v2.6.0) — all five languages |
 | 3 | Benchmark runners + results | 🚧 Planned (depends on Phase 2) |
 
 ## Phase 1 — Test graph corpus
@@ -92,7 +92,7 @@ The largest committed graph (~6 MB JSON). At this scale runtime spread is unambi
 
 ### Cost per heap comparison (`huge_dense`, derived from `--stats`)
 
-Phase 2 instrumentation lets us divide median wall time by total comparison count, yielding an apples-to-apples "ns of wall time amortized over heap operations" metric. Comparison counts on `huge_dense` are **byte-for-byte identical** across TypeScript, C++, Go, and Rust (verified via each language's `--stats` output in commits `983df98`, `5490423`, `3669d0b`, and the TypeScript `--stats` wiring), so the totals below are the exact same number for every column.
+Phase 2 instrumentation lets us divide median wall time by total comparison count, yielding an apples-to-apples "ns of wall time amortized over heap operations" metric. Comparison counts on `huge_dense` are **byte-for-byte identical** across **all five** languages — TypeScript, C++, Go, Rust, and Zig (verified via each language's `--stats` output), so the totals below are the exact same number for every column.
 
 | arity | total cmp | TypeScript | Go     | C++    | Rust   |
 |------:|----------:|-----------:|-------:|-------:|-------:|
@@ -100,7 +100,7 @@ Phase 2 instrumentation lets us divide median wall time by total comparison coun
 | d=4   |    59 977 |    420 ns  | 175 ns | 249 ns | 401 ns |
 | d=8   |    75 936 |    215 ns  | 132 ns | 196 ns | 306 ns |
 
-(Zig is omitted — Phase 2 instrumentation not yet implemented; the column would otherwise read ≈1 300 ns at d=8 from the wall-time table above.)
+(Zig's column is pending — fresh median-of-5 with the new `--stats` build is needed before being added. A single-run probe with `-Doptimize=ReleaseFast` lands at ~149 ns/cmp at d=8, between Go and C++.)
 
 Two findings:
 
@@ -124,7 +124,7 @@ Extend the v2.4.0 TypeScript instrumentation pattern to all five languages so ea
 | C++ | Template policy class with `[[no_unique_address]]` | Zero (inlining + ZST collapse) | ✅ commit `983df98` |
 | Go | Nil stats pointer | ~1 cycle (nil check) | ✅ commit `5490423` |
 | Rust | Generic over `StatsCollector` trait | Zero (monomorphization + ZST layout) | ✅ commit `3669d0b` |
-| Zig | Comptime bool parameter | Zero (branch elimination) | 🚧 planned |
+| Zig | Comptime bool parameter on `DHeapWithStats` | Zero (branch elimination + `void` field type) | ✅ this commit |
 
 The four shipped implementations produce **byte-for-byte identical comparison counts** on `huge_dense` (see "Cost per heap comparison" above), so the cross-language wall-time gap is entirely time-per-operation.
 

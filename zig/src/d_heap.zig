@@ -51,6 +51,14 @@ const std = @import("std");
 // Re-export the default Item type for convenience and backward compatibility
 pub const Item = @import("types.zig").Item;
 
+// Phase 2 comparison-count instrumentation. Re-exported from `instrumentation.zig`
+// so that callers can write `d_heap.ComparisonStats` without importing a separate
+// path, mirroring the cross-language re-export pattern (Rust's `pub use`,
+// TypeScript's barrel export, etc.).
+const instrumentation = @import("instrumentation.zig");
+pub const OperationType = instrumentation.OperationType;
+pub const ComparisonStats = instrumentation.ComparisonStats;
+
 /// Generic hash context for types that implement hash() and eql() methods.
 ///
 /// This context can be used with any type T that has:
@@ -147,6 +155,23 @@ pub fn DHeap(
     comptime Context: type,
     comptime ComparatorType: type,
 ) type {
+    return DHeapWithStats(T, Context, ComparatorType, false);
+}
+
+/// Like `DHeap`, but with a comptime flag to enable Phase 2 comparison-count
+/// instrumentation. When `collect_stats == false`, every `if (collect_stats)`
+/// branch is comptime-eliminated and the `stats` field is `void`, so the
+/// generated code is identical to the un-instrumented heap.
+///
+/// Most callers should use `DHeap` (no stats) or the `InstrumentedDHeap`
+/// alias (stats on); this 4-arg form exists so test code can parameterise
+/// over both at once.
+pub fn DHeapWithStats(
+    comptime T: type,
+    comptime Context: type,
+    comptime ComparatorType: type,
+    comptime collect_stats: bool,
+) type {
     return struct {
         const Self = @This();
         // Zig 0.15.2: ArrayList is now unmanaged - allocator passed to methods
@@ -167,6 +192,11 @@ pub fn DHeap(
 
         /// Allocator used for all dynamic memory allocations
         allocator: std.mem.Allocator,
+
+        /// Phase 2 comparison-count buckets. The field is `void` (zero-sized)
+        /// when `collect_stats == false`, so the heap struct's footprint is
+        /// unchanged for non-instrumented callers.
+        stats: if (collect_stats) ComparisonStats else void = if (collect_stats) .{} else {},
 
         // =====================================================================
         // Initialization and Cleanup
@@ -364,6 +394,8 @@ pub fn DHeap(
         ///
         /// Returns: Error if allocation fails
         pub fn insert(self: *Self, item: T) !void {
+            if (collect_stats) self.stats.startOperation(.insert);
+            defer if (collect_stats) self.stats.endOperation();
             try self.container.append(self.allocator, item);
             const index = self.container.items.len - 1;
             try self.positions.put(item, index);
@@ -385,6 +417,12 @@ pub fn DHeap(
         /// Returns: Error if allocation fails
         pub fn insertMany(self: *Self, items: []const T) !void {
             if (items.len == 0) return;
+
+            // Bracket every comparison performed by Floyd's heapify (or by the
+            // sift-up loop) under the `.insert` bucket — matches the C++/Go/Rust
+            // convention.
+            if (collect_stats) self.stats.startOperation(.insert);
+            defer if (collect_stats) self.stats.endOperation();
 
             const start_index = self.container.items.len;
 
@@ -431,6 +469,9 @@ pub fn DHeap(
         ///
         /// Returns: Error if item not found
         pub fn increasePriority(self: *Self, updated_item: T) !void {
+            if (collect_stats) self.stats.startOperation(.increase_priority);
+            defer if (collect_stats) self.stats.endOperation();
+
             const index_ptr = self.positions.getPtr(updated_item) orelse {
                 return error.ItemNotFound;
             };
@@ -463,6 +504,8 @@ pub fn DHeap(
         ///
         /// Returns: Error if index is out of bounds
         pub fn increasePriorityByIndex(self: *Self, index: usize) !void {
+            if (collect_stats) self.stats.startOperation(.increase_priority);
+            defer if (collect_stats) self.stats.endOperation();
             if (index >= self.container.items.len) {
                 return error.IndexOutOfBounds;
             }
@@ -488,6 +531,8 @@ pub fn DHeap(
         ///
         /// Returns: Error if index is out of bounds
         pub fn decreasePriorityByIndex(self: *Self, index: usize) !void {
+            if (collect_stats) self.stats.startOperation(.decrease_priority);
+            defer if (collect_stats) self.stats.endOperation();
             if (index >= self.container.items.len) {
                 return error.IndexOutOfBounds;
             }
@@ -520,6 +565,9 @@ pub fn DHeap(
         ///
         /// Returns: Error if item not found
         pub fn decreasePriority(self: *Self, updated_item: T) !void {
+            if (collect_stats) self.stats.startOperation(.decrease_priority);
+            defer if (collect_stats) self.stats.endOperation();
+
             const index_ptr = self.positions.getPtr(updated_item) orelse {
                 return error.ItemNotFound;
             };
@@ -555,6 +603,9 @@ pub fn DHeap(
         ///
         /// Returns: Error if item not found
         pub fn updatePriority(self: *Self, updated_item: T) !void {
+            if (collect_stats) self.stats.startOperation(.update_priority);
+            defer if (collect_stats) self.stats.endOperation();
+
             const index_ptr = self.positions.getPtr(updated_item) orelse {
                 return error.ItemNotFound;
             };
@@ -585,6 +636,9 @@ pub fn DHeap(
         /// Returns: The highest-priority item, null if empty, or error if internal operation fails
         pub fn pop(self: *Self) !?T {
             if (self.container.items.len == 0) return null;
+
+            if (collect_stats) self.stats.startOperation(.pop);
+            defer if (collect_stats) self.stats.endOperation();
 
             const top = self.container.items[0];
             const last_index = self.container.items.len - 1;
@@ -619,6 +673,9 @@ pub fn DHeap(
         ///
         /// Returns: Allocated slice of popped items, or error if allocation fails
         pub fn popMany(self: *Self, count: usize) ![]T {
+            // Phase 2 instrumentation: NOT bracketed here. Each `pop` call
+            // brackets itself under `.pop`, so wrapping the loop too would
+            // double-count comparisons. Matches the C++/Go/Rust convention.
             const actual_count = @min(count, self.container.items.len);
             if (actual_count == 0) {
                 return &[_]T{};
@@ -728,6 +785,15 @@ pub fn DHeap(
             return (i - 1) / self.depth;
         }
 
+        /// Single point of comparison. Phase 2 instrumentation hooks here so
+        /// every comparison — `bestChildPosition`, `moveUp`, `moveDown` — is
+        /// counted exactly once. With `collect_stats == false`, the
+        /// `countComparison` call is comptime-eliminated.
+        fn compare(self: *Self, a: T, b: T) bool {
+            if (collect_stats) self.stats.countComparison();
+            return self.comparator.higherPriority(a, b);
+        }
+
         /// Find the child with highest priority among all children of node i.
         fn bestChildPosition(self: *Self, i: usize) usize {
             const left = i * self.depth + 1;
@@ -738,7 +804,7 @@ pub fn DHeap(
 
             var j: usize = left + 1;
             while (j <= right) : (j += 1) {
-                if (self.comparator.higherPriority(self.container.items[j], self.container.items[best])) {
+                if (self.compare(self.container.items[j], self.container.items[best])) {
                     best = j;
                 }
             }
@@ -792,7 +858,7 @@ pub fn DHeap(
             var i = i_param;
             while (i > 0) {
                 const p = self.parent(i);
-                if (self.comparator.higherPriority(self.container.items[i], self.container.items[p])) {
+                if (self.compare(self.container.items[i], self.container.items[p])) {
                     try self.swapItems(i, p);
                     i = p;
                 } else {
@@ -809,7 +875,7 @@ pub fn DHeap(
                 if (first_child >= self.container.items.len) break;
 
                 const best = self.bestChildPosition(i);
-                if (self.comparator.higherPriority(self.container.items[best], self.container.items[i])) {
+                if (self.compare(self.container.items[best], self.container.items[i])) {
                     try self.swapItems(i, best);
                     i = best;
                 } else {
@@ -818,6 +884,17 @@ pub fn DHeap(
             }
         }
     };
+}
+
+/// Convenience alias for the instrumented form of `DHeap`. Mirrors Rust's
+/// `InstrumentedPriorityQueue<T, C>` and the C++ `using` alias for the
+/// instrumented template instantiation.
+pub fn InstrumentedDHeap(
+    comptime T: type,
+    comptime Context: type,
+    comptime ComparatorType: type,
+) type {
+    return DHeapWithStats(T, Context, ComparatorType, true);
 }
 
 // =============================================================================

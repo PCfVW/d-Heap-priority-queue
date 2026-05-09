@@ -3,10 +3,12 @@
 //! Demonstrates Dijkstra's shortest path algorithm using d-ary heap priority queues.
 
 const std = @import("std");
+const d_heap = @import("d-heap");
 const dijkstra_mod = @import("dijkstra.zig");
 const types = @import("types.zig");
 
 const Graph = types.Graph;
+const DijkstraResult = types.DijkstraResult;
 const INFINITY = dijkstra_mod.INFINITY;
 
 const CliArgs = struct {
@@ -16,6 +18,7 @@ const CliArgs = struct {
     source: ?[]const u8 = null,
     target: ?[]const u8 = null,
     quiet: bool = false,
+    stats: bool = false,
 };
 
 fn parseArgs(allocator: std.mem.Allocator) !CliArgs {
@@ -36,9 +39,11 @@ fn parseArgs(allocator: std.mem.Allocator) !CliArgs {
             args.target = try allocator.dupe(u8, arg["--target=".len..]);
         } else if (std.mem.eql(u8, arg, "--quiet")) {
             args.quiet = true;
+        } else if (std.mem.eql(u8, arg, "--stats")) {
+            args.stats = true;
         } else {
             std.debug.print("unknown argument: {s}\n", .{arg});
-            std.debug.print("usage: zig build run -- [--graph=NAME] [--source=ID] [--target=ID] [--quiet]\n", .{});
+            std.debug.print("usage: zig build run -- [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats]\n", .{});
             std.process.exit(2);
         }
     }
@@ -135,7 +140,15 @@ pub fn main() !void {
         std.debug.print("--- Using {d}-ary heap ---\n", .{d});
 
         const start = std.time.nanoTimestamp();
-        var result = try dijkstra_mod.dijkstra(graph, source, d, allocator);
+        var result: DijkstraResult = undefined;
+        var stats: ?d_heap.ComparisonStats = null;
+        if (args.stats) {
+            const r = try dijkstra_mod.dijkstraInstrumented(graph, source, d, allocator);
+            result = r.result;
+            stats = r.stats;
+        } else {
+            result = try dijkstra_mod.dijkstra(graph, source, d, allocator);
+        }
         const elapsed = std.time.nanoTimestamp() - start;
 
         defer result.distances.deinit();
@@ -162,6 +175,15 @@ pub fn main() !void {
         }
 
         const elapsed_us = @as(f64, @floatFromInt(elapsed)) / 1000.0;
-        std.debug.print("Execution time: {d:.1}µs\n\n", .{elapsed_us});
+        std.debug.print("Execution time: {d:.1}µs\n", .{elapsed_us});
+
+        if (stats) |s| {
+            std.debug.print(
+                "Comparison counts: insert={d}, pop={d}, decrease_priority={d}, increase_priority={d}, update_priority={d}, total={d}\n",
+                .{ s.insert_count, s.pop_count, s.decrease_priority_count, s.increase_priority_count, s.update_priority_count, s.total() },
+            );
+        }
+
+        std.debug.print("\n", .{});
     }
 }
