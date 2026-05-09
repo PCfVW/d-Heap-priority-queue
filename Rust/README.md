@@ -19,6 +19,7 @@
   - O(n): `insert_many()` (Floyd's heapify), `to_array()`
 - **Cross-language API**: Unified methods matching C++, Go, Zig, and TypeScript implementations
 - **Rust-idiomatic**: Uses `Result<T, Error>` and `Option<T>` return types
+- **Comparison-count instrumentation** (v2.6.0): opt-in per-operation counters via the `StatsCollector` trait. Default `S = NoOpStats` is zero-cost (monomorphisation + ZST layout); see [Comparison-count instrumentation](#comparison-count-instrumentation) below.
 
 ## Installation
 
@@ -184,17 +185,50 @@ assert_eq!(heap.increase_priority_by_index(99), Err(Error::IndexOutOfBounds));
 assert_eq!(heap.clear(Some(0)), Err(Error::InvalidArity));
 ```
 
+### Comparison-count instrumentation
+
+`PriorityQueue<T, C, S = NoOpStats>` carries a third defaulted type parameter that selects a `StatsCollector`. The default — `NoOpStats` — is a zero-sized type and every operation on it is monomorphised away, so the un-instrumented heap has the same layout and machine code as before v2.6.0.
+
+To opt in, construct the heap with `with_stats(...)` (which fixes `S = ComparisonStats`):
+
+```rust
+use d_ary_heap::{InstrumentedPriorityQueue, MinBy, PriorityQueue, StatsCollector};
+
+let mut pq: InstrumentedPriorityQueue<i32, MinBy<_>> =
+    PriorityQueue::with_stats(4, MinBy(|x: &i32| *x)).unwrap();
+
+pq.insert(5);
+pq.insert(3);
+pq.insert(7);
+let _ = pq.pop();
+
+let s = pq.stats();
+println!(
+    "insert={}, pop={}, total={}",
+    s.insert(), s.pop(), s.total()
+);
+```
+
+`ComparisonStats` exposes one accessor per heap operation (`insert()`, `pop()`, `decrease_priority()`, `increase_priority()`, `update_priority()`) plus `total()` and `reset()`. Counters are scoped to the operation that triggered the comparison, so e.g. `pq.pop()` only increments the `pop` bucket — even though the same `compare()` helper is used internally by `insert`.
+
+Cross-language note: the contract (operation buckets, names, semantics) is identical in TypeScript, C++, Go, and Zig. On the `huge_dense` benchmark all five languages produce byte-for-byte identical totals; see [`benchmarks/README.md`](../benchmarks/README.md#cost-per-heap-comparison-huge_dense-derived-from---stats) for the cost-per-comparison comparison.
+
 ## API Reference
 
 ### Core Types
 
 | Type | Description |
 |------|-------------|
-| `PriorityQueue<T, C>` | The main heap type |
+| `PriorityQueue<T, C, S = NoOpStats>` | The main heap type. `S` selects a `StatsCollector`; `NoOpStats` is zero-cost. |
+| `InstrumentedPriorityQueue<T, C>` | Alias for `PriorityQueue<T, C, ComparisonStats>` |
 | `MinBy<F>` | Comparator wrapper for min-heap behavior |
 | `MaxBy<F>` | Comparator wrapper for max-heap behavior |
 | `Position` | Type alias for position indices (`usize`) |
 | `Error` | Error enum for fallible operations |
+| `StatsCollector` | Trait implemented by `NoOpStats` and `ComparisonStats` |
+| `NoOpStats` | Zero-sized stats collector; default `S` |
+| `ComparisonStats` | Per-operation comparison counters with `insert()` / `pop()` / `decrease_priority()` / `increase_priority()` / `update_priority()` / `total()` / `reset()` |
+| `OperationType` | Enum tagging which heap op a comparison belongs to |
 
 ### Error Variants
 

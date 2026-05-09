@@ -9,10 +9,17 @@ use d_ary_heap::{
     ComparisonStats, InstrumentedPriorityQueue, MinBy, NoOpStats, PriorityQueue, StatsCollector,
 };
 
-fn fresh_min_heap_with_stats(d: usize) -> InstrumentedPriorityQueue<i32, MinBy<fn(&i32) -> i32>> {
+type IdentityMinBy = MinBy<fn(&i32) -> i32>;
+type TestHeap = InstrumentedPriorityQueue<i32, IdentityMinBy>;
+
+fn fresh_min_heap_with_stats(d: usize) -> TestHeap {
     PriorityQueue::with_stats(d, MinBy(identity_i32 as fn(&i32) -> i32)).unwrap()
 }
 
+// `identity_i32` must take `&i32` to satisfy the `Fn(&T) -> K` contract that
+// `MinBy<F>` is generic over — clippy::trivially_copy_pass_by_ref doesn't
+// apply here because the signature is dictated by the comparator interface.
+#[allow(clippy::trivially_copy_pass_by_ref)]
 fn identity_i32(x: &i32) -> i32 {
     *x
 }
@@ -56,7 +63,11 @@ fn pop_bucket_isolation() {
     assert_eq!(popped, Some(1));
 
     let s = pq.stats();
-    assert_eq!(s.insert(), insert_baseline, "Pop must not perturb the insert bucket");
+    assert_eq!(
+        s.insert(),
+        insert_baseline,
+        "Pop must not perturb the insert bucket"
+    );
     assert!(s.pop() > 0, "pop bucket should grow during pop");
     assert_eq!(s.decrease_priority(), 0);
     assert_eq!(s.increase_priority(), 0);
@@ -71,10 +82,14 @@ fn decrease_priority_bucket() {
     }
     pq.stats().reset();
 
-    pq.decrease_priority_by_index(0).expect("index 0 is in bounds");
+    pq.decrease_priority_by_index(0)
+        .expect("index 0 is in bounds");
 
     let s = pq.stats();
-    assert!(s.decrease_priority() > 0, "decrease_priority bucket should grow");
+    assert!(
+        s.decrease_priority() > 0,
+        "decrease_priority bucket should grow"
+    );
     assert_eq!(s.insert(), 0);
     assert_eq!(s.pop(), 0);
     assert_eq!(s.increase_priority(), 0);
@@ -93,7 +108,10 @@ fn increase_priority_bucket() {
         .expect("index 3 is in bounds for a 4-element heap");
 
     let s = pq.stats();
-    assert!(s.increase_priority() > 0, "increase_priority bucket should grow");
+    assert!(
+        s.increase_priority() > 0,
+        "increase_priority bucket should grow"
+    );
     assert_eq!(s.insert(), 0);
     assert_eq!(s.pop(), 0);
     assert_eq!(s.decrease_priority(), 0);
@@ -111,7 +129,10 @@ fn update_priority_bucket() {
     pq.update_priority(&1).expect("item 1 is in the heap");
 
     let s = pq.stats();
-    assert!(s.update_priority() > 0, "update_priority bucket should grow");
+    assert!(
+        s.update_priority() > 0,
+        "update_priority bucket should grow"
+    );
     assert_eq!(s.insert(), 0);
     assert_eq!(s.pop(), 0);
     assert_eq!(s.decrease_priority(), 0);
@@ -125,7 +146,10 @@ fn reset_zeros_counters_but_preserves_heap() {
         pq.insert(v);
     }
     pq.pop();
-    assert!(pq.stats().total() > 0, "expected non-zero counters before reset");
+    assert!(
+        pq.stats().total() > 0,
+        "expected non-zero counters before reset"
+    );
 
     let front_before = *pq.front();
     let len_before = pq.len();
@@ -159,7 +183,8 @@ fn total_equals_sum_of_buckets() {
     pq.increase_priority_by_index(last).unwrap();
 
     let s = pq.stats();
-    let manual = s.insert() + s.pop() + s.decrease_priority() + s.increase_priority() + s.update_priority();
+    let manual =
+        s.insert() + s.pop() + s.decrease_priority() + s.increase_priority() + s.update_priority();
     assert_eq!(s.total(), manual);
 }
 
@@ -179,7 +204,10 @@ fn nil_stats_lockstep_pop_order() {
     while !default_pq.is_empty() {
         let a = default_pq.pop();
         let b = stats_pq.pop();
-        assert_eq!(a, b, "default heap and instrumented heap diverged on pop order");
+        assert_eq!(
+            a, b,
+            "default heap and instrumented heap diverged on pop order"
+        );
     }
     assert!(stats_pq.is_empty());
 }
@@ -195,8 +223,7 @@ fn default_stats_member_is_zero_sized() {
     // The default heap and an explicitly-NoOpStats heap must have identical
     // size (proves no padding was introduced for the stats field).
     let default_size = std::mem::size_of::<PriorityQueue<i32, MinBy<fn(&i32) -> i32>>>();
-    let no_op_size =
-        std::mem::size_of::<PriorityQueue<i32, MinBy<fn(&i32) -> i32>, NoOpStats>>();
+    let no_op_size = std::mem::size_of::<PriorityQueue<i32, MinBy<fn(&i32) -> i32>, NoOpStats>>();
     assert_eq!(default_size, no_op_size);
 
     // The instrumented heap is strictly larger by exactly sizeof(ComparisonStats).

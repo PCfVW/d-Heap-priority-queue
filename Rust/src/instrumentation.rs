@@ -1,6 +1,6 @@
 //! Comparison-count instrumentation for the priority queue (v2.6.0 Phase 2).
 //!
-//! Mirrors the contract from [`TypeScript/src/instrumentation.ts`] (v2.4.0):
+//! Mirrors the contract from `TypeScript/src/instrumentation.ts` (v2.4.0):
 //! count *comparisons* (not operations), bucketed by which heap operation
 //! triggered them. Per the v2.6.0 ROADMAP, the Rust mechanism is **generic over
 //! a `StatsCollector` trait**, with monomorphization providing zero overhead

@@ -7,9 +7,9 @@
 //
 // Licensed under the Apache License, Version 2.0 (the "License")
 
-use d_ary_heap::{PriorityQueue, MinBy, MaxBy, Error, Position};
-use std::hash::{Hash, Hasher};
+use d_ary_heap::{Error, MaxBy, MinBy, Position, PriorityQueue};
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 // =============================================================================
 // Test Item Type
@@ -530,12 +530,12 @@ fn test_arity_helper(d: usize) {
 
     let items: Vec<u32> = vec![50, 30, 70, 10, 40, 60, 20, 80, 90, 5];
     for (i, &cost) in items.iter().enumerate() {
-        pq.insert(Item::new(i as u32, cost));
+        pq.insert(Item::new(u32::try_from(i).unwrap(), cost));
     }
 
     let mut prev = 0;
     while let Some(item) = pq.pop() {
-        assert!(item.cost >= prev, "Arity {}: heap property violated", d);
+        assert!(item.cost >= prev, "Arity {d}: heap property violated");
         prev = item.cost;
     }
 }
@@ -606,7 +606,7 @@ fn test_display_trait() {
         PriorityQueue::new(2, MinBy(|x: &Item| x.cost)).unwrap();
     pq.insert(Item::new(1, 10));
 
-    let display_output = format!("{}", pq);
+    let display_output = format!("{pq}");
     let to_string_output = pq.to_string();
     assert_eq!(display_output, to_string_output);
 }
@@ -739,7 +739,7 @@ fn test_large_heap() {
 
     // Insert 10000 items with pseudo-random costs
     for i in 0..10000 {
-        let cost = ((i * 31337 + 12345) % 5000) as u32;
+        let cost = (i * 31337 + 12345) % 5000;
         pq.insert(Item::new(i, cost));
     }
 
@@ -765,7 +765,7 @@ fn test_large_heap_with_updates() {
 
     // Perform 500 updates
     for i in 0..500 {
-        let new_cost = ((i * 17 + 23) % 1000) as u32;
+        let new_cost = (i * 17 + 23) % 1000;
         pq.update_priority(&Item::new(i, new_cost)).unwrap();
     }
 
@@ -797,10 +797,19 @@ fn test_position_type_alias() {
 
 #[test]
 fn test_error_display() {
-    assert_eq!(format!("{}", Error::InvalidArity), "Heap arity (d) must be >= 1");
+    assert_eq!(
+        format!("{}", Error::InvalidArity),
+        "Heap arity (d) must be >= 1"
+    );
     assert_eq!(format!("{}", Error::ItemNotFound), "Item not found");
-    assert_eq!(format!("{}", Error::IndexOutOfBounds), "Index out of bounds");
-    assert_eq!(format!("{}", Error::EmptyQueue), "Operation called on empty priority queue");
+    assert_eq!(
+        format!("{}", Error::IndexOutOfBounds),
+        "Index out of bounds"
+    );
+    assert_eq!(
+        format!("{}", Error::EmptyQueue),
+        "Operation called on empty priority queue"
+    );
 }
 
 // =============================================================================
@@ -809,8 +818,7 @@ fn test_error_display() {
 
 #[test]
 fn test_primitive_min_heap() {
-    let mut pq: PriorityQueue<i32, MinBy<_>> =
-        PriorityQueue::new(2, MinBy(|x: &i32| *x)).unwrap();
+    let mut pq: PriorityQueue<i32, MinBy<_>> = PriorityQueue::new(2, MinBy(|x: &i32| *x)).unwrap();
 
     pq.insert(5);
     pq.insert(3);
@@ -826,8 +834,7 @@ fn test_primitive_min_heap() {
 
 #[test]
 fn test_primitive_max_heap() {
-    let mut pq: PriorityQueue<i32, MaxBy<_>> =
-        PriorityQueue::new(2, MaxBy(|x: &i32| *x)).unwrap();
+    let mut pq: PriorityQueue<i32, MaxBy<_>> = PriorityQueue::new(2, MaxBy(|x: &i32| *x)).unwrap();
 
     pq.insert(5);
     pq.insert(3);

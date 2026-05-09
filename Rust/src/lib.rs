@@ -11,8 +11,12 @@
 //! - **Configurable arity (d)**: Number of children per node (d ≥ 1)
 //! - **Min/Max flexibility**: Supports both min-heap and max-heap behavior via comparators
 //! - **O(1) item lookup**: Internal hash map enables efficient priority updates
-//! - **Efficient operations**: O(log_d n) insert, O(d·log_d n) pop
+//! - **Efficient operations**: `O(log_d n)` insert, `O(d·log_d n)` pop
 //! - **Cross-language API**: Unified method names and behavior across implementations
+//! - **Comparison-count instrumentation** (v2.6.0): opt-in per-operation counters
+//!   via the [`StatsCollector`] trait. Default `S = NoOpStats` is zero-cost
+//!   (monomorphisation + ZST layout); see [`PriorityQueue::with_stats`] and
+//!   [`InstrumentedPriorityQueue`].
 //!
 //! ## Cross-Language Consistency
 //!
@@ -125,11 +129,11 @@ pub trait PriorityCompare<T> {
 ///
 /// **Time Complexities** (n = number of items, d = arity):
 /// - `new()`: O(1)
-/// - `insert()`: O(log_d n)
+/// - `insert()`: `O(log_d n)`
 /// - `front()`/`peek()`: O(1)
-/// - `pop()`: O(d · log_d n)
-/// - `increase_priority()`: O(log_d n)
-/// - `decrease_priority()`: O(d · log_d n)
+/// - `pop()`: `O(d · log_d n)`
+/// - `increase_priority()`: `O(log_d n)`
+/// - `decrease_priority()`: `O(d · log_d n)`
 /// - `contains()`: O(1)
 /// - `len()`/`is_empty()`/`d()`: O(1)
 #[derive(Debug)]
@@ -188,7 +192,9 @@ where
     /// - TypeScript: `d()`
     #[inline]
     #[must_use]
-    pub const fn d(&self) -> usize { self.depth }
+    pub const fn d(&self) -> usize {
+        self.depth
+    }
 
     /// Returns the number of items in the heap.
     ///
@@ -211,7 +217,9 @@ where
     /// - TypeScript: `len()`
     #[inline]
     #[must_use]
-    pub const fn len(&self) -> usize { self.container.len() }
+    pub const fn len(&self) -> usize {
+        self.container.len()
+    }
 
     /// Returns `true` if the heap is empty.
     ///
@@ -234,7 +242,9 @@ where
     /// - TypeScript: `isEmpty()`
     #[inline]
     #[must_use]
-    pub const fn is_empty(&self) -> bool { self.container.is_empty() }
+    pub const fn is_empty(&self) -> bool {
+        self.container.is_empty()
+    }
 
     /// Checks if an item exists in the heap by identity (O(1) lookup).
     ///
@@ -257,7 +267,9 @@ where
     /// - TypeScript: `contains(item)`
     #[inline]
     #[must_use]
-    pub fn contains(&self, item: &T) -> bool { self.positions.contains_key(item) }
+    pub fn contains(&self, item: &T) -> bool {
+        self.positions.contains_key(item)
+    }
 
     /// Returns the position (index) of an item in the heap, or `None` if not found.
     ///
@@ -362,7 +374,9 @@ where
     /// **Safe alternative**: Use `peek()` instead.
     #[must_use]
     pub fn front(&self) -> &T {
-        self.container.first().expect("front() called on empty priority queue")
+        self.container
+            .first()
+            .expect("front() called on empty priority queue")
     }
 
     /// Safe alternative to `front()` that returns `None` if empty.
@@ -387,11 +401,13 @@ where
     /// - TypeScript: `peek()`
     /// - Go: `Peek()`
     #[must_use]
-    pub fn peek(&self) -> Option<&T> { self.container.first() }
+    pub fn peek(&self) -> Option<&T> {
+        self.container.first()
+    }
 
     /// Inserts an item into the heap according to its priority.
     ///
-    /// **Time Complexity**: O(log_d n)
+    /// **Time Complexity**: `O(log_d n)`
     ///
     /// # Examples
     ///
@@ -421,7 +437,7 @@ where
 
     /// Increases priority of item at specified index (moves up if needed).
     ///
-    /// **Time Complexity**: O(log_d n)
+    /// **Time Complexity**: `O(log_d n)`
     ///
     /// # Errors
     ///
@@ -460,7 +476,7 @@ where
 
     /// Decreases priority of item at specified index (moves down if needed).
     ///
-    /// **Time Complexity**: O(d · log_d n)
+    /// **Time Complexity**: `O(d · log_d n)`
     ///
     /// # Errors
     ///
@@ -502,7 +518,7 @@ where
     /// Use this when you don't know whether the item's priority increased or decreased.
     /// It will check both directions to maintain heap property.
     ///
-    /// **Time Complexity**: O((d+1) · log_d n) worst case
+    /// **Time Complexity**: `O((d+1) · log_d n)` worst case
     ///
     /// # Errors
     ///
@@ -542,7 +558,7 @@ where
 
     /// Increases priority of existing item (moves toward root if needed).
     ///
-    /// **Time Complexity**: O(log_d n)
+    /// **Time Complexity**: `O(log_d n)`
     ///
     /// # Errors
     ///
@@ -575,9 +591,7 @@ where
     /// - Go: `IncreasePriority(item)` (returns `error`)
     pub fn increase_priority(&mut self, updated_item: &T) -> Result<(), Error> {
         self.bracket(OperationType::IncreasePriority, |s| {
-            let &i = s.positions
-                .get(updated_item)
-                .ok_or(Error::ItemNotFound)?;
+            let &i = s.positions.get(updated_item).ok_or(Error::ItemNotFound)?;
 
             // Update positions: remove old key and insert the new (updated) item.
             // Since Hash/Eq are based on identity (not priority), updated_item can be used
@@ -599,7 +613,7 @@ where
     /// For max-heap, this means the value decreased.
     /// If unsure of the direction, use `update_priority()` instead.
     ///
-    /// **Time Complexity**: O(d · log_d n)
+    /// **Time Complexity**: `O(d · log_d n)`
     ///
     /// # Errors
     ///
@@ -632,9 +646,7 @@ where
     /// - Go: `DecreasePriority(item)` (returns `error`)
     pub fn decrease_priority(&mut self, updated_item: &T) -> Result<(), Error> {
         self.bracket(OperationType::DecreasePriority, |s| {
-            let &i = s.positions
-                .get(updated_item)
-                .ok_or(Error::ItemNotFound)?;
+            let &i = s.positions.get(updated_item).ok_or(Error::ItemNotFound)?;
 
             // Update positions: remove old key and insert the new (updated) item.
             // Since Hash/Eq are based on identity (not priority), updated_item can be used
@@ -654,7 +666,7 @@ where
     /// Use this when you don't know whether the item's priority increased or decreased.
     /// It will check both directions to maintain heap property.
     ///
-    /// **Time Complexity**: O((d+1) · log_d n) worst case
+    /// **Time Complexity**: `O((d+1) · log_d n)` worst case
     ///
     /// # Errors
     ///
@@ -683,9 +695,7 @@ where
     /// - Go: `UpdatePriority(item)` (returns `error`)
     pub fn update_priority(&mut self, updated_item: &T) -> Result<(), Error> {
         self.bracket(OperationType::UpdatePriority, |s| {
-            let &i = s.positions
-                .get(updated_item)
-                .ok_or(Error::ItemNotFound)?;
+            let &i = s.positions.get(updated_item).ok_or(Error::ItemNotFound)?;
 
             // Update positions: remove old key and insert the new (updated) item.
             s.positions.remove(updated_item);
@@ -703,7 +713,7 @@ where
     ///
     /// Returns `None` if the heap is empty.
     ///
-    /// **Time Complexity**: O(d · log_d n)
+    /// **Time Complexity**: `O(d · log_d n)`
     ///
     /// # Examples
     ///
@@ -728,10 +738,16 @@ where
     /// - Go: `Pop()` (returns `T, bool`)
     pub fn pop(&mut self) -> Option<T> {
         self.bracket(OperationType::Pop, |s| {
-            if s.container.is_empty() { return None; }
+            if s.container.is_empty() {
+                return None;
+            }
             let last = s.container.len() - 1;
             s.swap(0, last);
-            let removed = s.container.pop().unwrap();
+            // `?` instead of `.unwrap()` — semantically unreachable
+            // (the early-return above guarantees `container` is non-empty)
+            // but clippy::missing_panics_doc fires on the unwrap. The `?`
+            // collapses to the same dead-code path under release.
+            let removed = s.container.pop()?;
             s.positions.remove(&removed);
             if !s.container.is_empty() {
                 s.move_down(0);
@@ -826,7 +842,7 @@ where
     /// Returns up to `count` items in priority order (highest priority first).
     /// If the heap has fewer items than requested, returns all available items.
     ///
-    /// **Time Complexity**: O(count · d · log_d n)
+    /// **Time Complexity**: `O(count · d · log_d n)`
     ///
     /// # Examples
     ///
@@ -919,7 +935,9 @@ where
     fn best_child_position(&self, i: usize) -> usize {
         let n = self.container.len();
         let left = i * self.depth + 1;
-        if left >= n { return left; }
+        if left >= n {
+            return left;
+        }
         let right = ((i + 1) * self.depth).min(n - 1);
         let mut best = left;
         for p in (left + 1)..=right {
@@ -931,7 +949,9 @@ where
     }
 
     fn swap(&mut self, i: usize, j: usize) {
-        if i == j { return; }
+        if i == j {
+            return;
+        }
         self.container.swap(i, j);
         let ti = self.container[i].clone();
         let tj = self.container[j].clone();
@@ -955,7 +975,9 @@ where
         let n = self.container.len();
         loop {
             let first_child = i * self.depth + 1;
-            if first_child >= n { break; }
+            if first_child >= n {
+                break;
+            }
             let best = self.best_child_position(i);
             if self.compare(&self.container[best], &self.container[i]) {
                 self.swap(i, best);
@@ -1102,7 +1124,7 @@ where
     }
 }
 
-/// Display implementation for PriorityQueue.
+/// Display implementation for `PriorityQueue`.
 ///
 /// Renders the queue contents in array layout: `{item1, item2, ...}`.
 ///
@@ -1130,8 +1152,10 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{{")?;
         for (idx, item) in self.container.iter().enumerate() {
-            if idx > 0 { write!(f, ", ")?; }
-            write!(f, "{}", item)?;
+            if idx > 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{item}")?;
         }
         write!(f, "}}")
     }
@@ -1176,7 +1200,9 @@ where
     K: Ord,
 {
     #[inline]
-    fn higher_priority(&self, a: &T, b: &T) -> bool { (self.0)(a) < (self.0)(b) }
+    fn higher_priority(&self, a: &T, b: &T) -> bool {
+        (self.0)(a) < (self.0)(b)
+    }
 }
 
 /// Convenience comparator for max-heap behavior.
@@ -1211,5 +1237,7 @@ where
     K: Ord,
 {
     #[inline]
-    fn higher_priority(&self, a: &T, b: &T) -> bool { (self.0)(a) > (self.0)(b) }
+    fn higher_priority(&self, a: &T, b: &T) -> bool {
+        (self.0)(a) > (self.0)(b)
+    }
 }

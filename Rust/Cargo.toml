@@ -28,3 +28,12 @@ path = "src/main.rs"
 [features]
 default = ["std"]
 std = []
+
+# Lint floor (per Rust/CONVENTIONS.md). The crate already declares
+# `#![deny(warnings)]` and `#![forbid(unsafe_code)]` at the lib root;
+# this section turns on `clippy::pedantic` as a warn-group so newly
+# introduced lints fire on existing CI builds. Individual lints can be
+# silenced at the call site with `#[allow(clippy::lint_name)]` plus a
+# justification comment — never globally.
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }

@@ -119,7 +119,7 @@ All public functions and methods that return a value and have no side effects mu
 
 Without the annotation, a caller can silently discard the return value — which for these functions is always a bug, since the call has no other effect.
 
-The `clippy::must_use_candidate` lint enforces this at `warn` level — promoted to error once the crate adopts `#![deny(warnings)]` (see [Lint Floor](#lint-floor-informative)).
+The `clippy::must_use_candidate` lint enforces this at `warn` level, promoted to error by the crate-level `#![deny(warnings)]` (see [Lint Floor](#lint-floor-informative)).
 
 ### Pass by Value vs Reference
 
@@ -203,7 +203,7 @@ In this crate this is rare; the heap is generic over its element type and compar
 
 `// SAFETY: <invariants>` — required on every `unsafe` block or function (inline comment, not a doc comment).
 
-This crate aims to be `#![forbid(unsafe_code)]`; the current `lib.rs` does not yet declare the attribute, but every implementation to date is safe Rust and adding the attribute is a near-zero-effort hardening step. The annotation policy below is included for completeness — if `unsafe` ever becomes necessary (e.g., for a `MaybeUninit`-based bulk-load fast path), follow the candle-mi pattern: single dedicated module, feature-gated, with a `// SAFETY:` comment on every block.
+This crate is `#![forbid(unsafe_code)]` (declared at the top of `lib.rs`). The annotation policy below is included for completeness — if `unsafe` ever becomes necessary (e.g., for a `MaybeUninit`-based bulk-load fast path), the `forbid` would have to be relaxed to `deny` and the new code would follow the candle-mi pattern: single dedicated module, feature-gated, with a `// SAFETY:` comment on every block.
 
 ---
 
@@ -288,6 +288,11 @@ Tests are not exempt from `#[must_use]`. If a test calls `pq.peek()` and ignores
 
 ## Lint Floor (informative)
 
-**Target floor** (the convention this document describes): `#![deny(warnings)]` and `#![forbid(unsafe_code)]` at the top of `lib.rs`, plus the standard Grit clippy floor. The current `lib.rs` does not yet declare either attribute — adopting them is a near-zero-effort hardening pass that should be tracked as a separate cleanup commit (the existing code is already safe Rust and warning-free). Once declared, any new lint introduced by a newer Clippy version that fires on existing code should be fixed at the call site, not silenced — silencing requires an `#[allow(clippy::lint_name)] // <reason>` *with* a justification in the comment.
+**Active floor** (declared in this crate as of v2.6.0 hardening pass):
+
+- `#![deny(warnings)]` and `#![forbid(unsafe_code)]` at the top of `lib.rs`.
+- `[lints.clippy] pedantic = { level = "warn", priority = -1 }` in `Cargo.toml`. The `priority = -1` lets individual pedantic lints be relaxed at the call site without disabling the whole group.
+
+Any new lint introduced by a newer Clippy version that fires on existing code should be fixed at the call site, not silenced — silencing requires an `#[allow(clippy::lint_name)] // <reason>` *with* a justification in the comment. One such allow currently exists in the test code (`clippy::trivially_copy_pass_by_ref` on `tests/instrumentation.rs::identity_i32`, justified because the signature is dictated by the `MinBy<Fn(&T) -> K>` comparator contract).
 
 The MSRV (minimum supported Rust version) is pinned in `Cargo.toml`. If a contribution requires a newer feature, raise the MSRV in a separate commit and note it in `CHANGELOG.md`.

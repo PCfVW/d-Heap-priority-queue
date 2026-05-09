@@ -6,7 +6,7 @@
 //
 // Licensed under the Apache License, Version 2.0 (the "License")
 
-use d_ary_heap::{PriorityQueue, MinBy, MaxBy, Error};
+use d_ary_heap::{Error, MaxBy, MinBy, PriorityQueue};
 
 #[derive(Clone, Debug)]
 struct TestItem {
@@ -105,7 +105,7 @@ fn test_max_heap_decrease_priority_behavior() {
     // Decrease priority of item 2 (20 -> 8, should no longer be front)
     let updated_item2 = TestItem::new(2, 8);
     pq.decrease_priority(&updated_item2).unwrap();
-    assert_eq!(pq.front().id, 4);  // Item 4 (priority 15) should now be front
+    assert_eq!(pq.front().id, 4); // Item 4 (priority 15) should now be front
 }
 
 #[test]
@@ -130,7 +130,10 @@ fn test_item_not_found() {
 
     // Try to decrease priority of non-existent item
     let non_existent = TestItem::new(999, 5);
-    assert_eq!(pq.decrease_priority(&non_existent), Err(Error::ItemNotFound));
+    assert_eq!(
+        pq.decrease_priority(&non_existent),
+        Err(Error::ItemNotFound)
+    );
 }
 
 #[test]
@@ -156,16 +159,16 @@ fn test_integration_mixed_operations() {
     // Decrease priority of item 2 (30 -> 40, item becomes less important)
     let decreased_item2 = TestItem::new(2, 40);
     pq.decrease_priority(&decreased_item2).unwrap();
-    assert_eq!(pq.front().id, 1);  // Still item 1 at front
+    assert_eq!(pq.front().id, 1); // Still item 1 at front
 
     // Pop front item
     pq.pop();
-    assert_eq!(pq.front().id, 4);  // Item 4 (priority 20) should now be front
+    assert_eq!(pq.front().id, 4); // Item 4 (priority 20) should now be front
 
     // Decrease priority of current front (20 -> 45, should make item 2 the new front)
     let decreased_item4 = TestItem::new(4, 45);
     pq.decrease_priority(&decreased_item4).unwrap();
-    assert_eq!(pq.front().id, 2);  // Item 2 (priority 40) should now be front
+    assert_eq!(pq.front().id, 2); // Item 2 (priority 40) should now be front
 }
 
 #[test]
@@ -174,15 +177,15 @@ fn test_heap_property_maintenance() {
         PriorityQueue::new(2, MinBy(|x: &TestItem| x.priority)).unwrap();
 
     // Insert many items
-    let priorities = vec![50, 30, 70, 20, 60, 10, 80, 40];
+    let priorities = [50, 30, 70, 20, 60, 10, 80, 40];
     for (i, &priority) in priorities.iter().enumerate() {
-        pq.insert(TestItem::new((i + 1) as i32, priority));
+        pq.insert(TestItem::new(i32::try_from(i + 1).unwrap(), priority));
     }
 
     // Perform several update operations using update_priority
-    pq.update_priority(&TestItem::new(1, 55)).unwrap();  // 50 -> 55
-    pq.update_priority(&TestItem::new(6, 15)).unwrap();  // 10 -> 15
-    pq.update_priority(&TestItem::new(3, 75)).unwrap();  // 70 -> 75
+    pq.update_priority(&TestItem::new(1, 55)).unwrap(); // 50 -> 55
+    pq.update_priority(&TestItem::new(6, 15)).unwrap(); // 10 -> 15
+    pq.update_priority(&TestItem::new(3, 75)).unwrap(); // 70 -> 75
 
     // Verify heap property by popping all items in order
     let mut popped_priorities = Vec::new();
@@ -193,7 +196,7 @@ fn test_heap_property_maintenance() {
 
     // Verify non-decreasing order (min-heap property)
     for i in 1..popped_priorities.len() {
-        assert!(popped_priorities[i] >= popped_priorities[i-1]);
+        assert!(popped_priorities[i] >= popped_priorities[i - 1]);
     }
 }
 

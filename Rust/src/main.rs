@@ -1,4 +1,4 @@
-use d_ary_heap::{PriorityQueue, MinBy, MaxBy, PriorityCompare};
+use d_ary_heap::{MaxBy, MinBy, PriorityCompare, PriorityQueue};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::hash::{Hash, Hasher};
 
@@ -9,15 +9,21 @@ struct Int {
 }
 
 impl PartialEq for Int {
-    fn eq(&self, other: &Self) -> bool { self.number == other.number }
+    fn eq(&self, other: &Self) -> bool {
+        self.number == other.number
+    }
 }
 
 impl Hash for Int {
-    fn hash<H: Hasher>(&self, state: &mut H) { self.number.hash(state) }
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.number.hash(state);
+    }
 }
 
 impl Display for Int {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult { write!(f, "({}, {})", self.number, self.cost) }
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "({}, {})", self.number, self.cost)
+    }
 }
 
 fn print_pq<T, C>(pq: &PriorityQueue<T, C>)
@@ -26,30 +32,40 @@ where
     C: PriorityCompare<T>,
 {
     // Using Display trait directly (pq implements Display when T: Display)
-    println!("{}", pq);
+    println!("{pq}");
 }
 
 fn main() {
     // Min-heap by cost
-    let mut pq_less: PriorityQueue<Int, MinBy<_>> = PriorityQueue::new(3, MinBy(|x: &Int| x.cost)).unwrap();
+    let mut pq_less: PriorityQueue<Int, MinBy<_>> =
+        PriorityQueue::new(3, MinBy(|x: &Int| x.cost)).unwrap();
 
-    let input: Vec<i32> = vec![20, 5, 22, 16, 18, 17, 12, 9, 42, 27, 48, 36, 32, 13, 14, 28, 52, 10, 21, 8, 39, 29, 15, 38, 31, 41];
+    let input: Vec<u32> = vec![
+        20, 5, 22, 16, 18, 17, 12, 9, 42, 27, 48, 36, 32, 13, 14, 28, 52, 10, 21, 8, 39, 29, 15,
+        38, 31, 41,
+    ];
 
     for &n in &input {
-        pq_less.insert(Int { number: n as u32, cost: n as u32 });
+        pq_less.insert(Int { number: n, cost: n });
         print_pq(&pq_less);
     }
 
     // dynamic update
-    let i1 = Int { number: 19, cost: 19 };
+    let i1 = Int {
+        number: 19,
+        cost: 19,
+    };
     pq_less.insert(i1.clone());
     print_pq(&pq_less);
 
     let front = pq_less.front().clone();
-    println!("front: {}", front);
+    println!("front: {front}");
 
     // Increase priority (lower cost for min-heap)
-    let i1_new = Int { number: 19, cost: 6 };
+    let i1_new = Int {
+        number: 19,
+        cost: 6,
+    };
     pq_less.increase_priority(&i1_new).unwrap();
     print_pq(&pq_less);
 
@@ -58,25 +74,36 @@ fn main() {
     let mut last_cost = 0u32;
     while !pq_less.is_empty() {
         let top = pq_less.front().clone();
-        if !first { assert!(top.cost >= last_cost); } else { first = false; }
+        if first {
+            first = false;
+        } else {
+            assert!(top.cost >= last_cost);
+        }
         last_cost = top.cost;
         pq_less.pop();
         print_pq(&pq_less);
     }
 
     // Max-heap by cost
-    let mut pq_greater: PriorityQueue<Int, MaxBy<_>> = PriorityQueue::new(3, MaxBy(|x: &Int| x.cost)).unwrap();
+    let mut pq_greater: PriorityQueue<Int, MaxBy<_>> =
+        PriorityQueue::new(3, MaxBy(|x: &Int| x.cost)).unwrap();
 
     for &n in &input {
-        pq_greater.insert(Int { number: n as u32, cost: n as u32 });
+        pq_greater.insert(Int { number: n, cost: n });
         print_pq(&pq_greater);
     }
 
-    let i2 = Int { number: 40, cost: 40 };
+    let i2 = Int {
+        number: 40,
+        cost: 40,
+    };
     pq_greater.insert(i2.clone());
     print_pq(&pq_greater);
 
-    let i2_new = Int { number: 40, cost: 50 };
+    let i2_new = Int {
+        number: 40,
+        cost: 50,
+    };
     pq_greater.increase_priority(&i2_new).unwrap();
     print_pq(&pq_greater);
 
@@ -85,7 +112,11 @@ fn main() {
     let mut last_cost_max = 0u32;
     while !pq_greater.is_empty() {
         let top = pq_greater.front().clone();
-        if !first_max { assert!(top.cost <= last_cost_max); } else { first_max = false; }
+        if first_max {
+            first_max = false;
+        } else {
+            assert!(top.cost <= last_cost_max);
+        }
         last_cost_max = top.cost;
         pq_greater.pop();
         print_pq(&pq_greater);
