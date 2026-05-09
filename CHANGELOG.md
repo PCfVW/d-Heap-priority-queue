@@ -5,6 +5,71 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+In-progress v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph corpus + tooling + GRAMMAR spec) complete; Phase 2 (cross-language comparison-count instrumentation) complete for C++ and Go, planned for Rust and Zig (TypeScript instrumentation already shipped in v2.4.0); Phase 3 (benchmark runners + results) not started.
+
+### Added
+
+#### Test graph corpus + reproducible generator (Phase 1)
+- **`benchmarks/scripts/graphgen/`**: standalone Rust crate (`petgraph` + `rand_chacha::ChaCha8Rng`) that generates the canonical graph corpus from `benchmarks/graphs.toml`. Provides `generate` and `verify` subcommands; `verify` re-emits each graph and `diff`s byte-for-byte against the committed JSON.
+- **`benchmarks/graphs.toml`**: declarative spec of all corpus graphs with seeds + weight ranges.
+- **`examples/dijkstra/graphs/GRAMMAR.md`**: ISO/IEC 14977 EBNF for the constrained, deterministic JSON subset the corpus uses, plus byte-level canonical-output spec.
+- **Seven corpus graphs** (committed to git): `medium_sparse` (n=100, |E|=200), `medium_dense` (n=100, |E|=1000), `medium_grid` (10×10 lattice, |E|=360), `large_sparse` (n=1000, |E|=2000), `large_dense` (n=1000, |E|=31623), `large_grid` (32×32 lattice, |E|=3968), `huge_dense` (n=2500, |E|=125000, ~6 MB JSON). Erdős–Rényi graphs are connectivity-enforced (every vertex reachable from `v0`).
+- **`--graph=NAME`, `--source`, `--target`, `--quiet`** CLI flags in all five Dijkstra examples (TypeScript, Go, Rust, Zig, C++). Default endpoints: `A→F` for `small`, `v0 → v(N-1)` otherwise.
+- **C++ `graph_parser.h`** (~150 LOC, zero dependencies): strict parser conforming to GRAMMAR.md; rejects out-of-order keys, non-ASCII vertex IDs, float weights, missing fields, trailing content. Companion `Cpp/test_graph_parser.cpp`: 18 fixture cases (5 valid + 5 rejection + 7 corpus graphs round-trip).
+
+#### Cross-language comparison-count instrumentation (Phase 2)
+- **C++**: 5th defaulted template parameter `TStats = NoOpStats` on `PriorityQueue<T, …>`; new `InstrumentedPriorityQueue<T, …>` alias for the `ComparisonStats` variant. RAII `OperationGuard` brackets each public mutator; private `compare_` helper at three comparison sites (`bestChildPosition`, `moveUp`, `moveDown`).
+- **C++ tests** (`Cpp/test_instrumentation.cpp`): 12 cases including 3 compile-time `static_assert`s that prove zero-bytes elision via `[[no_unique_address]]` (or `[[msvc::no_unique_address]]` on MSVC) — `sizeof(InstrumentedPriorityQueue<int>) - sizeof(PriorityQueue<int>) == sizeof(ComparisonStats)` (152 − 104 = 48 bytes on MSVC).
+- **Go**: `Options.Stats *Stats` opt-in field on heap construction; nil-by-default. Conditional bracketing via `if pq.stats != nil { startOperation(OpX); defer endOperation() }` on each public mutator.
+- **Go tests** (`Go/src/instrumentation_test.go`): 10 cases including a lockstep pop-order check (default vs instrumented heaps must produce identical pop sequences) and a nil-safe-`Total()`/`Reset()` regression test.
+- **`--stats` CLI flag** in the C++ and Go Dijkstra examples; per-arity print format byte-for-byte identical between the two languages.
+- **Documentation of the value-vs-pointer ownership asymmetry** in both `Cpp/PriorityQueue.h` and `Go/src/instrumentation.go`: C++ owns the stats by value (zero-bytes via attribute); Go has user-owned storage with a `*Stats` pointer in the heap. Both deliberate; readers porting between the two now know why.
+
+#### Project documentation
+- **`Rust/CONVENTIONS.md`**: synthesis of the Grit-base conventions adapted to a generic data-structure crate (no async / I/O / FFI / ML overlays). Lists target lint floor and surfaces drift between convention and live code.
+- **Indicative cross-language timings table** in `benchmarks/README.md`: median-of-5 single-shot runs for 5 languages × 5 graphs × 3 arities (d=2/4/8). Honestly framed as ballpark only — Phase 3 will replace with proper benchmark methodology.
+- **CI/CD automation section** in `ROADMAP.md`: planned npm publish + GitHub Release workflows.
+
+### Changed
+
+#### Library
+- **C++ `PriorityQueue<T, …>`**: gains a 5th defaulted template parameter `TStats = NoOpStats` (source-compatible with all existing user code). Three comparison sites now route through `compare_(a, b)` which inlines to a bare comparator call under `NoOpStats`.
+- **Go `PriorityQueue[T, K]`**: gains `Options.Stats *Stats` and `pq.Stats() *Stats` accessor. Three comparison sites now route through `pq.compareLess(a, b)` which compiles to a single nil check + comparator call.
+- **Go `(*Stats).Total()` and `(*Stats).Reset()`** are nil-safe (Go's method-on-nil-receiver pattern), so `pq.Stats().Total()` works for default-heap users and matches C++'s `pq.stats().total()` semantics.
+- **Rust crate**: hardening pass per `Rust/CONVENTIONS.md`. Adds `#![forbid(unsafe_code)]` and `#![deny(warnings)]` at the crate root, `#[non_exhaustive]` on `Error`, `const fn` on `d`/`len`/`is_empty`, `#[must_use]` on the eight pure accessors. Inherent `to_string` removed (shadowed `Display`-driven one); callers continue to use `pq.to_string()` via the `ToString` blanket impl.
+- **Rust `Cargo.lock`**: synced to `d-ary-heap` 2.5.0 (was stale at 2.4.0 since the v2.5.0 release).
+
+#### Dijkstra examples (cross-cutting)
+- **Time output unified to `"{:.1}µs"`** in all five examples (TypeScript was milliseconds; Go used `time.Duration` auto-format; Rust used `{:?}` on `Duration`; C++ used `µs` / `us` inconsistently). Cross-language wall-time comparison is now apples-to-apples.
+- **C++**: literal Unicode `→` and `∞` in output (was raw byte sequences `"\xe2\x86\x92"` and `"inf"`); MSVC build now uses `/utf-8`.
+- **C++**: stringly-typed sentinel defaults (`"A"`/`"F"` cleared and re-filled by `parse_args`) replaced with `std::optional<std::string>` resolved once in `main` via `.value_or()`.
+- **C++**: TOCTOU-style `fs::exists(p)` then re-open in `resolve_graph_path` collapsed into try-and-fall-through `std::ifstream`. Matches Go/Rust/Zig.
+- **C++ `graph_parser`**: integer parsing uses `std::from_chars` instead of `std::stoi(text_.substr(...))` — no per-edge string allocation, no try/catch, no locale.
+- **Zig**: replaced the per-string deep-copy loader with `std.json.parseFromSliceLeaky` parsing directly into `Graph` (whose fields already match the JSON schema). Caller owns an `ArenaAllocator`; one `defer arena.deinit()` replaces the previous 8-line per-field cleanup. Eliminated the unused `Edge` import.
+- **Rust**: `unwrap_or_default()` on `graph.vertices.{first,last}()` for default endpoints replaced with `.expect("graph has at least one vertex")` — empty graphs now fail loud instead of silently producing `"shortest path from  to "`.
+- **Zig**: argument-handling now always-dupes / always-frees `args.graph` (was a fragile string-comparison conditional `defer`; explicit `--graph=small` leaked the duped string).
+- **Dijkstra refactor for `--stats` integration**: C++ extracts `dijkstra_with_pq<PQ>(graph, source, pq)` template + thin `dijkstra(g, s, d)` wrapper; Go splits into `Dijkstra` + `DijkstraInstrumented` + private `dijkstraImpl(stats *Stats)`.
+
+#### graphgen
+- **`weight_range` validation** lifted from each generator (`erdos_renyi.rs`, `grid.rs`) to a single `Config::validate()` invoked at TOML load time. Single source of truth.
+
+#### Project meta
+- **`.gitignore`**: covers v2.6.0 build artifacts (graphgen `target/`, per-language Dijkstra-example build caches), and reserves `test-corpus/` and `experiments/` for paper-artifact paths so future `git add .` is safe.
+
+### Fixed
+
+- **Phase 2 cross-language consistency review** (commit `786f06f`): Go nil-safe `Total()`/`Reset()`; anti-bracketing comments at C++ `pop_many` and Go `PopMany` (delegates to `pop_front`/`Pop`; outer bracket would nest); C++ lockstep pop-order test mirroring Go's; ownership-asymmetry doc added to both file headers.
+- **Phase 1 code-review followups** (commit `489996a`): nine fixes from a three-agent review covering cross-language inconsistencies, dead code, and small efficiency wins. See commit body for the full list.
+
+### Findings worth recording
+
+The Phase 2 instrumentation already produced one notable cross-language result, captured in `benchmarks/README.md`:
+
+- **Go and C++ produce byte-for-byte identical comparison counts on `huge_dense`** (`insert=2499, pop=46094, increase_priority=11384, total=59977` at d=4; equivalent at d=8). The plan predicted divergence because Go map iteration order is randomized; the data says the algorithm produces the same heap-operation sequence on this graph regardless.
+- **Wall-time gap remains**: Go ~10 ms vs C++ ~15 ms on `huge_dense` at d=8. Same comparison counts, different time-per-comparison. Phase 3 work will attribute the gap (leading suspect: MSVC's chained-bucket `std::unordered_map` vs Go's flat-bucket-of-8 map).
+
 ## [2.5.0] - 2026-01-24
 
 ### Added
