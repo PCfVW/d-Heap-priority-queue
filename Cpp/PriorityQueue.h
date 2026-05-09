@@ -235,6 +235,13 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 	/// ComparisonStats holds five uint64_t counters plus a current-operation tag.
 	/// Use the InstrumentedPriorityQueue alias (declared after the class) to opt in.
 	///
+	/// Ownership note: in C++, the heap *owns* the stats by value (collapsed to
+	/// zero bytes for NoOpStats via [[no_unique_address]]). Read access is via
+	/// pq.stats(); pq.stats().total() always returns a sensible value (0 for
+	/// NoOpStats). This is deliberately asymmetric with Go, where the user owns
+	/// the storage and the heap holds a *Stats — a design choice driven by
+	/// each language's idioms and zero-overhead mechanism.
+	///
 	/// Cross-language equivalents:
 	///   - TypeScript: ComparisonStats from instrumentation.ts (v2.4.0)
 	///   - Rust: StatsCollector trait (Phase 2, planned)
@@ -766,6 +773,12 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		///   - Go: PopMany(count) -> []T
 		std::vector<T> pop_many(size_t count)
 		{
+			// Phase 2 instrumentation note: this method intentionally does NOT
+			// bracket itself with OperationGuard. It delegates to pop_front()
+			// which brackets each call individually, attributing every
+			// comparison to OpPop correctly. Adding an outer guard here would
+			// nest with the inner guards and leave current_op_ in OpPop until
+			// the outer destructor runs — a subtle attribution bug.
 			std::vector<T> result;
 			size_t actual_count = std::min(count, container.size());
 			result.reserve(actual_count);

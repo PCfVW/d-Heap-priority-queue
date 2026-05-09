@@ -624,6 +624,12 @@ func (pq *PriorityQueue[T, K]) Pop() (T, bool) {
 // Cross-language equivalents:
 //   - TypeScript: popMany(count)
 func (pq *PriorityQueue[T, K]) PopMany(count int) []T {
+	// Phase 2 instrumentation note: this method intentionally does NOT bracket
+	// itself with startOperation/endOperation. It delegates to Pop() which
+	// brackets each call individually, attributing every comparison to OpPop
+	// correctly. Adding an outer bracket here would nest with the inner
+	// brackets and leave currentOp set to OpPop until the outer defer runs —
+	// a subtle attribution bug.
 	if count <= 0 {
 		return nil
 	}

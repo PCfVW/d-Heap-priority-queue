@@ -8,6 +8,14 @@ package dheap
 // pq.stats *Stats is nil by default — overhead in that path is a single
 // well-predicted nil check per comparison.
 //
+// Ownership note: in Go, the *user* owns the Stats storage (typically a
+// stack-local var dheap.Stats); the heap stores a *Stats pointer that may be
+// nil. Read access is via pq.Stats() or via the original variable; Total() and
+// Reset() are nil-safe so pq.Stats().Total() always works regardless of
+// whether instrumentation was attached. This is deliberately asymmetric with
+// C++, where the heap owns the stats by value via [[no_unique_address]] — a
+// design choice driven by each language's idioms and zero-overhead mechanism.
+//
 // Usage:
 //
 //	var stats dheap.Stats
@@ -58,13 +66,29 @@ type Stats struct {
 }
 
 // Total returns the sum of all five counter buckets.
+//
+// Nil-safe: returns 0 when called on a nil receiver. This makes
+// `pq.Stats().Total()` safe even when no Stats was attached at construction —
+// matching the C++ `pq.stats().total()` semantics where the default NoOpStats
+// policy always returns 0.
 func (s *Stats) Total() uint64 {
+	if s == nil {
+		return 0
+	}
 	return s.Insert + s.Pop + s.DecreasePriority + s.IncreasePriority + s.UpdatePriority
 }
 
 // Reset zeroes all counters and clears the active-operation tag. The heap
 // state is unaffected by this call — the heap and the stats are independent.
+//
+// Nil-safe: a no-op when called on a nil receiver.
+//
+// Not safe to call concurrently with heap operations on another goroutine —
+// the package as a whole assumes single-goroutine use.
 func (s *Stats) Reset() {
+	if s == nil {
+		return
+	}
 	*s = Stats{}
 }
 

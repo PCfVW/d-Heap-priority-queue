@@ -35,6 +35,29 @@ func TestStatsNilByDefault(t *testing.T) {
 	}
 }
 
+func TestNilStatsTotalAndResetAreSafe(t *testing.T) {
+	// pq.Stats() returns nil by default. Calling Total() or Reset() on that nil
+	// pointer must not panic — matches the C++ semantics where the default
+	// NoOpStats path always returns 0.
+	pq := New(Options[int, int]{
+		D:            2,
+		Comparator:   MinNumber,
+		KeyExtractor: func(x int) int { return x },
+	})
+	pq.Insert(1)
+	pq.Insert(2)
+	pq.Insert(3)
+
+	stats := pq.Stats()
+	if stats != nil {
+		t.Fatalf("expected nil Stats() for default heap, got %p", stats)
+	}
+	if got := stats.Total(); got != 0 {
+		t.Fatalf("expected nil-safe Total() == 0, got %d", got)
+	}
+	stats.Reset() // must not panic
+}
+
 func TestStatsInitialState(t *testing.T) {
 	_, stats := newIntStatsHeap(2)
 	if stats.Insert != 0 || stats.Pop != 0 || stats.DecreasePriority != 0 ||

@@ -217,6 +217,30 @@ void test_default_heap_unchanged() {
     std::cout << "  [OK] default heap behaves normally; stats().total() is constant 0" << std::endl;
 }
 
+void test_lockstep_pop_order() {
+    std::cout << "Testing lockstep pop-order: default heap and instrumented heap agree..." << std::endl;
+    // Mirrors Go's TestNilStatsHeapBehaviorUnchanged: two heaps, identical inputs,
+    // one with NoOpStats and one with ComparisonStats. Instrumentation must be
+    // observation-only — the popped-item order has to match exactly.
+    PriorityQueue<int> default_pq(4);
+    InstrumentedPriorityQueue<int> stats_pq(4);
+
+    const int input[] = {42, 17, 99, 3, 8, 25, 61, 5, 88, 1};
+    for (int v : input) {
+        default_pq.insert(v);
+        stats_pq.insert(v);
+    }
+
+    while (!default_pq.is_empty()) {
+        auto a = default_pq.pop_front();
+        auto b = stats_pq.pop_front();
+        assert(a.has_value() && b.has_value());
+        assert(*a == *b);
+    }
+    assert(stats_pq.is_empty());
+    std::cout << "  [OK] both heaps emptied in the same order; instrumentation is observation-only" << std::endl;
+}
+
 int main() {
     std::cout << "=== Phase 2 comparison-count instrumentation tests ===" << std::endl;
     std::cout << "sizeof(PriorityQueue<int>)             = " << sizeof(PriorityQueue<int>) << " bytes" << std::endl;
@@ -233,6 +257,7 @@ int main() {
     test_reset_zeros_counters_but_preserves_heap();
     test_total_equals_sum_of_buckets();
     test_default_heap_unchanged();
+    test_lockstep_pop_order();
 
     std::cout << std::endl << "All instrumentation tests passed." << std::endl;
     return 0;
