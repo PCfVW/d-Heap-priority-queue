@@ -1,11 +1,34 @@
 ![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-f7a41d.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (Zig 0.15.2) v2.5.0
+# d-Heap Priority Queue (Zig 0.15.2) v2.6.0
 
-A **generic** d-ary heap priority queue supporting both min-queue and max-queue behavior through comparator functions.
+**Wikipedia-standard d-ary heap (Zig 0.15.2)** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation via a comptime bool. Cross-language API parity with C++, Go, Rust, and TypeScript.
 
-## What's New in v2.5.0
+## 🎬 See it in action
+
+**[Interactive demo →](https://pcfvw.github.io/d-Heap-priority-queue/)**
+
+Watch the heap tree update as items are inserted, popped, and re-prioritized. Toggle arity (d=2 / d=4 / d=8) to see how tree depth changes. Step through Dijkstra's algorithm on a weighted graph, or run **race mode** to compare all three arities side-by-side. Built with React Flow; runs in the browser, no install.
+
+## Why this crate?
+
+If you already know you want a priority queue, here's what this module gives you over `std.PriorityQueue`:
+
+- **Configurable arity `d`** (not just d=2). Pick `d=4` for cache-friendlier inserts, `d=8` for very insert-heavy workloads.
+- **O(1) item lookup + priority updates.** `increasePriority(item)`, `decreasePriority(item)`, `updatePriority(item)` — the operations Dijkstra and A\* actually need. `std.PriorityQueue` doesn't track positions; manual index bookkeeping is required.
+- **Zero-cost comparison-count instrumentation** (new in v2.6.0) via comptime bool parameter; the `stats` field is `void`-typed and collapses to zero bytes when disabled. See [Comparison-count instrumentation](#comparison-count-instrumentation-v260) below.
+- **Truly generic**: custom item types with your own `hash()` / `eql()` methods, no hidden requirements.
+- **Cross-language API parity** with C++, Go, Rust, and TypeScript — byte-for-byte identical comparison counts on shared benchmarks (verified across 24 cells × 5 languages).
+- **Published numbers**: see [`benchmarks/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks). Zig leads on `large_*` cells at d=8 (846 µs sparse / 899 µs grid / 2854 µs dense on AMD Ryzen 9 5950X, ReleaseFast). Full [methodology](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
+
+## What's New in v2.6.0
+
+- **Comparison-count instrumentation**: comptime-bool parameter `collect_stats: bool` on the new `DHeapWithStats(T, Context, Comparator, comptime collect_stats: bool)`. Convenience alias `InstrumentedDHeap` for the `collect_stats=true` variant. The `stats` field is typed `if (collect_stats) ComparisonStats else void` — zero bytes when disabled via Zig's `void` field collapse (the language analog of Rust's ZST and C++'s `[[no_unique_address]]`).
+- **Cross-language parity for instrumentation**: byte-for-byte identical comparison counts with the C++, Go, Rust, and TypeScript implementations (verified across 24 (graph, arity) cells).
+- **Phase 3 benchmark harness**: `examples/dijkstra/Zig/` runs the cross-language Dijkstra sweep with `ReleaseFast`; see [`benchmarks/methodology.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
+
+### What's New in v2.5.0
 
 - **`updatePriority()`**: New method for when priority change direction is unknown
 - **`getPosition()`**: O(1) lookup of item's index in the heap array
@@ -16,20 +39,6 @@ A **generic** d-ary heap priority queue supporting both min-queue and max-queue 
 - **Fixed `decreasePriority()`**: Now only moves down (was incorrectly calling both directions)
 - **Comprehensive tests**: 54 tests covering all functionality
 - **Zig 0.15.2 compatibility**: Updated for latest Zig API changes
-
-## Strengths
-
-- **Truly generic**: Define your own item types with custom hash/equality
-- **Flexible behavior**: min-heap or max-heap via comparator functions, configurable arity `d`
-- **Efficient operations** on n items:
-  - O(1): access highest-priority item (`front()`/`peek()`), membership test (`contains()`), position lookup (`getPosition()`)
-  - O(log_d n): `insert()` and `increasePriority()`
-  - O(d · log_d n): `pop()` and `decreasePriority()`
-  - O((d+1) · log_d n): `updatePriority()` (when direction unknown)
-  - O(n): `insertMany()` bulk insertion using Floyd's heapify algorithm
-- **O(1) item lookup**: internal hash map tracks positions by item identity
-- **Unified API**: Cross-language standardized methods matching TypeScript, Go, C++, and Rust implementations
-- **Memory safety**: Explicit allocator management following Zig best practices
 
 ## Quick Start (Using Built-in Item Type)
 
@@ -130,6 +139,42 @@ pub fn main() !void {
     }
 }
 ```
+
+## Comparison-count instrumentation (v2.6.0)
+
+Opt-in instrumentation via `InstrumentedDHeap(T, Context, Comparator)` — same generic surface as `DHeap`, but the heap carries a `ComparisonStats` field that's updated on every comparison. When you use plain `DHeap`, the `stats` field has type `void` and collapses to zero bytes — the un-instrumented heap has the same layout and machine code as before v2.6.0.
+
+```zig
+const std = @import("std");
+const d_heap = @import("d_heap.zig");
+
+const Item = d_heap.Item;
+const ItemContext = d_heap.ItemContext;
+const ItemComparator = d_heap.ItemComparator;
+const MinByCost = d_heap.MinByCost;
+
+pub fn main() !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    const PQ = d_heap.InstrumentedDHeap(Item, ItemContext, ItemComparator);
+    var pq = try PQ.init(4, MinByCost, allocator);
+    defer pq.deinit();
+
+    try pq.insert(Item.init(1, 10));
+    try pq.insert(Item.init(2, 5));
+    _ = try pq.pop();
+
+    const s = pq.stats;
+    std.debug.print(
+        "insert={d}, pop={d}, total={d}\n",
+        .{ s.insert_count, s.pop_count, s.total() },
+    );
+}
+```
+
+The `ComparisonStats` struct exposes one counter per heap operation (`insert_count`, `pop_count`, `decrease_priority_count`, `increase_priority_count`, `update_priority_count`) plus a `total()` method and `reset()`.
 
 ## Building and Testing
 
@@ -327,3 +372,7 @@ Optimal d depends on your workload. For insert-heavy workloads, larger d (3-4) o
 ## Reference
 
 Section A.3, [d-Heaps](https://en.wikipedia.org/wiki/D-ary_heap), pp. 773–778 of Ravindra Ahuja, Thomas Magnanti & James Orlin, **Network Flows** (Prentice Hall, 1993).
+
+## License
+
+Apache License 2.0 — See [LICENSE](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/LICENSE) for details.

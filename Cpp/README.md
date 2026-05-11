@@ -1,11 +1,34 @@
 ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (C++23) v2.5.0
+# d-Heap Priority Queue (C++23) v2.6.0
 
-This is a generic d-ary heap priority queue supporting both min-queue and max-queue behavior through a comparator, with modern C++23 error handling via `std::expected`.
+**Wikipedia-standard d-ary heap (C++23)** with configurable arity, O(1) item lookup, modern `std::expected` error handling, and zero-cost comparison-count instrumentation. Cross-language API parity with Go, Rust, TypeScript, and Zig.
 
-## What's New in v2.5.0
+## 🎬 See it in action
+
+**[Interactive demo →](https://pcfvw.github.io/d-Heap-priority-queue/)**
+
+Watch the heap tree update as items are inserted, popped, and re-prioritized. Toggle arity (d=2 / d=4 / d=8) to see how tree depth changes. Step through Dijkstra's algorithm on a weighted graph, or run **race mode** to compare all three arities side-by-side. Built with React Flow; runs in the browser, no install.
+
+## Why this crate?
+
+If you already know you want a priority queue, here's what this header-only library gives you over `std::priority_queue` and Boost.Heap:
+
+- **Configurable arity `d`** (not just d=2). Pick `d=4` for cache-friendlier inserts, `d=8` for very insert-heavy workloads.
+- **O(1) item lookup + priority updates.** `increase_priority(item)`, `decrease_priority(item)`, `update_priority(item)` — the operations Dijkstra and A\* actually need. `std::priority_queue` exposes none of these (you'd build a parallel index manually).
+- **Zero-cost comparison-count instrumentation** (new in v2.6.0). Template-policy class with `[[no_unique_address]]` zero-bytes elision; `sizeof(PriorityQueue<int>)` unchanged when the default `NoOpStats` is selected, `static_assert`-checked.
+- **C++23 `std::expected<T, Error>`** for fallible operations alongside assertion-based variants for hot paths.
+- **Cross-language API parity** with Rust, Go, TypeScript, and Zig — byte-for-byte identical comparison counts on shared benchmarks (verified across 24 cells × 5 languages).
+- **Published numbers**: see [`benchmarks/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks). C++ runs `huge_dense × d=8` at **15.1 ms / ~199 ns/cmp** on AMD Ryzen 9 5950X (MSVC 19.44, Release `/O2 /utf-8`). Full [methodology](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
+
+## What's New in v2.6.0
+
+- **Comparison-count instrumentation**: 5th defaulted template parameter `TStats = NoOpStats` on `PriorityQueue<T, …>`. New `InstrumentedPriorityQueue<T, …>` alias for the `ComparisonStats` variant. Zero-bytes elision via `[[no_unique_address]]` / `[[msvc::no_unique_address]]`; `sizeof(InstrumentedPriorityQueue<int>) - sizeof(PriorityQueue<int>) == sizeof(ComparisonStats)` is `static_assert`-checked.
+- **Cross-language parity for instrumentation**: byte-for-byte identical comparison counts with the Rust, Go, TypeScript, and Zig implementations (verified across 24 (graph, arity) cells).
+- **Phase 3 benchmark harness**: `examples/dijkstra/Cpp/` runs the cross-language Dijkstra sweep; see [`benchmarks/methodology.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
+
+### What's New in v2.5.0
 
 - **C++23 `std::expected` error handling**: Safe, expressive error propagation for all fallible operations
 - **New Error enum**: `InvalidArity`, `ItemNotFound`, `IndexOutOfBounds`, `EmptyQueue`
@@ -13,17 +36,6 @@ This is a generic d-ary heap priority queue supporting both min-queue and max-qu
 - **Bulk operations**: `insert_many()` with Floyd's O(n) heapify, `pop_many()` for batch extraction
 - **Complete priority API**: `update_priority()`, `decrease_priority_by_index()`, `update_priority_by_index()`
 - **Cross-language parity**: `to_array()`, `pop_front()` returning `std::optional<T>`
-
-## Strengths
-
-- **Flexible behavior**: min-heap or max-heap via a comparator (`std::less<T>` by default), and configurable arity `d` at construction time.
-- **Efficient operations** on n items (see reference below):
-  - O(1): access the highest-priority item (`front()`, `peek()`).
-  - O(log_d n): `insert()` and upward reheapification.
-  - O(d · log_d n): delete-top (`pop()`), and child selection per level in a d-ary heap.
-- **O(1) item lookup**: an internal dictionary maps each item to its position, enabling efficient priority updates by item identity.
-- **Modern error handling**: `std::expected<T, Error>` for safe operations, legacy assert-based methods for backward compatibility.
-- **Bulk operations**: `insert_many()` uses Floyd's heapify for O(n) batch insertion.
 
 ## API Reference
 
@@ -194,6 +206,30 @@ if (result) {
 }
 ```
 
+### Comparison-count instrumentation (v2.6.0)
+
+Opt in by constructing `InstrumentedPriorityQueue<T, …>` instead of `PriorityQueue<T, …>`. The default queue type uses `NoOpStats` — a ZST that monomorphizes away under `[[no_unique_address]]`, so the un-instrumented heap has the same layout and machine code as before v2.6.0.
+
+```cpp
+#include "PriorityQueue.h"
+using namespace TOOLS;
+
+InstrumentedPriorityQueue<int> pq(4);   // d = 4
+
+pq.insert(5);
+pq.insert(3);
+pq.insert(8);
+pq.pop();
+
+const auto& s = pq.stats();
+std::cout << std::format(
+    "insert={}, pop={}, total={}\n",
+    s.insert, s.pop, s.total()
+);
+```
+
+`ComparisonStats` exposes one accessor per operation (`insert`, `pop`, `decrease_priority`, `increase_priority`, `update_priority`) plus `total()` and `reset()`.
+
 ## Compilation
 
 Requires C++23 compiler with `<expected>` support.
@@ -264,3 +300,7 @@ Time complexities over n items:
 ## Reference
 
 Section A.3, [d-Heaps](https://en.wikipedia.org/wiki/D-ary_heap), pp. 773–778 of Ravindra Ahuja, Thomas Magnanti & James Orlin, **Network Flows** (Prentice Hall, 1993). Book info: https://mitmgmtfaculty.mit.edu/jorlin/network-flows/
+
+## License
+
+Apache License 2.0 — See [LICENSE](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/LICENSE) for details.

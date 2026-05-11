@@ -3,23 +3,26 @@
 ![crates.io](https://img.shields.io/crates/v/d-ary-heap.svg)
 ![docs.rs](https://docs.rs/d-ary-heap/badge.svg)
 
-# d-ary Heap Priority Queue (Rust) v2.5.0
+# d-ary Heap Priority Queue (Rust) v2.6.0
 
-**Wikipedia-standard d-ary heap implementation** with O(1) item lookup and configurable arity.
+**Wikipedia-standard d-ary heap** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation. Cross-language API parity with C++, Go, TypeScript, and Zig.
 
-## Key Features
+## 🎬 See it in action
 
-- **d-ary heap (not binary)**: Configurable arity `d` (number of children per node)
-- **Min/Max flexibility**: Supports both min-heap and max-heap behavior via comparators
-- **O(1) item lookup**: Internal hash map enables efficient priority updates
-- **Efficient operations**:
-  - O(1): `front()`, `peek()`, `len()`, `is_empty()`, `contains()`, `get_position()`
-  - O(log_d n): `insert()`, `increase_priority()`
-  - O(d × log_d n): `pop()`, `decrease_priority()`
-  - O(n): `insert_many()` (Floyd's heapify), `to_array()`
-- **Cross-language API**: Unified methods matching C++, Go, Zig, and TypeScript implementations
-- **Rust-idiomatic**: Uses `Result<T, Error>` and `Option<T>` return types
-- **Comparison-count instrumentation** (v2.6.0): opt-in per-operation counters via the `StatsCollector` trait. Default `S = NoOpStats` is zero-cost (monomorphisation + ZST layout); see [Comparison-count instrumentation](#comparison-count-instrumentation) below.
+**[Interactive demo →](https://pcfvw.github.io/d-Heap-priority-queue/)**
+
+Watch the heap tree update as items are inserted, popped, and re-prioritized. Toggle arity (d=2 / d=4 / d=8) to see how tree depth changes. Step through Dijkstra's algorithm on a weighted graph, or run **race mode** to compare all three arities side-by-side. Built with React Flow; runs in the browser, no install.
+
+## Why this crate?
+
+If you already know you want a priority queue, here's what `d-ary-heap` gives you over `std::collections::BinaryHeap` and the other crates on crates.io:
+
+- **Configurable arity `d`** (not just d=2). Pick `d=4` for cache-friendlier inserts, `d=8` for very insert-heavy workloads.
+- **O(1) item lookup + priority updates.** `increase_priority(item)`, `decrease_priority(item)`, `update_priority(item)` — the operations Dijkstra and A\* actually need. `std::collections::BinaryHeap` doesn't expose these.
+- **Zero-cost comparison-count instrumentation** (new in v2.6.0). Opt in via `PriorityQueue::with_stats(d, cmp)` to count per-operation comparisons; the default `S = NoOpStats` is a ZST and monomorphizes away. Useful for algorithm research, teaching, and verifying expected behaviour. See [Comparison-count instrumentation](#comparison-count-instrumentation) below.
+- **Cross-language API parity** with C++, Go, TypeScript, and Zig — same method names, same complexity guarantees, byte-for-byte identical comparison counts on shared benchmarks. Useful when your team works in more than one language.
+- **Hardened**: `#![forbid(unsafe_code)]`, `#![deny(warnings)]`, `#[non_exhaustive] Error`, `clippy::pedantic` + `cargo fmt --check` enforced in CI.
+- **Published numbers**: see [`benchmarks/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks) for cross-language Dijkstra benchmarks (24 cells × 5 languages) and the [methodology](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
 
 ## Installation
 
@@ -27,7 +30,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-d-ary-heap = "2.5.0"
+d-ary-heap = "2.6.0"
 ```
 
 ## Quick Start
@@ -211,7 +214,7 @@ println!(
 
 `ComparisonStats` exposes one accessor per heap operation (`insert()`, `pop()`, `decrease_priority()`, `increase_priority()`, `update_priority()`) plus `total()` and `reset()`. Counters are scoped to the operation that triggered the comparison, so e.g. `pq.pop()` only increments the `pop` bucket — even though the same `compare()` helper is used internally by `insert`.
 
-Cross-language note: the contract (operation buckets, names, semantics) is identical in TypeScript, C++, Go, and Zig. On the `huge_dense` benchmark all five languages produce byte-for-byte identical totals; see [`benchmarks/README.md`](../benchmarks/README.md#cost-per-heap-comparison-huge_dense-derived-from---stats) for the cost-per-comparison comparison.
+Cross-language note: the contract (operation buckets, names, semantics) is identical in TypeScript, C++, Go, and Zig. On the `huge_dense` benchmark all five languages produce byte-for-byte identical totals; see [`benchmarks/README.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/README.md#cost-per-heap-comparison-huge_dense-derived-from---stats) for the cost-per-comparison comparison.
 
 ## API Reference
 
@@ -295,10 +298,10 @@ Cross-language note: the contract (operation buckets, names, semantics) is ident
 ## Cross-Language Compatibility
 
 This implementation provides API parity with:
-- **C++**: `PriorityQueue<T>` in `Cpp/PriorityQueue.h`
-- **Go**: `PriorityQueue[T]` in `Go/src/dheap.go`
-- **Zig**: `DHeap(T)` in `zig/src/d_heap.zig`
-- **TypeScript**: `PriorityQueue<T>` in `TypeScript/src/PriorityQueue.ts`
+- **C++**: `PriorityQueue<T>` in [`Cpp/PriorityQueue.h`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/Cpp/PriorityQueue.h)
+- **Go**: `PriorityQueue[T]` in [`Go/src/dheap.go`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/Go/src/dheap.go)
+- **Zig**: `DHeap(T)` in [`zig/src/d_heap.zig`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/zig/src/d_heap.zig)
+- **TypeScript**: `PriorityQueue<T>` in [`TypeScript/src/PriorityQueue.ts`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/TypeScript/src/PriorityQueue.ts)
 
 All implementations share:
 - Identical time complexities
@@ -352,4 +355,4 @@ cargo run
 
 ## License
 
-Apache License 2.0 - See [LICENSE](../LICENSE) for details.
+Apache License 2.0 - See [LICENSE](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/LICENSE) for details.

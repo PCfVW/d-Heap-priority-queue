@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Convention** (from v2.7.0, with the ~4–6 week minor-version cadence): every user-visible change adds a line to `[Unreleased]` *at the time the change lands*, not retroactively at release. Internal refactors that don't affect users may be omitted.
+
 ## [Unreleased]
 
 v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph corpus + tooling + GRAMMAR spec) complete; Phase 2 (cross-language comparison-count instrumentation) complete for **all five** languages (C++, Go, Rust, TypeScript, Zig); Phase 3 (benchmark runners + results) **complete for all five languages**.

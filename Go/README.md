@@ -2,21 +2,26 @@
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 ![pkg.go.dev](https://pkg.go.dev/badge/github.com/PCfVW/d-Heap-priority-queue/Go.svg)
 
-# d-ary Heap Priority Queue (Go) v2.5.0
+# d-ary Heap Priority Queue (Go) v2.6.0
 
-**Wikipedia-standard d-ary heap implementation** with O(1) item lookup and configurable arity.
+**Wikipedia-standard d-ary heap** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation. Cross-language API parity with C++, Rust, TypeScript, and Zig.
 
-## Key Features
+## 🎬 See it in action
 
-- **d-ary heap (not binary)**: Configurable arity `d` (number of children per node)
-- **Min/Max flexibility**: Supports both min-heap and max-heap behavior via comparators
-- **O(1) item lookup**: Internal map enables efficient priority updates
-- **Efficient operations**:
-  - O(1): `Front()`, `Peek()`, `Len()`, `IsEmpty()`, `Contains()`
-  - O(log_d n): `Insert()`, `IncreasePriority()`
-  - O(d × log_d n): `Pop()`, `DecreasePriority()`
-- **Cross-language API**: Unified methods matching C++, Rust, Zig, and TypeScript implementations
-- **Go-idiomatic**: Implements `fmt.Stringer` interface, uses generics (Go 1.21+)
+**[Interactive demo →](https://pcfvw.github.io/d-Heap-priority-queue/)**
+
+Watch the heap tree update as items are inserted, popped, and re-prioritized. Toggle arity (d=2 / d=4 / d=8) to see how tree depth changes. Step through Dijkstra's algorithm on a weighted graph, or run **race mode** to compare all three arities side-by-side. Built with React Flow; runs in the browser, no install.
+
+## Why this crate?
+
+If you already know you want a priority queue, here's what `d-Heap-priority-queue` gives you over `container/heap` and other Go alternatives:
+
+- **Configurable arity `d`** (not just d=2). Pick `d=4` for cache-friendlier inserts, `d=8` for very insert-heavy workloads.
+- **O(1) item lookup + priority updates.** `IncreasePriority(item)`, `DecreasePriority(item)`, `UpdatePriority(item)` — the operations Dijkstra and A\* actually need. `container/heap` requires manual `heap.Fix(i)` calls and you have to track indices yourself.
+- **Zero-overhead comparison-count instrumentation** (new in v2.6.0). Opt-in via `Options.Stats *Stats`; nil by default, costs a single well-predicted nil check per comparison when disabled. See [Instrumentation (v2.6.0)](#instrumentation-v260) below.
+- **Cross-language API parity** with C++, Rust, TypeScript, and Zig — same method semantics, byte-for-byte identical comparison counts on shared benchmarks (verified across 24 cells × 5 languages).
+- **Generics (Go 1.21+)**, idiomatic `fmt.Stringer`, snake_case aliases for cross-language porting.
+- **Published numbers**: see [`benchmarks/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks) for the cross-language Dijkstra sweep. Go leads on `huge_dense × d=8` at **11.0 ms / 145 ns/cmp** on AMD Ryzen 9 5950X. Full [methodology](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
 
 ## Installation
 
@@ -160,6 +165,26 @@ pq.InsertMany([]int{5, 3, 7, 1, 9, 2})
 items := pq.PopMany(3) // [1, 2, 3]
 ```
 
+### Instrumentation (v2.6.0)
+
+Opt-in comparison-count instrumentation. The default (no `Stats` field) is a nil pointer; the heap pays a single well-predicted nil check per comparison.
+
+```go
+var stats dheap.Stats
+pq := dheap.New(dheap.Options[Vertex, string]{
+    D:            4,
+    Comparator:   dheap.MinBy(func(v Vertex) int { return v.Distance }),
+    KeyExtractor: func(v Vertex) string { return v.ID },
+    Stats:        &stats, // opt in: heap now updates this Stats on every comparison
+})
+
+// ... use pq ...
+
+fmt.Printf("inserts=%d, pops=%d, total=%d\n", stats.Insert, stats.Pop, stats.Total())
+```
+
+`Stats.Total()` and `Stats.Reset()` are nil-safe (Go's method-on-nil-receiver pattern), so `pq.Stats().Total()` works whether or not instrumentation was attached.
+
 ## API Reference
 
 ### Core Types
@@ -265,10 +290,10 @@ This library uses **importance-based** semantics:
 ## Cross-Language Compatibility
 
 This implementation provides API parity with:
-- **C++**: `PriorityQueue<T>` in `Cpp/PriorityQueue.h`
-- **Rust**: `d_ary_heap::PriorityQueue` in `Rust/src/lib.rs`
-- **Zig**: `DHeap(T)` in `zig/src/dheap.zig`
-- **TypeScript**: `PriorityQueue<T>` in `TypeScript/src/PriorityQueue.ts`
+- **C++**: `PriorityQueue<T>` in [`Cpp/PriorityQueue.h`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/Cpp/PriorityQueue.h)
+- **Rust**: `d_ary_heap::PriorityQueue` in [`Rust/src/lib.rs`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/Rust/src/lib.rs)
+- **Zig**: `DHeap(T)` in [`zig/src/d_heap.zig`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/zig/src/d_heap.zig)
+- **TypeScript**: `PriorityQueue<T>` in [`TypeScript/src/PriorityQueue.ts`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/TypeScript/src/PriorityQueue.ts)
 
 All implementations share identical time complexities and method semantics.
 

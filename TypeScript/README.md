@@ -1,24 +1,26 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (TypeScript) v2.5.0
+# d-Heap Priority Queue (TypeScript) v2.6.0
 
-A high-performance, generic d-ary heap priority queue with O(1) item lookup, supporting both min-heap and max-heap behavior.
+**Wikipedia-standard d-ary heap** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation. Cross-language API parity with C++, Go, Rust, and Zig.
 
-**[Live Demo](https://pcfvw.github.io/d-Heap-priority-queue/)** — Interactive visualization with Dijkstra's algorithm
+## 🎬 See it in action
 
-## Strengths
+**[Interactive demo →](https://pcfvw.github.io/d-Heap-priority-queue/)**
 
-- **Flexible behavior**: min-heap or max-heap via comparator functions, and configurable arity `d` at construction time.
-- **Efficient operations** on n items:
-  - O(1): access the highest-priority item (`front()`, `peek()`).
-  - O(log_d n): `insert()` and upward reheapification.
-  - O(d · log_d n): delete-top (`pop()`), with up to d children examined per level.
-- **O(1) item lookup**: internal Map tracks positions by item key, enabling efficient priority updates.
-- **Practical API**: `insert`, `front`, `peek`, `pop`, `increasePriority`, `decreasePriority`, `updatePriority`, `isEmpty`, `len`, `contains`.
-- **Unified API**: Cross-language standardized methods matching C++, Rust, and Zig implementations.
-- **TypeScript-native**: Full type safety, generics, and IDE support.
-- **Zero dependencies**: No runtime dependencies.
+Watch the heap tree update as items are inserted, popped, and re-prioritized. Toggle arity (d=2 / d=4 / d=8) to see how tree depth changes. Step through Dijkstra's algorithm on a weighted graph, or run **race mode** to compare all three arities side-by-side. Built with React Flow; runs in the browser, no install.
+
+## Why this crate?
+
+If you already know you want a priority queue, here's what `d-ary-heap` gives you over `js-priority-queue`, `priority-queue`, and other npm alternatives:
+
+- **Configurable arity `d`** (not just d=2). Pick `d=4` for cache-friendlier inserts, `d=8` for very insert-heavy workloads.
+- **O(1) item lookup + priority updates.** `increasePriority(item)`, `decreasePriority(item)`, `updatePriority(item)` — the operations Dijkstra and A\* actually need. Most npm priority-queue packages don't expose these.
+- **Zero-cost comparison-count instrumentation** (in the library since v2.4.0; cross-language identical since v2.6.0). Opt-in `instrumentComparator(...)` + `onBeforeOperation` / `onAfterOperation` heap hooks; JIT-elided when not in use. See [Instrumentation](#instrumentation-v240) below.
+- **Cross-language API parity** with Rust, Go, C++, and Zig — same method names, same complexity guarantees, **byte-for-byte identical comparison counts** on shared benchmarks (verified across 24 cells × 5 languages).
+- **Zero runtime dependencies. Full TypeScript types.**
+- **Published numbers**: see [`benchmarks/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks) for cross-language Dijkstra benchmarks (24 cells × 5 languages) and the [methodology](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
 
 ## Installation
 
@@ -232,15 +234,15 @@ For a d-ary heap with n elements:
 
 ### Cross-Language Consistency
 
-Currently, instrumentation is implemented in TypeScript only. The table below shows the idiomatic zero-cost approach for each language, planned for v2.5.0:
+Instrumentation is implemented in **all five languages** with **byte-for-byte identical comparison counts** (verified across 24 (graph, arity) cells; see [benchmarks/README.md](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/README.md)). Each language uses its idiomatic zero-cost mechanism:
 
-| Language   | Mechanism                        | Overhead When Disabled | Status |
-|------------|----------------------------------|------------------------|--------|
-| TypeScript | Optional hooks + instrumented comparator | Zero (JIT optimization) | ✅ Implemented |
-| Go         | Nil stats pointer                | ~1 cycle (nil check)   | Planned v2.5.0 |
-| Rust       | Generic over StatsCollector trait | Zero (monomorphization) | Planned v2.5.0 |
-| C++        | Template policy class            | Zero (inlining)        | Planned v2.5.0 |
-| Zig        | Comptime bool parameter          | Zero (branch elimination) | Planned v2.5.0 |
+| Language   | Mechanism                                       | Overhead When Disabled |
+|------------|-------------------------------------------------|------------------------|
+| TypeScript | Optional hooks + instrumented comparator        | Zero (JIT optimization) |
+| Go         | Nil stats pointer                               | ~1 cycle (nil check)   |
+| Rust       | Generic over `StatsCollector` trait             | Zero (monomorphization + ZST layout) |
+| C++        | Template policy class + `[[no_unique_address]]` | Zero (inlining + ZST collapse) |
+| Zig        | Comptime bool parameter on `DHeapWithStats`     | Zero (branch elimination + `void` field type) |
 
 ## Priority Update Semantics
 
@@ -261,14 +263,9 @@ This library uses **importance-based** semantics:
 
 ## Performance
 
-### Benchmark Results (Node.js v20, typical hardware)
+### Benchmarks
 
-| Operation | d=2 | d=4 | d=8 |
-|-----------|-----|-----|-----|
-| 100k inserts | ~21ms | ~13ms | ~11ms |
-| 100k pops | ~187ms | ~136ms | ~140ms |
-| Throughput (insert) | ~2.2M ops/sec | | |
-| Throughput (pop+insert) | ~900k ops/sec | | |
+See [`benchmarks/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks) for the Phase 3 cross-language Dijkstra sweep (24 cells × 5 languages, K=2 warmup + 10 timed reps each, median + IQR reporting). On AMD Ryzen 9 5950X with Node v24.11.1, the TypeScript example runs `huge_dense × d=8` (75 936 heap comparisons) at a median of **13.4 ms (~177 ns/cmp)** — within 25% of Go's 11.0 ms / 145 ns/cmp on the same workload. The full methodology is in [`benchmarks/methodology.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
 
 ### Performance Tips
 
@@ -324,3 +321,7 @@ npm run typecheck
 ## Reference
 
 Section A.3, [d-Heaps](https://en.wikipedia.org/wiki/D-ary_heap), pp. 773–778 of Ravindra Ahuja, Thomas Magnanti & James Orlin, **Network Flows** (Prentice Hall, 1993).
+
+## License
+
+Apache License 2.0 — See [LICENSE](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/LICENSE) for details.

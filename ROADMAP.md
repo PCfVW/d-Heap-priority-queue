@@ -171,7 +171,7 @@ All five Dijkstra examples gain a `--graph=<name>` flag (default `small`) and an
 
 ### Phase 2: Cross-Language Instrumentation
 
-Extend the TypeScript instrumentation pattern to all languages:
+TypeScript instrumentation shipped in v2.4.0 (the `instrumentComparator` / `onBeforeOperation` / `onAfterOperation` API). Phase 2 extends the pattern to the remaining four languages, each using its idiomatic zero-cost mechanism:
 
 | Language | Mechanism | Overhead When Disabled |
 |----------|-----------|------------------------|
@@ -180,7 +180,11 @@ Extend the TypeScript instrumentation pattern to all languages:
 | C++ | Template policy class | Zero (inlining) |
 | Zig | Comptime bool parameter | Zero (branch elimination) |
 
-Each implementation will track comparison counts per operation (insert, pop, decreasePriority, updatePriority) with zero overhead when disabled.
+- [x] Go — `Options.Stats *Stats` (commit `5490423`)
+- [x] C++ — `TStats = NoOpStats` template parameter (commit `983df98`)
+- [x] Rust — `S = NoOpStats` generic (commit `3669d0b`)
+- [x] Zig — `comptime collect_stats: bool` (commit `fa2d3fe`)
+- [x] 5-way Phase 2 invariant — all languages produce byte-for-byte identical `total` comparison counts on shared benchmarks (verified across 24 cells in Phase 3).
 
 ### Phase 3: Benchmark Infrastructure
 
@@ -195,42 +199,78 @@ Each implementation will track comparison counts per operation (insert, pop, dec
 
 ---
 
-## CI/CD Automation
+## v2.7.0 — Automation & Per-Section Timing
 
-> *Why automate publishing?*
+> *Why now?*
 
-Manual publishing is error-prone and easy to forget. Automating the release process ensures consistency and reduces friction for future releases.
+The ~19 weekly npm downloads + the existing crates.io / pkg.go.dev cohorts make "ship more often" a real lever, but each manual cross-language release is heavy. CI/CD lands first to *make the next release cheaper*. Phase 3.5 (per-section timing inside Dijkstra) then ships under the new automation — closing the Phase 2 attribution gap (why is Go 2× faster than Rust on `huge_dense`?) and giving the new workflows a real release to prove themselves on.
 
-### Planned Workflows
+Target cadence: 4–6 weeks per minor.
 
-| Workflow | Trigger | Action |
-|----------|---------|--------|
-| **npm publish** | GitHub Release published | Publish TypeScript package to npm |
-| **GitHub Release** | Tag pushed (`v*`) | Auto-create release with changelog |
+### CI/CD Workflows (lands first)
 
-### npm Publish Workflow
+The standalone `deploy-demo.yml` is the only workflow today; everything else is manual.
 
-Automatically publish to npm when a GitHub release is created:
+- [ ] `.github/workflows/create-release.yml` — on `v*` tag push: extract the corresponding section from `CHANGELOG.md`, create a GitHub Release with formatted notes. Benefits all 5 languages (gives every ship a single canonical release page).
+- [ ] `.github/workflows/publish-npm.yml` — on GitHub Release published: run TypeScript tests, then `npm publish`. Requires `NPM_TOKEN` secret. `prepublishOnly` script already builds.
+- [ ] `.github/workflows/publish-crates.yml` — on GitHub Release published: run Rust tests, then `cargo publish`. Requires `CARGO_REGISTRY_TOKEN` secret.
+- Go / C++ / Zig: no workflow needed. Go's pkg.go.dev is git-tag-driven (push `go/vX.Y.Z`); C++ and Zig distribute via the repo source. The `create-release.yml` page covers their release notes need.
 
-- [ ] `.github/workflows/publish-npm.yml`
-- [ ] Requires `NPM_TOKEN` secret (Automation token from npmjs.com)
-- [ ] Runs tests before publishing
-- [ ] Uses `prepublishOnly` script for build
+### Phase 3.5 — Per-Section Timing (after CI/CD)
 
-### GitHub Release Workflow
+The methodology section is already drafted in [`benchmarks/methodology.md`](benchmarks/methodology.md) (drafted in the v2.6.0 doc pass). v2.7.0 ships the implementation.
 
-Automatically create a GitHub release when a version tag is pushed:
+- [ ] Add `--profile-sections` flag to all 5 Dijkstra example binaries
+- [ ] Implement section timers around `setup` / `pop` / `relax` / `inc_pri` in each example's `dijkstra` implementation (cross-language consistency enforced by code review — the timer pairs wrap the same lines in each language)
+- [ ] `benchmarks/scripts/<Lang>/run.ps1` gains a Pass 4 (profile-sections); writes `benchmarks/results/<Lang>/<graph>_d<arity>.profile.json` for all 120 cells
+- [ ] `benchmarks/results/SECTIONS.md` cross-language attribution tables, focused on `huge_dense × d=8`: % time per section + absolute µs per section
+- [ ] `CHANGELOG.md` entry + the answer to "where does Rust's extra 11 ms go?"
 
-- [ ] `.github/workflows/create-release.yml`
-- [ ] Trigger on `v*` tags (e.g., `v2.6.0`)
-- [ ] Extract release notes from CHANGELOG.md
-- [ ] Create release with proper formatting
-
-### Current Workflows
+### Current workflows (reference)
 
 | Workflow | Status | Purpose |
 |----------|--------|---------|
-| `deploy-demo.yml` | ✅ Active | Deploy React demo to GitHub Pages |
+| `deploy-demo.yml` | ✅ Active | Deploy React Flow demo to GitHub Pages |
+
+---
+
+## v2.8.0 — d-ary Huffman codec (TypeScript)
+
+> *Why Huffman? Why TypeScript first?*
+
+Huffman coding is the conceptual complement to Dijkstra: same priority queue, opposite usage profile (extract-min-heavy, no priority updates). The DNA storage angle gives `d > 2` heap arities a concrete reason to exist — **the heap arity *is* the encoding alphabet size**:
+
+- Standard Huffman → binary alphabet → `d=2`
+- Goldman (Nature 2013) ternary DNA storage → 3-letter alphabet → `d=3`
+- ETQ quaternary (A/C/G/T) → 4-letter alphabet → `d=4`
+
+TypeScript first because npm is the most engaged channel (~19/week) and the no-compile loop makes design iteration fastest. The other four languages follow in later releases once the file format / DNA mode CLI / test fixtures are settled.
+
+### Deliverables
+
+- [ ] `examples/huffman/TypeScript/` — encoder, decoder, CLI (`huffman --encode in.txt out.huf` / `--decode in.huf out.txt`)
+- [ ] DNA modes via `--alphabet=binary|ternary|quaternary` (corresponding `d=2|3|4`)
+- [ ] `examples/huffman/FORMAT.md` — file format spec (header, frequency table layout, code table, payload)
+- [ ] Round-trip tests on multiple sample texts; size-ratio comparisons against `gzip` baseline
+- [ ] CHANGELOG entry + `npm publish` via the v2.7.0 automation
+
+Other 4 languages: deferred to v2.10.0+ (port mechanically once the design is locked).
+
+---
+
+## v2.9.0 — Huffman visualization
+
+> *Why visualization?*
+
+Same logic that made v2.4.0 React Flow demo the project's strongest marketing asset: making the algorithm visible converts evaluators into users. Huffman tree construction is visually rich (pairing the two lowest-frequency nodes, building up the tree bottom-up) and the DNA mode toggle is a unique hook — no other Huffman visualization on the web shows `d=3` ternary construction.
+
+### Deliverables
+
+- [ ] Add "Huffman" tab to `demo/` (alongside Dijkstra)
+- [ ] Live frequency-table input; tree builds step-by-step as user types
+- [ ] Animate priority queue extraction + internal-node merging
+- [ ] DNA alphabet toggle (`d=2` binary / `d=3` ternary / `d=4` quaternary), with encoded output preview
+- [ ] Deploys via existing `deploy-demo.yml` workflow
 
 ---
 
@@ -242,9 +282,9 @@ The following are under consideration but not yet scheduled:
 |------|-------------|
 | **Svelte Flow demo** | Parallel visualization using Svelte Flow—same xyflow maintainers, framework diversity mirrors 5-language approach |
 | **Julia implementation** | No d-ary heap exists in the Julia ecosystem—significant gap |
-| **d-ary Huffman codec** | Multi-language Huffman encoding using d-ary heap, with DNA storage modes (Goldman ternary, ETQ quaternary) |
 | **WebAssembly** | Compile Rust to WASM for high-performance browser benchmarks (10k+ node graphs) |
 | **MoonBit implementation** | AI-friendly language for code generation experiments (see `experiment/` directory) |
+| **Multi-language Huffman codec** | Port the v2.8.0/v2.9.0 TypeScript Huffman codec to Go, Rust, C++, and Zig — same cross-language API parity story as Dijkstra. Likely v2.10.0+. |
 
 ### On Svelte Flow
 

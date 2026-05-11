@@ -15,7 +15,7 @@ Phase 3 must produce defensible numbers for three questions the Phase 1 [indicat
 3. **Memory cost** — peak RSS on `huge_dense` per (language, arity).
 
 Explicitly **out of scope** for Phase 3:
-- Per-section timing *inside* `dijkstra` (hash-map vs heap-op vs comparator). Phase 2 cost-per-comparison strongly suggests Rust's `String` clones + SipHash and Zig's `std.StringHashMap` dominate, but attribution requires profiler runs we are not signing up for here.
+- Per-section timing *inside* `dijkstra` (hash-map vs heap-op vs comparator). Phase 2 cost-per-comparison strongly suggests Rust's `String` clones + SipHash and Zig's `std.StringHashMap` dominate. — **Moved into scope as Phase 3.5; see § below.**
 - Bootstrap CIs, Mann-Whitney, regression detection (Criterion-style).
 - Comparisons against `std::priority_queue` / `BinaryHeap` baselines.
 - Multi-threaded variants.
@@ -193,6 +193,98 @@ The corpus generator (`benchmarks/scripts/graphgen/`) already gives us byte-for-
 - **Commit SHA** in `env.commit`.
 
 Anyone with the same toolchain on similar-class hardware should land within single-digit percent of the published medians. Cross-machine variance of 30–50% is normal and uninteresting; cross-machine variance of 3× on a single cell while the other 119 are stable is a bug worth filing.
+
+## Phase 3.5: per-section timing
+
+Phase 3 produced stable median wall times across 5 languages on 24 cells; the 5-way `total` invariant confirms every language performs *exactly* the same number of heap comparisons (75 936 on `huge_dense × d=8`). Yet wall time spreads ~2× — Go 11 016 µs, Rust 22 455 µs. Phase 3.5 attributes that spread: **where, inside `dijkstra(graph, source)`, do the slower languages spend their extra time?**
+
+### Hypothesis to test
+
+Phase 2 ns/cmp ordering (Go 132 → Rust 306) plus the cross-language hash-map analysis suggest:
+- **Heap operations** (`pop_front`, `increase_priority`) are roughly uniform across languages — the d-ary heap is the same algorithm everywhere, and the comparator is a single `i32` distance compare.
+- **Hashmap traffic** in the relax path (`distances[neighbor]`, `predecessors[neighbor]`, `positions[neighbor]`) is wildly non-uniform: Rust SipHash + `String` clone, V8 `Map<string,…>`, Go flat-bucket AES-NI, Zig Wyhash, MSVC chained-bucket `std::unordered_map` all have very different per-op costs.
+
+If the hypothesis holds, Rust's 11 ms gap vs Go should attribute almost entirely to the relax-path hashmap, not to the heap.
+
+### Sections
+
+Four timed regions per `dijkstra` call:
+
+| Section | Code path | Hypothesis |
+|---|---|---|
+| `setup` | initial distance/predecessor map init + N `insert` calls into the empty heap | one-shot; ≪ main loop on `huge_dense` |
+| `pop` | the `heap.pop_front()` call inside the main loop | heap-only; ~uniform across languages |
+| `relax` | adjacency iteration + edge-weight sum + `distances[neighbor]` lookup + comparison + write to `distances` / `predecessors` | hashmap-heavy; expected discriminator |
+| `inc_pri` | `heap.increase_priority(...)` when a shorter path is found | heap-only; ~uniform across languages |
+
+Mutually exclusive and (within rounding) exhaustive — every microsecond inside `dijkstra` belongs to one. Cross-language consistency is a contract: each language wraps the *same* lines of code in the same four timer pairs.
+
+### Mechanism
+
+A new `--profile-sections` flag in each example binary:
+- Implies a single un-iterated `dijkstra` call (no warmup, no `--repetitions` — section timers are sub-µs and per-call accumulator variance would dominate at small N).
+- Each language uses its native nano-precision timer (`Instant::now` / `time.Now` / `performance.now` / `nanoTimestamp` / `chrono::high_resolution_clock`).
+- Output: one JSON object on stdout with the four absolute section timings plus their sum.
+
+The timer call sites live in the example's `dijkstra` implementation (not the heap library) — Phase 2 instrumentation in the library stays untouched. Cross-language consistency is enforced by code review, not by a tool.
+
+### Output schema
+
+Per `(language, graph, arity)` cell, one record at `benchmarks/results/<lang>/<graph>_d<arity>.profile.json`:
+
+```json
+{
+  "schema_version": 1,
+  "language":       "Rust",
+  "graph":          "huge_dense",
+  "arity":          8,
+  "section_us": {
+    "setup":    1234.5,
+    "pop":      5678.9,
+    "relax":   12345.6,
+    "inc_pri":  3456.7,
+    "total":   22715.7
+  }
+}
+```
+
+`total` is the sum of the four sections — **not** the same number as the Phase 3 wall-time median. The section sum measures one un-iterated call (timer perturbation included); the wall-time median is over warmup + 10 timed calls (no section timers). Cross-language *ratios* are the meaningful signal, not absolute parity with Phase 3's `wall_time_us`.
+
+### Scope and reporting
+
+Same 24-cell matrix as Phase 3 wall-time (8 graphs × 3 arities × 5 languages), one `.profile.json` per cell — 120 files. Headline tables in `benchmarks/results/SECTIONS.md` focus on `huge_dense × d=8`:
+
+**Percentage of total time per section:**
+
+| Section | Rust % | Go % | TS % | Zig % | C++ % |
+|---|---:|---:|---:|---:|---:|
+| setup | … | … | … | … | … |
+| pop | … | … | … | … | … |
+| relax | … | … | … | … | … |
+| inc_pri | … | … | … | … | … |
+
+**Absolute time per section (µs)** at `huge_dense × d=8`:
+
+| Section | Rust | Go | TS | Zig | C++ |
+|---|---:|---:|---:|---:|---:|
+| relax | … | … | … | … | … |
+| pop | … | … | … | … | … |
+| inc_pri | … | … | … | … | … |
+| setup | … | … | … | … | … |
+
+The `relax` row is where the hashmap-attribution story should be most visible. If Rust's `relax` is 3× Go's while `pop` and `inc_pri` are within 1.2× of Go's, the SipHash + `String`-clone hypothesis is confirmed at the wall-time level.
+
+### Caveats
+
+- **Timer overhead at sub-µs scale.** Four timer pairs add ~50–200 ns per main-loop iteration. On `huge_dense` (~63 710 pop iterations) that's milliseconds of overhead — non-negligible but symmetric across languages. We report it; we don't try to subtract it.
+- **What this can't measure**: allocator-internal time (Go's GC, Rust's malloc), cache-miss attribution, instruction-cache vs data-cache effects. CPU-counter-grade profiling (`perf` / VTune / ETW) is the right tool for those questions; Phase 3.5 stays in user-mode wall time.
+- **Multiplicative aliasing.** `pop` and `inc_pri` each contain a small `compareTo` callback inside the heap. Timing them at the call site folds the comparator cost into the heap section — intentional, since the comparator is part of the heap path.
+
+### Out of scope for Phase 3.5
+
+- CPU performance counters (cache misses, branch mispredicts). Use `perf` directly when needed.
+- Per-language flamegraphs as the *primary* output. Run them ad-hoc; the cross-language story lives in the section table.
+- Cross-machine reproducibility. Section *ratios* should be roughly stable; absolute section times will vary with CPU/cache.
 
 ## Status checklist
 
