@@ -1,0 +1,1 @@
+{"os":"Microsoft Windows 11 Professionnel build 26200","cpu":"AMD Ryzen 9 5950X 16-Core Processor","cpu_base_ghz":3.4,"logical_cores":32,"ram_gb":64,"turbo":"unknown","power_plan":"Utilisation normale","toolchain":"0.15.2","build_flags":"-Doptimize=ReleaseFast","commit":"0182c7a","date":"2026-05-11T15:47:50.3508610+02:00","host":"redacted"}

@@ -186,12 +186,12 @@ Each implementation will track comparison counts per operation (insert, pop, dec
 
 *Depends on: Phase 2 complete (instrumentation available in all languages)*
 
-- [ ] `benchmarks/scripts/` — Benchmark runners for each language
-- [ ] `benchmarks/results/` — Comparative data (d=2 vs d=4 vs d=8)
-- [ ] `benchmarks/methodology.md` — Reproducible benchmark protocol
-- [ ] Cross-language performance comparison (C++, Go, Rust, Zig, TypeScript)
-- [ ] Dense vs sparse graph analysis
-- [ ] Memory usage profiling
+- [x] `benchmarks/scripts/` — Benchmark runners for each language
+- [x] `benchmarks/results/` — Comparative data (d=2 vs d=4 vs d=8)
+- [x] `benchmarks/methodology.md` — Reproducible benchmark protocol
+- [x] Cross-language performance comparison (C++, Go, Rust, Zig, TypeScript)
+- [x] Dense vs sparse graph analysis
+- [x] Memory usage profiling
 
 ---
 

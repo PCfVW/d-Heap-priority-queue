@@ -1,0 +1,1 @@
+{"schema_version":1,"language":"TypeScript","graph":"large_grid","arity":4,"comparison_counts":{"insert":1023,"pop":15545,"decrease_priority":0,"increase_priority":2767,"update_priority":0,"total":19335}}

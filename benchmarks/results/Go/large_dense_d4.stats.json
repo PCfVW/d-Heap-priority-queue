@@ -1,0 +1,1 @@
+{"schema_version":1,"language":"Go","graph":"large_dense","arity":4,"comparison_counts":{"insert":999,"pop":16237,"decrease_priority":0,"increase_priority":4048,"update_priority":0,"total":21284}}

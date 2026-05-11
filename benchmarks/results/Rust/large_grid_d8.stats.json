@@ -1,0 +1,1 @@
+{"arity":8,"comparison_counts":{"decrease_priority":0,"increase_priority":2093,"insert":1023,"pop":22753,"total":25869,"update_priority":0},"graph":"large_grid","language":"Rust","schema_version":1}

@@ -17,6 +17,49 @@ import (
 	dheap "github.com/PCfVW/d-Heap-priority-queue/Go/v2/src"
 )
 
+// WallTimeRecord is one JSONL line emitted per timed dijkstra call in --json mode.
+type WallTimeRecord struct {
+	SchemaVersion int             `json:"schema_version"`
+	Language      string          `json:"language"`
+	Graph         string          `json:"graph"`
+	Arity         int             `json:"arity"`
+	Source        string          `json:"source"`
+	Target        string          `json:"target"`
+	Rep           int             `json:"rep"`
+	WallTimeUs    float64         `json:"wall_time_us"`
+	Env           json.RawMessage `json:"env,omitempty"`
+}
+
+// StatsRecord is the single JSON object emitted by --json --stats per arity.
+type StatsRecord struct {
+	SchemaVersion    int        `json:"schema_version"`
+	Language         string     `json:"language"`
+	Graph            string     `json:"graph"`
+	Arity            int        `json:"arity"`
+	ComparisonCounts CompCounts `json:"comparison_counts"`
+}
+
+// CompCounts mirrors the six fields the Rust harness emits; Dijkstra leaves
+// decrease_priority and update_priority at 0, but they're emitted for schema
+// uniformity. The aggregator's cross-language invariant is `total` only.
+type CompCounts struct {
+	Insert           int64 `json:"insert"`
+	Pop              int64 `json:"pop"`
+	DecreasePriority int64 `json:"decrease_priority"`
+	IncreasePriority int64 `json:"increase_priority"`
+	UpdatePriority   int64 `json:"update_priority"`
+	Total            int64 `json:"total"`
+}
+
+// RssRecord is the single JSON object emitted by --report-rss.
+type RssRecord struct {
+	SchemaVersion int    `json:"schema_version"`
+	Language      string `json:"language"`
+	Graph         string `json:"graph"`
+	Arity         int    `json:"arity"`
+	PeakRssKb     uint64 `json:"peak_rss_kb"`
+}
+
 func loadGraph(name string) (Graph, error) {
 	filename := name + ".json"
 	candidates := []string{
@@ -69,6 +112,12 @@ func main() {
 	targetFlag := flag.String("target", "", "target vertex ID (defaults to F for small, last vertex otherwise)")
 	quiet := flag.Bool("quiet", false, "suppress per-vertex distance output")
 	statsFlag := flag.Bool("stats", false, "enable comparison-count instrumentation and print per-arity buckets")
+	arityFlag := flag.Int("arity", 0, "run only one specific arity (0 = default [2,4,8])")
+	warmupFlag := flag.Int("warmup", 0, "number of un-timed warmup runs before timed repetitions (--json mode only)")
+	repetitionsFlag := flag.Int("repetitions", 1, "number of timed repetitions per arity (--json mode only)")
+	jsonFlag := flag.Bool("json", false, "emit JSONL records to stdout instead of human-readable output")
+	envFileFlag := flag.String("env-file", "", "path to env-Go.json; contents are inlined into each wall-time record")
+	reportRssFlag := flag.Bool("report-rss", false, "run dijkstra once and emit a single peak-RSS JSON record (requires --arity)")
 	flag.Parse()
 
 	graph, err := loadGraph(*graphName)
@@ -94,6 +143,55 @@ func main() {
 		}
 	}
 
+	var arities []int
+	if *arityFlag > 0 {
+		arities = []int{*arityFlag}
+	} else {
+		arities = []int{2, 4, 8}
+	}
+
+	var envRaw json.RawMessage
+	if *envFileFlag != "" {
+		data, err := os.ReadFile(*envFileFlag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: failed to read --env-file: %v\n", err)
+			os.Exit(1)
+		}
+		var probe interface{}
+		if err := json.Unmarshal(data, &probe); err != nil {
+			fmt.Fprintf(os.Stderr, "error: --env-file is not valid JSON: %v\n", err)
+			os.Exit(1)
+		}
+		envRaw = data
+	}
+
+	if *reportRssFlag {
+		if *arityFlag == 0 {
+			fmt.Fprintln(os.Stderr, "error: --report-rss requires --arity=<d>")
+			os.Exit(1)
+		}
+		d := *arityFlag
+		_ = Dijkstra(graph, source, d)
+		peak, _ := peakRssKb()
+		rec := RssRecord{
+			SchemaVersion: 1,
+			Language:      "Go",
+			Graph:         *graphName,
+			Arity:         d,
+			PeakRssKb:     peak,
+		}
+		data, _ := json.Marshal(rec)
+		fmt.Println(string(data))
+		return
+	}
+
+	if *jsonFlag {
+		for _, d := range arities {
+			runJSON(graph, source, target, d, *graphName, *statsFlag, *warmupFlag, *repetitionsFlag, envRaw)
+		}
+		return
+	}
+
 	fmt.Println("Dijkstra's Algorithm Example")
 	if *graphName == "small" {
 		fmt.Println("Network Flows (Ahuja, Magnanti, Orlin) - Figure 4.7")
@@ -102,7 +200,6 @@ func main() {
 	}
 	fmt.Printf("Finding shortest path from %s to %s\n\n", source, target)
 
-	arities := []int{2, 4, 8}
 	for _, d := range arities {
 		fmt.Printf("--- Using %d-ary heap ---\n", d)
 
@@ -141,5 +238,51 @@ func main() {
 		}
 
 		fmt.Println()
+	}
+}
+
+func runJSON(graph Graph, source, target string, d int, graphName string, statsFlag bool, warmup, repetitions int, envRaw json.RawMessage) {
+	if statsFlag {
+		_, stats := DijkstraInstrumented(graph, source, d)
+		rec := StatsRecord{
+			SchemaVersion: 1,
+			Language:      "Go",
+			Graph:         graphName,
+			Arity:         d,
+			ComparisonCounts: CompCounts{
+				Insert:           int64(stats.Insert),
+				Pop:              int64(stats.Pop),
+				DecreasePriority: int64(stats.DecreasePriority),
+				IncreasePriority: int64(stats.IncreasePriority),
+				UpdatePriority:   int64(stats.UpdatePriority),
+				Total:            int64(stats.Total()),
+			},
+		}
+		data, _ := json.Marshal(rec)
+		fmt.Println(string(data))
+		return
+	}
+
+	for i := 0; i < warmup; i++ {
+		_ = Dijkstra(graph, source, d)
+	}
+	for rep := 1; rep <= repetitions; rep++ {
+		start := time.Now()
+		_ = Dijkstra(graph, source, d)
+		elapsed := time.Since(start)
+		wallTimeUs := float64(elapsed.Nanoseconds()) / 1000.0
+		rec := WallTimeRecord{
+			SchemaVersion: 1,
+			Language:      "Go",
+			Graph:         graphName,
+			Arity:         d,
+			Source:        source,
+			Target:        target,
+			Rep:           rep,
+			WallTimeUs:    wallTimeUs,
+			Env:           envRaw,
+		}
+		data, _ := json.Marshal(rec)
+		fmt.Println(string(data))
 	}
 }

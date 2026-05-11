@@ -1,0 +1,1 @@
+{"schema_version":1,"language":"Zig","graph":"huge_dense","arity":2,"comparison_counts":{"insert":2499,"pop":43593,"decrease_priority":0,"increase_priority":16224,"update_priority":0,"total":62316}}

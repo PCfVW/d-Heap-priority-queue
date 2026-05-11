@@ -8,7 +8,12 @@ import { dijkstra, dijkstraInstrumented, reconstructPath } from './dijkstra.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 function parseArgs(argv) {
-    const args = { graph: 'small', source: null, target: null, quiet: false, stats: false };
+    const args = {
+        graph: 'small', source: null, target: null,
+        quiet: false, stats: false,
+        arity: 0, warmup: 0, repetitions: 1,
+        json: false, envFile: null, reportRss: false,
+    };
     for (const arg of argv.slice(2)) {
         if (arg.startsWith('--graph='))
             args.graph = arg.slice('--graph='.length);
@@ -20,9 +25,21 @@ function parseArgs(argv) {
             args.quiet = true;
         else if (arg === '--stats')
             args.stats = true;
+        else if (arg.startsWith('--arity='))
+            args.arity = parseInt(arg.slice('--arity='.length), 10);
+        else if (arg.startsWith('--warmup='))
+            args.warmup = parseInt(arg.slice('--warmup='.length), 10);
+        else if (arg.startsWith('--repetitions='))
+            args.repetitions = parseInt(arg.slice('--repetitions='.length), 10);
+        else if (arg === '--json')
+            args.json = true;
+        else if (arg.startsWith('--env-file='))
+            args.envFile = arg.slice('--env-file='.length);
+        else if (arg === '--report-rss')
+            args.reportRss = true;
         else {
             console.error(`unknown argument: ${arg}`);
-            console.error('usage: npm start -- [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats]');
+            console.error('usage: node dist/index.js [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] [--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss]');
             process.exit(2);
         }
     }
@@ -46,12 +63,89 @@ function formatResults(distances, source) {
         console.log(`${source} → ${vertex}: ${distanceStr}`);
     }
 }
+function runJSON(graph, source, target, d, graphName, stats, warmup, repetitions, env) {
+    if (stats) {
+        const { stats: cs } = dijkstraInstrumented(graph, source, d);
+        const record = {
+            schema_version: 1,
+            language: 'TypeScript',
+            graph: graphName,
+            arity: d,
+            comparison_counts: {
+                insert: cs.insert,
+                pop: cs.pop,
+                decrease_priority: cs.decreasePriority,
+                increase_priority: cs.increasePriority,
+                update_priority: cs.updatePriority,
+                total: cs.total,
+            },
+        };
+        console.log(JSON.stringify(record));
+        return;
+    }
+    for (let i = 0; i < warmup; i++) {
+        dijkstra(graph, source, d);
+    }
+    for (let rep = 1; rep <= repetitions; rep++) {
+        const start = performance.now();
+        dijkstra(graph, source, d);
+        const end = performance.now();
+        const wallTimeUs = (end - start) * 1000;
+        const record = {
+            schema_version: 1,
+            language: 'TypeScript',
+            graph: graphName,
+            arity: d,
+            source,
+            target,
+            rep,
+            wall_time_us: wallTimeUs,
+            ...(env !== null ? { env } : {}),
+        };
+        console.log(JSON.stringify(record));
+    }
+}
 function main() {
     const args = parseArgs(process.argv);
     const graph = loadGraph(args.graph);
     // Default endpoints: textbook A→F for small; v0→v(N-1) otherwise.
     const source = args.source ?? (args.graph === 'small' ? 'A' : graph.vertices[0]);
     const target = args.target ?? (args.graph === 'small' ? 'F' : graph.vertices[graph.vertices.length - 1]);
+    const arities = args.arity > 0 ? [args.arity] : [2, 4, 8];
+    let env = null;
+    if (args.envFile !== null) {
+        try {
+            env = JSON.parse(readFileSync(args.envFile, 'utf-8'));
+        }
+        catch (e) {
+            console.error(`error: failed to read --env-file: ${e.message}`);
+            process.exit(1);
+        }
+    }
+    if (args.reportRss) {
+        if (args.arity === 0) {
+            console.error('error: --report-rss requires --arity=<d>');
+            process.exit(1);
+        }
+        const d = args.arity;
+        dijkstra(graph, source, d);
+        const peakRssKb = process.resourceUsage().maxRSS;
+        const record = {
+            schema_version: 1,
+            language: 'TypeScript',
+            graph: args.graph,
+            arity: d,
+            peak_rss_kb: peakRssKb,
+        };
+        console.log(JSON.stringify(record));
+        return;
+    }
+    if (args.json) {
+        for (const d of arities) {
+            runJSON(graph, source, target, d, args.graph, args.stats, args.warmup, args.repetitions, env);
+        }
+        return;
+    }
     console.log("Dijkstra's Algorithm Example");
     if (args.graph === 'small') {
         console.log('Network Flows (Ahuja, Magnanti, Orlin) - Figure 4.7');
@@ -60,7 +154,6 @@ function main() {
         console.log(`graph: ${args.graph} (|V|=${graph.vertices.length}, |E|=${graph.edges.length})`);
     }
     console.log(`Finding shortest path from ${source} to ${target}\n`);
-    const arities = [2, 4, 8];
     for (const d of arities) {
         console.log(`--- Using ${d}-ary heap ---`);
         const start = performance.now();

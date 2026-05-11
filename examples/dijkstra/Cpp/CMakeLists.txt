@@ -7,6 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(dijkstra main.cpp)
 add_executable(test_graph_parser test_graph_parser.cpp)
 
+# Phase 3: dijkstra calls Win32 GetProcessMemoryInfo (psapi) for --report-rss.
+if(WIN32)
+    target_link_libraries(dijkstra PRIVATE psapi)
+endif()
+
 # Include path to the main Cpp directory for PriorityQueue.h
 target_include_directories(dijkstra PRIVATE ${CMAKE_SOURCE_DIR}/../../..)
 target_include_directories(test_graph_parser PRIVATE ${CMAKE_SOURCE_DIR}/../../..)
