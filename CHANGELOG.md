@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-v2.6.0 work — *Instrumentation & Benchmarks*. Phase 1 (test graph corpus + tooling + GRAMMAR spec) complete; Phase 2 (cross-language comparison-count instrumentation) complete for **all five** languages (C++, Go, Rust, TypeScript, Zig); Phase 3 (benchmark runners + results) **complete for all five languages**.
+_(v2.7.0 development cycle. Per the cadence convention above, lines land here as changes ship.)_
+
+## [2.6.0] - 2026-05-11
+
+**Released to [crates.io](https://crates.io/crates/d-ary-heap) (Rust) and [npm](https://www.npmjs.com/package/d-ary-heap) (TypeScript); Go module surfaced via `go/v2.6.0` tag on [pkg.go.dev](https://pkg.go.dev/github.com/PCfVW/d-Heap-priority-queue/Go/v2); C++ and Zig distribute via the GitHub repo source.**
+
+*Instrumentation & Benchmarks across all five languages.* Phase 1 (test graph corpus + tooling + GRAMMAR spec), Phase 2 (cross-language comparison-count instrumentation in C++, Go, Rust, TypeScript, Zig), and Phase 3 (benchmark runners + results). The 5-way Phase 2 invariant is verified byte-for-byte across all 24 (graph, arity) cells: every language produces identical comparison counts, isolating cross-language wall-time differences to per-operation cost.
 
 ### Added
 

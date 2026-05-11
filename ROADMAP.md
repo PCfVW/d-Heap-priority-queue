@@ -14,7 +14,7 @@ Each milestone follows a deliberate sequence:
 
 ## Current Status
 
-**v2.5.0** — API Completeness + Complete Dijkstra Examples across all five languages (C++, Go, Rust, Zig, TypeScript).
+**v2.6.0** (released 2026-05-11) — Instrumentation & Benchmarks across all five languages. Comparison-count instrumentation (zero-cost when disabled) + cross-language Dijkstra benchmark harness (255 result files across 24 (graph, arity) cells × 5 languages; 5-way `total` invariant verified byte-for-byte). Published to [crates.io](https://crates.io/crates/d-ary-heap) and [npm](https://www.npmjs.com/package/d-ary-heap); Go module surfaced via `go/v2.6.0` on [pkg.go.dev](https://pkg.go.dev/github.com/PCfVW/d-Heap-priority-queue/Go/v2).
 
 ---
 
@@ -131,7 +131,7 @@ All implementations:
 
 ---
 
-## v2.6.0 — Instrumentation & Benchmarks
+## v2.6.0 — Instrumentation & Benchmarks ✅
 
 > *Why instrumentation now?*
 
