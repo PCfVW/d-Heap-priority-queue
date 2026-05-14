@@ -211,7 +211,7 @@ Target cadence: 4–6 weeks per minor.
 
 The standalone `deploy-demo.yml` is the only workflow today; everything else is manual.
 
-- [ ] `.github/workflows/create-release.yml` — on `v*` tag push: extract the corresponding section from `CHANGELOG.md`, create a GitHub Release with formatted notes. Benefits all 5 languages (gives every ship a single canonical release page).
+- [ ] `.github/workflows/create-release.yml` — on `v*` tag push: extract the corresponding section from `CHANGELOG.md`, create a GitHub Release with formatted notes. Benefits all 5 languages (gives every ship a single canonical release page). **Also creates and pushes the matching `Go/vX.Y.Z` tag** (capital G — pkg.go.dev requires the tag prefix to case-sensitively match the on-disk `Go/` subdirectory) and **triggers the Go module proxy** via `go list -m github.com/PCfVW/d-Heap-priority-queue/Go/v2@vX.Y.Z` so pkg.go.dev surfaces the new version within minutes rather than waiting for organic discovery. Encodes the v2.6.0 ship lesson where a lowercase `go/v2.6.0` tag left pkg.go.dev showing v2.5.0 for two days.
 - [ ] `.github/workflows/publish-npm.yml` — on GitHub Release published: run TypeScript tests, then `npm publish`. Requires `NPM_TOKEN` secret. `prepublishOnly` script already builds.
 - [ ] `.github/workflows/publish-crates.yml` — on GitHub Release published: run Rust tests, then `cargo publish`. Requires `CARGO_REGISTRY_TOKEN` secret.
 - Go / C++ / Zig: no workflow needed. Go's pkg.go.dev is git-tag-driven (push `go/vX.Y.Z`); C++ and Zig distribute via the repo source. The `create-release.yml` page covers their release notes need.
