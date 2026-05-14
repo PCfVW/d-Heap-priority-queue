@@ -1,4 +1,4 @@
-# Min/Max d-Heap Priority Queues (C++, Go, Rust, Zig, and TypeScript) v2.5.0
+# Min/Max d-Heap Priority Queues (C++, Go, Rust, Zig, and TypeScript) v2.6.0
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
 
@@ -32,6 +32,7 @@ This repository contains generic d-ary heap (d-heap) priority queue implementati
 - Examples and unit tests included in each language subproject
 - All five implementations provide the exact same set of operations (API parity across C++, Go, Rust, Zig, and TypeScript).
 - **Unified API**: Cross-language method names standardized for consistent usage across all implementations.
+- **Opt-in comparison-count instrumentation** (v2.6.0): zero-cost when disabled; byte-for-byte identical comparison counts across all 5 languages on shared benchmarks. See the per-language Extensions sections below.
 - <u>Provided</u>: access top (front), insert, update priority of existing item, delete-top (pop), size/length, emptiness check, membership test (contains).
 - <u>Not provided</u>: erase/remove arbitrary item by identity, meld/merge of heaps, stable ordering for equal priorities, or iterators supporting removal during traversal.
 
@@ -186,6 +187,7 @@ All five implementations provide identical functionality—choose based on your 
 While all implementations provide the core d-heap functionality, each offers additional features that leverage their language's strengths:
 
 ### C++ Extensions
+- **Comparison-count instrumentation (v2.6.0)**: 5th defaulted template parameter `TStats = NoOpStats`; new `InstrumentedPriorityQueue<T, …>` alias. Zero-bytes elision via `[[no_unique_address]]` (`[[msvc::no_unique_address]]` on MSVC), `static_assert`-checked.
 - **C++23 error handling**: `std::expected<T, Error>` for safe, expressive error propagation
 - **Safe accessors**: `peek()` returns `std::optional<T>`, `get_position()` returns `std::optional<Position>`
 - **Bulk operations**: `insert_many()` with Floyd's O(n) heapify, `pop_many()` for batch extraction
@@ -197,6 +199,7 @@ While all implementations provide the core d-heap functionality, each offers add
 - **Template specialization**: Full STL compatibility with custom hash/equality functors
 
 ### Go Extensions
+- **Comparison-count instrumentation (v2.6.0)**: `Options.Stats *Stats` opt-in field; nil-by-default, costs a single well-predicted nil check per comparison when disabled. `(*Stats).Total()` and `(*Stats).Reset()` are nil-safe.
 - **Functional options**: `Options[T, K]` struct for clean configuration with `Comparator` and `KeyExtractor`
 - **Bulk operations**: `InsertMany()`, `PopMany()` for efficient batch processing with Floyd's heapify algorithm
 - **Position lookup**: `GetPosition()` for O(1) index lookup by item identity
@@ -209,6 +212,7 @@ While all implementations provide the core d-heap functionality, each offers add
 - **Error handling**: Idiomatic Go error returns from `Front()`, panics for programmer errors (invalid arity, item not found)
 
 ### Rust Extensions
+- **Comparison-count instrumentation (v2.6.0)**: 5th defaulted type parameter `S = NoOpStats`; new `InstrumentedPriorityQueue<T, C>` alias and `PriorityQueue::with_stats(d, c)` constructor. Zero-cost via monomorphization + ZST layout (no attribute needed — Rust's native ZST mechanism is the analog of C++'s `[[no_unique_address]]`).
 - **Result-based error handling**: `Result<T, Error>` for all fallible operations
 - **Index-based updates**: `increase_priority_by_index()`, `decrease_priority_by_index()`, `update_priority_by_index()`
 - **Bulk operations**: `insert_many()` with Floyd's O(n) heapify, `pop_many()` for batch extraction
@@ -219,6 +223,7 @@ While all implementations provide the core d-heap functionality, each offers add
 - **Memory safety**: Compile-time guarantees with zero-cost abstractions
 
 ### Zig Extensions
+- **Comparison-count instrumentation (v2.6.0)**: comptime bool parameter `collect_stats` on `DHeapWithStats(T, Context, Comparator, comptime collect_stats: bool)`; convenience alias `InstrumentedDHeap`. The `stats` field is typed `if (collect_stats) ComparisonStats else void` — zero bytes when disabled via Zig's `void` field collapse.
 - **Pre-allocation**: `initCapacity()` constructor for performance optimization
 - **Bulk operations**: `insertMany()`, `popMany()` for efficient batch processing with Floyd's heapify algorithm
 - **Position lookup**: `getPosition()` for O(1) index lookup by item identity
@@ -238,7 +243,7 @@ While all implementations provide the core d-heap functionality, each offers add
 - **Bulk operations**: `insertMany()`, `popMany()` for efficient batch processing
 - **Array access**: `toArray()` method and `[Symbol.iterator]()` for integration with JavaScript ecosystem
 - **Property access**: `size` property alongside `len()` method
-- **Instrumentation**: Opt-in comparison counting for performance analysis and visualization
+- **Comparison-count instrumentation**: Opt-in via `instrumentComparator(cmp)` + `onBeforeOperation` / `onAfterOperation` heap hooks; JIT-elided when not used. Shipped in v2.4.0, cross-language identical since v2.6.0.
 - **Cross-language aliases**: Snake_case method aliases for easy porting from C++/Rust
 - **Error handling**: Exception-based errors with try-catch handling, safe `peek()` alternative
 
@@ -246,9 +251,18 @@ Choose extensions based on your specific use case—core functionality remains i
 
 ## Version Information
 
-**Current Version: 2.5.0** — C++ API Completeness & Cross-Language Alignment
+**Current Version: 2.6.0** — Instrumentation & Benchmarks
 
-**What's New in 2.5.0:**
+**What's New in 2.6.0:**
+- 🎯 **Comparison-count instrumentation** (Phase 2): Opt-in per-operation comparison counters across all 5 languages, each with its idiomatic zero-cost mechanism — template policy + `[[no_unique_address]]` in C++, generic over `StatsCollector` trait in Rust, nil-pointer pattern in Go, comptime bool parameter in Zig, callback hooks in TypeScript.
+- 🎯 **Cross-language benchmark harness** (Phase 3): 255 result files (51 per language × 5: 24 wall-time `.jsonl` + 24 stats + 3 RSS, on 8 graphs × 3 arities). [`benchmarks/methodology.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md) documents the 3-pass reproducibility protocol (warmup + median-of-10 with IQR).
+- ✅ **5-way Phase 2 invariant verified**: All 5 languages produce byte-for-byte identical `total` comparison counts across all 24 (graph, arity) cells — five very different hash-map implementations (Rust SipHash, Go flat-bucket, V8 `Map`, Zig Wyhash, MSVC `std::unordered_map`) agreeing exactly.
+- ✅ **Test graph corpus** (Phase 1): 7 reproducibly-generated graphs (`medium_*`, `large_*`, `huge_dense`) via [`benchmarks/scripts/graphgen/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks/scripts/graphgen) (standalone Rust crate with seeded `petgraph`); ISO/IEC 14977 EBNF grammar in [`examples/dijkstra/graphs/GRAMMAR.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/examples/dijkstra/graphs/GRAMMAR.md).
+- ✅ **Cross-language wall-time picture** (d=8, AMD Ryzen 9 5950X): Zig leads on `large_*` cells (846 µs sparse / 899 µs grid / 2854 µs dense); Go leads on `huge_dense` (11.0 ms); TypeScript at 13.4 ms, C++ at 15.1 ms, Rust at 22.5 ms.
+- ✅ **Rust crate hardening**: `#![forbid(unsafe_code)]`, `#![deny(warnings)]`, `#[non_exhaustive] Error`, `clippy::pedantic` + `cargo fmt --check` floor.
+- 📚 **README polish across all 5 languages**: sharpened headlines, "Why this crate?" differentiator sections, instrumentation examples, absolute GitHub URLs that render correctly on crates.io / npm / pkg.go.dev.
+
+**Previous in 2.5.0:**
 - 🎯 **Complete Dijkstra Examples**: All 5 languages now have working Dijkstra implementations in `examples/dijkstra/`
 - 🎯 **C++23 Modernization**: `std::expected<T, Error>` for safe, expressive error handling
 - ✅ **C++ API Completeness**: Added `peek()`, `get_position()`, `insert_many()`, `pop_many()`, `pop_front()`, `to_array()`
