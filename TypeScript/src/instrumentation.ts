@@ -238,7 +238,7 @@ export function instrumentComparator<T>(comparator: Comparator<T>): Instrumented
       stats[currentOperation]++;
     }
     return comparator(a, b);
-  }) as InstrumentedComparator<T>;
+  }) as InstrumentedComparator<T>; // ASSERT: the `stats`/`startOperation`/`endOperation` members are attached imperatively below; no structural type can express "this plain function will gain these properties before it's returned"
 
   // Attach stats (read-only from outside)
   Object.defineProperty(instrumented, 'stats', {

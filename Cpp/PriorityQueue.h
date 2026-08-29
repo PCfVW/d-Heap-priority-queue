@@ -414,7 +414,7 @@ namespace TOOLS				// Happy Tooling Happy Gaming
 		// ----- Check if an item with the given identity exists in the queue. O(1) time complexity.
 		bool contains(const T& item) const { return positions.find(item) != positions.end(); }
 
-		// ----- Return the highest priority item of the queue; calling this function on an empty container causes undefined behavior.
+		// ----- Return the highest priority item of the queue. UB: calling this function on an empty container is undefined behavior.
 		typename std::vector<T>::const_reference front() const
 		{
 			return container.front();

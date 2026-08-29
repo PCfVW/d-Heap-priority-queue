@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _(v2.7.0 development cycle. Per the cadence convention above, lines land here as changes ship.)_
 
+### Added
+
+- **CI/CD automation** (v2.7.0, lands first): `.github/workflows/create-release.yml` (on `v*` tag push, extracts the matching `CHANGELOG.md` section via a literal-match awk script and publishes a GitHub Release immediately, then creates/pushes the matching `Go/vX.Y.Z` tag and nudges the Go module proxy), `.github/workflows/publish-npm.yml` and `.github/workflows/publish-crates.yml` (on Release published: test, then publish, each skipping gracefully — no red X — if the local version is already live on its registry, so a future release that doesn't bump every language's version stays safe).
+- **`Go/CONVENTIONS.md`, `Cpp/CONVENTIONS.md`, `zig/CONVENTIONS.md`, `TypeScript/CONVENTIONS.md`**: adapted from Amphigraphic-Strict's Cog/Stoic/Gizmo/Terse respectively, matching `Rust/CONVENTIONS.md`'s structure (Trigger Checklist → "When Writing X" rule sections → testing conventions → honest Lint Floor). Each is grounded in the language's actual source rather than a generic copy of the upstream rules.
+
+### Changed
+
+- **`Rust/CONVENTIONS.md`**: audited against Grit; adds a `# Panics` doc-section rule (mirroring the existing `# Errors` one), documents the crate's deliberate lifetime-elision deviation from Grit Rule 1 (fighting `clippy::needless_lifetimes` otherwise), and records the intentional `thiserror`-free `Error` enum as a documented deviation from Grit Rule 8.
+- **`TypeScript/eslint.config.js`**: fixes a dead rule key (`explicit-function-return-types`, plural — not a real rule, silently ignored), promotes `no-explicit-any` to `'error'`.
+- **`TypeScript/src/PriorityQueue.ts`, `TypeScript/src/instrumentation.ts`**: the 13 existing non-null assertions and one type assertion now carry `// INDEX:`/`// ASSERT:` justification comments, per the new `TypeScript/CONVENTIONS.md` convention (mirrors Rust's `INDEX:`/`CAST:` annotations).
+- **`Cpp/PriorityQueue.h`**: `front()`'s existing UB-on-empty comment reworded to carry the formal `UB:` marker, per the new `Cpp/CONVENTIONS.md` convention.
+
 ## [2.6.0] - 2026-05-11
 
 **Released to [crates.io](https://crates.io/crates/d-ary-heap) (Rust) and [npm](https://www.npmjs.com/package/d-ary-heap) (TypeScript); Go module surfaced via `go/v2.6.0` tag on [pkg.go.dev](https://pkg.go.dev/github.com/PCfVW/d-Heap-priority-queue/Go/v2); C++ and Zig distribute via the GitHub repo source.**

@@ -338,7 +338,7 @@ export class PriorityQueue<T, K = string | number> {
 
     // Add all items to container and positions map
     for (let i = 0; i < items.length; i++) {
-      const item = items[i]!;
+      const item = items[i]!; // INDEX: i < items.length by the loop bound
       container.push(item);
       positions.set(keyExtractor(item), startIndex + i);
     }
@@ -541,7 +541,7 @@ export class PriorityQueue<T, K = string | number> {
     }
 
     const keyExtractor = this.keyExtractor;
-    const top = container[0]!;
+    const top = container[0]!; // INDEX: n > 0 was just checked above
     this.positions.delete(keyExtractor(top));
 
     if (n === 1) {
@@ -551,7 +551,7 @@ export class PriorityQueue<T, K = string | number> {
     }
 
     // Move last item to root and sift down
-    const lastItem = container[n - 1]!;
+    const lastItem = container[n - 1]!; // INDEX: n >= 2 here (n === 1 returned above), so n - 1 >= 1 is a valid index
     container[0] = lastItem;
     this.positions.set(keyExtractor(lastItem), 0);
     container.length = n - 1;
@@ -647,13 +647,13 @@ export class PriorityQueue<T, K = string | number> {
    */
   private swap(i: number, j: number): void {
     const container = this.container;
-    const temp = container[i]!;
-    container[i] = container[j]!;
+    const temp = container[i]!; // INDEX: i, j are always caller-supplied valid heap positions
+    container[i] = container[j]!; // INDEX: see above
     container[j] = temp;
 
     // Update positions
-    this.positions.set(this.keyExtractor(container[i]!), i);
-    this.positions.set(this.keyExtractor(container[j]!), j);
+    this.positions.set(this.keyExtractor(container[i]!), i); // INDEX: container[i] was just written above
+    this.positions.set(this.keyExtractor(container[j]!), j); // INDEX: container[j] was just written above
   }
 
   /**
@@ -671,7 +671,7 @@ export class PriorityQueue<T, K = string | number> {
     const right = Math.min((i + 1) * d, n - 1);
 
     for (let j = left + 1; j <= right; j++) {
-      if (this.comparator(container[j]!, container[best]!)) {
+      if (this.comparator(container[j]!, container[best]!)) { // INDEX: j <= right <= n - 1 and best starts at left < n, both within bounds
         best = j;
       }
     }
@@ -689,7 +689,7 @@ export class PriorityQueue<T, K = string | number> {
 
     while (i > 0) {
       const p = Math.floor((i - 1) / d);
-      if (this.comparator(container[i]!, container[p]!)) {
+      if (this.comparator(container[i]!, container[p]!)) { // INDEX: i > 0 (loop guard) and p = floor((i-1)/d) < i, both within bounds
         this.swap(i, p);
         i = p;
       } else {
@@ -710,7 +710,7 @@ export class PriorityQueue<T, K = string | number> {
       if (firstChild >= container.length) break;
 
       const best = this.bestChildPosition(i);
-      if (this.comparator(container[best]!, container[i]!)) {
+      if (this.comparator(container[best]!, container[i]!)) { // INDEX: firstChild < container.length (loop guard) and bestChildPosition returns an index in [firstChild, container.length - 1]
         this.swap(i, best);
         i = best;
       } else {

@@ -1,0 +1,69 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute version
+        id: version
+        run: |
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract CHANGELOG.md section
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v hdr="## [$VERSION]" '
+            index($0, hdr) == 1 { found=1; next }
+            found && index($0, "## [") == 1 { exit }
+            found { print }
+          ' CHANGELOG.md > notes.raw.md
+
+          # Trim leading/trailing blank lines.
+          sed -e '/./,$!d' -e ':a' -e '/^\n*$/{$d;N;ba' -e '}' notes.raw.md > notes.md
+
+          if [ ! -s notes.md ]; then
+            echo "::error::No CHANGELOG.md section found for version $VERSION (expected a '## [$VERSION]' heading)"
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file notes.md
+
+      - name: Create and push matching Go module tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # pkg.go.dev requires the tag prefix to case-sensitively match the
+          # on-disk `Go/` subdirectory declared in Go/go.mod — capital G.
+          git tag "Go/v${VERSION}"
+          git push origin "Go/v${VERSION}"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Trigger Go module proxy
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          GOFLAGS: -mod=mod
+          GOWORK: 'off'
+        run: |
+          go list -m "github.com/PCfVW/d-Heap-priority-queue/Go/v2@v${VERSION}"

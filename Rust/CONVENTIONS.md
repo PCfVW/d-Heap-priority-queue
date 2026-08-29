@@ -4,6 +4,8 @@ This document describes the [Amphigraphic coding](https://github.com/PCfVW/Amphi
 
 Conventions outside scope (loop fission, `# Memory` sections, PROMOTE / CONTIGUOUS, FFI, feature-gated backends, OOM-safe loaders) are deliberately omitted; consult the sibling `anamnesis`, `candle-mi`, and `hypomnesis` `CONVENTIONS.md` files if the crate ever grows in those directions.
 
+Within *this* project, `Go/CONVENTIONS.md`, `Cpp/CONVENTIONS.md`, `zig/CONVENTIONS.md`, and `TypeScript/CONVENTIONS.md` cover the other four languages (adapted from Amphigraphic-Strict's Cog/Stoic/Gizmo/Terse respectively) and follow this file's structure — Trigger Checklist, rule sections, testing conventions, Lint Floor — so a reader who knows one can navigate any other.
+
 ## Trigger Checklist
 
 **Before writing any line of code, check which triggers apply.**
@@ -13,6 +15,7 @@ Conventions outside scope (loop fission, `# Memory` sections, PROMOTE / CONTIGUO
 | Write a `///` or `//!` comment | [Backtick hygiene](#backtick-hygiene), [field-level docs](#field-level-docs), [intra-doc link safety](#intra-doc-link-safety) |
 | Write a `pub fn` or `pub const fn` | [`const fn`](#const-fn), [`#[must_use]`](#must_use-policy), [pass by value](#pass-by-value-vs-reference) |
 | Write a `pub fn` returning `Result<T>` | [`# Errors` section](#errors-doc-section) |
+| Write a `pub fn` that can panic (`.expect()`, `.unwrap()`, indexing) | [`# Panics` section](#panics-doc-section) |
 | Write a `pub enum` | [`#[non_exhaustive]`](#non_exhaustive-policy) or [`// EXHAUSTIVE:`](#exhaustive-annotation) |
 | Write an `as` cast | [`// CAST:`](#cast-annotation) |
 | Write `slice[i]` or `slice[a..b]` | [`// INDEX:`](#index-annotation) |
@@ -95,6 +98,16 @@ Rules:
 
 This crate is mostly infallible (heap operations don't usually fail), but the constructors and identity-based mutators (`increase_priority(&item)`) do return `Result`. Document them.
 
+### `# Panics` Doc Section
+
+All public methods that can panic (via `.expect()`, `.unwrap()`, or an unchecked index) must include a `# Panics` section in their doc comment, in the same position `# Errors` would occupy (immediately after the summary / time-complexity line, before `# Examples`):
+
+    /// # Panics
+    ///
+    /// Panics if the heap is empty.
+
+`front()` is the crate's only panicking public method today (empty-heap precondition; `peek()` is the non-panicking alternative) and already follows this shape — treat it as the reference example. Every other language's Dijkstra-example doc comment cross-references this method's per-language behavior (C++ UB, Zig `null`, TypeScript throws), so keep the wording of this section in sync with those cross-references if `front()`'s behavior ever changes.
+
 ---
 
 ## When Writing Function Signatures
@@ -140,6 +153,17 @@ The heap's `insert` consumes its argument (`item: T`) — that's correct: owners
 
 > ✅ `pub fn insert(&mut self, item: T)`
 > ❌ `pub fn insert(&mut self, item: &T)` — would force callers to clone.
+
+### Explicit Lifetimes (Deliberate Deviation from Grit)
+
+The upstream [Grit](https://github.com/PCfVW/Amphigraphic-Strict/tree/master/Grit) convention this crate is otherwise based on requires explicit lifetimes on all public APIs (Grit Rule 1), to make borrow relationships visible to an AI reader. This crate does **not** adopt that rule for accessors with a single elided input lifetime, such as:
+
+```rust
+pub fn front(&self) -> &T { ... }
+pub fn stats(&self) -> &S { ... }
+```
+
+Rust's lifetime-elision rules make the borrow relationship here unambiguous (there is exactly one input lifetime, so the output must borrow from it) — and `clippy::needless_lifetimes`, which fires on default at `warn` and is promoted to a hard error by this crate's own `#![deny(warnings)]`, actively rejects the explicit form Grit Rule 1 asks for. Adopting Rule 1 literally here would fight the crate's own lint floor. If a method ever needs more than one input lifetime (making elision genuinely ambiguous), spell the lifetimes out explicitly — that case is exactly what Rule 1 is meant to catch, and Clippy will not object.
 
 ---
 
@@ -296,3 +320,10 @@ Tests are not exempt from `#[must_use]`. If a test calls `pq.peek()` and ignores
 Any new lint introduced by a newer Clippy version that fires on existing code should be fixed at the call site, not silenced — silencing requires an `#[allow(clippy::lint_name)] // <reason>` *with* a justification in the comment. One such allow currently exists in the test code (`clippy::trivially_copy_pass_by_ref` on `tests/instrumentation.rs::identity_i32`, justified because the signature is dictated by the `MinBy<Fn(&T) -> K>` comparator contract).
 
 The MSRV (minimum supported Rust version) is pinned in `Cargo.toml`. If a contribution requires a newer feature, raise the MSRV in a separate commit and note it in `CHANGELOG.md`.
+
+## Deviations from Grit (informative)
+
+This crate's conventions are a subset of Grit, not a verbatim copy. Besides the [explicit-lifetimes deviation](#explicit-lifetimes-deliberate-deviation-from-grit) above, three more Grit rules are deliberately out of scope here rather than silently unimplemented:
+
+- **Rule 8 (standard error pattern via `thiserror`)**: this crate hand-rolls `Display` and `std::error::Error` for its 4-variant `Error` enum instead of depending on `thiserror`. For an enum this small, the derive macro buys little and the crate stays dependency-free by design (see `[features] std = []` — this crate does not pull in any non-`std` dependency). If `Error` ever grows substantially, revisit.
+- **Rule 6 (owned async signatures) and Rule 10 (single async runtime)**: not applicable — this crate has no async code and is not expected to gain any (it's a synchronous data structure).
