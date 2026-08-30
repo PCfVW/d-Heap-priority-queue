@@ -221,16 +221,19 @@ Mutually exclusive and (within rounding) exhaustive — every microsecond inside
 
 ### Mechanism
 
-A new `--profile-sections` flag in each example binary:
-- Implies a single un-iterated `dijkstra` call (no warmup, no `--repetitions` — section timers are sub-µs and per-call accumulator variance would dominate at small N).
-- Each language uses its native nano-precision timer (`Instant::now` / `time.Now` / `performance.now` / `nanoTimestamp` / `chrono::high_resolution_clock`).
-- Output: one JSON object on stdout with the four absolute section timings plus their sum.
+**Revised** (v2.7.0, after the first real run): the original design implied a single un-iterated `dijkstra` call with no warmup and no repetitions, reasoning that "section timers are sub-µs and per-call accumulator variance would dominate at small N." The first real run showed the opposite problem — single-sample noise, not accumulator variance, dominated the signal badly enough that the heap-only `pop` section (expected to be ~uniform across languages) showed a *larger* relative Rust-vs-Go gap than the hashmap-heavy `relax` section (the expected discriminator). Phase 3.5 now reuses Phase 3's own K=2 warmup / N=10 repetitions protocol instead of defending the single-call design:
+
+A `--profile-sections` flag in each example binary:
+- Requires `--arity=<d>` (single arity, like `--report-rss`).
+- Accepts the same `--warmup=K` / `--repetitions=N` flags the wall-time `--json` path already uses; `benchmarks/scripts/<Lang>/run.ps1` passes `--warmup=2 --repetitions=10`.
+- Each language uses its native nano-precision timer (`Instant::now` / `time.Now` / `performance.now` / `std.Io.Clock.Timestamp` / `chrono::high_resolution_clock`).
+- Output: one JSON line per timed repetition (K discarded, N printed), each with the four absolute section timings plus their sum — matching the wall-time `--json` path's one-line-per-rep shape exactly.
 
 The timer call sites live in the example's `dijkstra` implementation (not the heap library) — Phase 2 instrumentation in the library stays untouched. Cross-language consistency is enforced by code review, not by a tool.
 
 ### Output schema
 
-Per `(language, graph, arity)` cell, one record at `benchmarks/results/<lang>/<graph>_d<arity>.profile.json`:
+Per `(language, graph, arity)` cell, N=10 lines at `benchmarks/results/<lang>/<graph>_d<arity>.profile.jsonl` (one JSON object per line, matching the wall-time `.jsonl` shape):
 
 ```json
 {
@@ -238,6 +241,7 @@ Per `(language, graph, arity)` cell, one record at `benchmarks/results/<lang>/<g
   "language":       "Rust",
   "graph":          "huge_dense",
   "arity":          8,
+  "rep":            6,
   "section_us": {
     "setup":    1234.5,
     "pop":      5678.9,
@@ -248,11 +252,11 @@ Per `(language, graph, arity)` cell, one record at `benchmarks/results/<lang>/<g
 }
 ```
 
-`total` is the sum of the four sections — **not** the same number as the Phase 3 wall-time median. The section sum measures one un-iterated call (timer perturbation included); the wall-time median is over warmup + 10 timed calls (no section timers). Cross-language *ratios* are the meaningful signal, not absolute parity with Phase 3's `wall_time_us`.
+`total` is the sum of the four sections for that repetition — **not** the same number as the Phase 3 wall-time median. The section sum still includes timer perturbation the plain wall-time measurement doesn't pay for, so absolute values are not comparable across the two tables even though both are now medians of N=10. `benchmarks/scripts/aggregate/` reduces the 10 lines per cell to one median `SectionUs` per language (each of the five fields' median computed independently, same method as the wall-time median) before building `results/SECTIONS.md`'s tables. Cross-language *ratios* are the meaningful signal, not absolute parity with Phase 3's `wall_time_us`.
 
 ### Scope and reporting
 
-Same 24-cell matrix as Phase 3 wall-time (8 graphs × 3 arities × 5 languages), one `.profile.json` per cell — 120 files. Headline tables in `benchmarks/results/SECTIONS.md` focus on `huge_dense × d=8`:
+Same 24-cell matrix as Phase 3 wall-time (8 graphs × 3 arities × 5 languages), one `.profile.jsonl` per cell (10 lines each) — 120 files, 1200 records. Headline tables in `benchmarks/results/SECTIONS.md` focus on `huge_dense × d=8`:
 
 **Percentage of total time per section:**
 
@@ -272,13 +276,14 @@ Same 24-cell matrix as Phase 3 wall-time (8 graphs × 3 arities × 5 languages),
 | inc_pri | … | … | … | … | … |
 | setup | … | … | … | … | … |
 
-The `relax` row is where the hashmap-attribution story should be most visible. If Rust's `relax` is 3× Go's while `pop` and `inc_pri` are within 1.2× of Go's, the SipHash + `String`-clone hypothesis is confirmed at the wall-time level.
+The `relax` row is where the hashmap-attribution story should be most visible. If Rust's `relax` is 3× Go's while `pop` and `inc_pri` are within 1.2× of Go's, the SipHash + `String`-clone hypothesis is confirmed at the wall-time level. **On the run captured after adopting K=2/N=10 repetition, it was not** — see `results/SECTIONS.md`'s Finding section for the actual numbers and the IQR evidence that this isn't a repeat of the original single-sample noise problem.
 
 ### Caveats
 
-- **Timer overhead at sub-µs scale.** Four timer pairs add ~50–200 ns per main-loop iteration. On `huge_dense` (~63 710 pop iterations) that's milliseconds of overhead — non-negligible but symmetric across languages. We report it; we don't try to subtract it.
+- **Timer overhead at sub-µs scale.** Four timer pairs add ~50–200 ns per main-loop iteration. On `huge_dense` (~63 710 pop iterations) that's milliseconds of overhead — non-negligible but symmetric across languages. We report it; we don't try to subtract it. Repeating the call K+N times (per the revised Mechanism above) reduces *cross-rep* noise; it does not reduce or reveal this per-language timer-call overhead itself, which remains an undocumented, unmeasured variable.
 - **What this can't measure**: allocator-internal time (Go's GC, Rust's malloc), cache-miss attribution, instruction-cache vs data-cache effects. CPU-counter-grade profiling (`perf` / VTune / ETW) is the right tool for those questions; Phase 3.5 stays in user-mode wall time.
 - **Multiplicative aliasing.** `pop` and `inc_pri` each contain a small `compareTo` callback inside the heap. Timing them at the call site folds the comparator cost into the heap section — intentional, since the comparator is part of the heap path.
+- **Go's Windows timer-resolution floor** (documented for Phase 3 wall-time above) applies to individual section-timing reps too: a single rep's `inc_pri` (or, less often, another section) can read `0` when the real cost is simply below what `time.Since` resolves on this OS. The median across N=10 reps reduces this but does not eliminate it if more than half the reps land on the same quantized value.
 
 ### Out of scope for Phase 3.5
 
@@ -288,28 +293,35 @@ The `relax` row is where the hashmap-attribution story should be most visible. I
 
 ## Status checklist
 
-Phase 3 implementation tracks against this list. Each item is a concrete deliverable.
+Phase 3 implementation tracks against this list. Each item is a concrete deliverable. This checklist went un-updated through the v2.6.0 Phase 3 ship (the work was done, per `CHANGELOG.md`, but the boxes here were never checked) — corrected as part of the v2.7.0 Phase 3.5 pass, which also closed the two items Phase 3 shipped without (`aggregate.rs`, real README/SUMMARY.md content).
 
 ### Per-language harness (5×)
-- [ ] `examples/dijkstra/Cpp/` — add `--repetitions`, `--warmup`, `--json`
-- [ ] `examples/dijkstra/Go/` — add `--repetitions`, `--warmup`, `--json`
-- [ ] `examples/dijkstra/Rust/` — add `--repetitions`, `--warmup`, `--json`
-- [ ] `examples/dijkstra/TypeScript/` — add `--repetitions`, `--warmup`, `--json`
-- [ ] `examples/dijkstra/Zig/` — add `--repetitions`, `--warmup`, `--json`
+- [x] `examples/dijkstra/Cpp/` — add `--repetitions`, `--warmup`, `--json`
+- [x] `examples/dijkstra/Go/` — add `--repetitions`, `--warmup`, `--json`
+- [x] `examples/dijkstra/Rust/` — add `--repetitions`, `--warmup`, `--json`
+- [x] `examples/dijkstra/TypeScript/` — add `--repetitions`, `--warmup`, `--json`
+- [x] `examples/dijkstra/Zig/` — add `--repetitions`, `--warmup`, `--json`
 
 ### Runner scripts
-- [ ] `benchmarks/scripts/<lang>/run.ps1` (Windows) and `run.sh` (Unix) per language
-- [ ] `benchmarks/scripts/run-all.{ps1,sh}` — orchestrates wall-time + stats + RSS passes
-- [ ] `benchmarks/scripts/env.{ps1,sh}` — captures `env.json` once per machine
+- [x] `benchmarks/scripts/<lang>/run.ps1` (Windows) per language — **`run.sh` (Unix) was never built**; this project's benchmark tooling is Windows-only in practice (every `env-*.json` records a Windows host). Left honestly unchecked rather than claimed.
+- [ ] `benchmarks/scripts/run-all.{ps1,sh}` — never built; each language's `run.ps1` is invoked independently instead. Not a blocker (5 explicit invocations vs. one orchestrator is a minor convenience gap), but genuinely not done.
+- [x] `benchmarks/scripts/env.ps1` — captures `env-<Language>.json` once per machine (no `.sh` counterpart, same Windows-only caveat as above).
 
 ### Aggregation
-- [ ] `benchmarks/scripts/aggregate.py` (or `.rs`) — JSONL → tables + invariant check
-- [ ] `benchmarks/results/<lang>/*.jsonl` populated for all 120 cells
-- [ ] `benchmarks/results/<lang>/*.stats.json` populated for all 120 cells
-- [ ] `benchmarks/results/<lang>/huge_dense_d{2,4,8}.rss.json` populated (15 records)
+- [x] `benchmarks/scripts/aggregate/` — Rust binary crate (methodology.md's `.rs` option). JSONL/stats/RSS/profile → tables + invariant check.
+- [x] `benchmarks/results/<lang>/*.jsonl` populated for all 120 cells
+- [x] `benchmarks/results/<lang>/*.stats.json` populated for all 120 cells
+- [x] `benchmarks/results/<lang>/huge_dense_d{2,4,8}.rss.json` populated (15 records)
 
 ### Documentation
-- [ ] `benchmarks/README.md` — "Indicative timings" replaced with Phase 3 tables; "Phase 3 — Benchmark infrastructure (planned)" → "completed."
-- [ ] `benchmarks/results/SUMMARY.md` — full 120-cell matrix
-- [ ] `CHANGELOG.md` — Phase 3 entry under Unreleased
-- [ ] `ROADMAP.md` — check Phase 3 boxes
+- [x] `benchmarks/README.md` — "Indicative timings" replaced with Phase 3 tables; "Phase 3 — Benchmark infrastructure (planned)" → "completed."
+- [x] `benchmarks/results/SUMMARY.md` — full 120-cell matrix
+- [x] `CHANGELOG.md` — Phase 3 entry under Unreleased (backfilled in v2.7.0; Phase 3's own v2.6.0 CHANGELOG entry only covered Phases 1–2's instrumentation, not the wall-time/stats/RSS results Phase 3 itself produced)
+- [x] `ROADMAP.md` — check Phase 3 boxes (already checked in ROADMAP.md's v2.6.0 section — this methodology.md checklist was the only place still stale)
+
+### Phase 3.5 (v2.7.0)
+- [x] `--profile-sections` flag in all 5 Dijkstra examples
+- [x] Per-section timers (`setup`/`pop`/`relax`/`inc_pri`) in each example's `dijkstra` implementation
+- [x] `benchmarks/scripts/<Lang>/run.ps1` Pass 4 — `.profile.json` for all 120 cells
+- [x] `benchmarks/results/SECTIONS.md` — cross-language attribution tables at `huge_dense × d=8`
+- [x] `CHANGELOG.md` entry + the answer to "where does the extra time go?" — revised from a single-call design (result looked like noise) to K=2/N=10 repetition (median + IQR); the answer held under the more rigorous measurement: not cleanly `relax` — see `SECTIONS.md`'s Finding/Caveats

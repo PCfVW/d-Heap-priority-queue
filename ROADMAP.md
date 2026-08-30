@@ -220,11 +220,11 @@ The standalone `deploy-demo.yml` is the only workflow today; everything else is 
 
 The methodology section is already drafted in [`benchmarks/methodology.md`](benchmarks/methodology.md) (drafted in the v2.6.0 doc pass). v2.7.0 ships the implementation.
 
-- [ ] Add `--profile-sections` flag to all 5 Dijkstra example binaries
-- [ ] Implement section timers around `setup` / `pop` / `relax` / `inc_pri` in each example's `dijkstra` implementation (cross-language consistency enforced by code review — the timer pairs wrap the same lines in each language)
-- [ ] `benchmarks/scripts/<Lang>/run.ps1` gains a Pass 4 (profile-sections); writes `benchmarks/results/<Lang>/<graph>_d<arity>.profile.json` for all 120 cells
-- [ ] `benchmarks/results/SECTIONS.md` cross-language attribution tables, focused on `huge_dense × d=8`: % time per section + absolute µs per section
-- [ ] `CHANGELOG.md` entry + the answer to "where does Rust's extra 11 ms go?"
+- [x] Add `--profile-sections` flag to all 5 Dijkstra example binaries
+- [x] Implement section timers around `setup` / `pop` / `relax` / `inc_pri` in each example's `dijkstra` implementation (cross-language consistency enforced by code review — the timer pairs wrap the same lines in each language)
+- [x] `benchmarks/scripts/<Lang>/run.ps1` gains a Pass 4 (profile-sections); writes `benchmarks/results/<Lang>/<graph>_d<arity>.profile.json` for all 120 cells
+- [x] `benchmarks/results/SECTIONS.md` cross-language attribution tables, focused on `huge_dense × d=8`: % time per section + absolute µs per section
+- [x] `CHANGELOG.md` entry + the answer to "where does Rust's extra 11 ms go?" — first captured on a single un-iterated call, where the result (Rust's heap-only `pop` showing a *larger* relative gap vs. Go, 3.01×, than the hashmap-heavy `relax`, 1.13×) looked like measurement noise, not signal. Revised Phase 3.5 to reuse Phase 3's own K=2 warmup / N=10 repetitions protocol (median per section, IQR reported); re-measured with total-time IQR comfortably under 15% of the median for both languages, and **the same qualitative answer held**: `relax` at 1.31× Go's is still not clearly larger than `pop` at 1.52×, so the SipHash/`String`-clone hypothesis is not confirmed even under a much more stable measurement. See `benchmarks/results/SECTIONS.md` for the full tables, the IQR evidence, and remaining caveats (Go's Windows timer-resolution floor; per-language timer-call overhead still unmeasured).
 
 ### Current workflows (reference)
 

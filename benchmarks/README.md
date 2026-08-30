@@ -1,6 +1,6 @@
 # Benchmarks
 
-Performance comparisons for d-ary heap operations across the five language implementations (C++, Go, Rust, TypeScript, Zig). See [`../ROADMAP.md`](../ROADMAP.md) — "v2.6.0 — Instrumentation & Benchmarks".
+Performance comparisons for d-ary heap operations across the five language implementations (C++, Go, Rust, TypeScript, Zig). See [`../ROADMAP.md`](../ROADMAP.md) — "v2.6.0 — Instrumentation & Benchmarks" and "v2.7.0 — Automation & Per-Section Timing".
 
 ## Status
 
@@ -8,7 +8,8 @@ Performance comparisons for d-ary heap operations across the five language imple
 |-------|-------------|--------|
 | 1 | Test graph corpus, generator, grammar spec | ✅ Done (v2.6.0) |
 | 2 | Cross-language instrumentation | ✅ Done (v2.6.0) — all five languages |
-| 3 | Benchmark runners + results | 🚧 Planned (depends on Phase 2) |
+| 3 | Benchmark runners + results | ✅ Done (v2.7.0) |
+| 3.5 | Per-section timing attribution | ✅ Done (v2.7.0) |
 
 ## Phase 1 — Test graph corpus
 
@@ -35,60 +36,50 @@ cargo run --release -- verify     # byte-for-byte regression check
 
 Each Dijkstra example accepts `--graph=<name>` (default `small`) and `--quiet` (suppress per-vertex output for medium/large graphs). See [`../examples/dijkstra/README.md`](../examples/dijkstra/README.md) for per-language invocation.
 
-## Indicative timings
+## Cross-language wall-time (Phase 3)
 
-Median of 5 single-shot runs of `dijkstra --graph=<name> --quiet` per cell, captured 2026-05-08 on the developer's Windows 11 workstation against the v2.6.0 Phase 1 binaries. **These are ballpark only** — single-process invocation including startup, no in-program warmup, no statistical analysis. Phase 3 will replace this section with proper benchmark methodology (warmup, repeated-iteration amortization, hardware/compiler reporting).
+Median of N=10 timed repetitions (K=2 warmup discarded) per `(language, graph, arity)` cell, captured per the protocol in [`methodology.md`](methodology.md). Full 120-cell matrix with IQR/min/max in [`results/SUMMARY.md`](results/SUMMARY.md); per-section attribution (why the languages differ) in [`results/SECTIONS.md`](results/SECTIONS.md). `small` is excluded here — see methodology.md's sample-matrix note on why it sits at the edge of timer resolution.
 
-### `medium_sparse` (n=100, \|E\|=200)
+### Sparse graphs
 
-| arity | TypeScript | Go        | Rust    | Zig     | C++     |
-|------:|-----------:|----------:|--------:|--------:|--------:|
-| d=2   | 843.0 µs   | (sub-res) | 188.8 µs| 862.3 µs| 127.9 µs|
-| d=4   | 933.7 µs   | (sub-res) | 138.3 µs| 757.8 µs| 103.2 µs|
-| d=8   | 218.6 µs   | (sub-res) | 127.0 µs| 723.5 µs| 104.6 µs|
+| graph | arity | TypeScript | Go | Rust | Zig | C++ |
+|---|---:|---:|---:|---:|---:|---:|
+| `medium_sparse` | 2 | 212.1 µs | 0.0 µs | 155.4 µs | 96.2 µs | 123.1 µs |
+| `medium_sparse` | 4 | 188.6 µs | 0.0 µs | 135.2 µs | 82.6 µs | 130.8 µs |
+| `medium_sparse` | 8 | 186.3 µs | 0.0 µs | 123.4 µs | 84.7 µs | 119.4 µs |
+| `large_sparse` | 2 | 1069.4 µs | 1000.2 µs | 2319.8 µs | 949.0 µs | 1300.8 µs |
+| `large_sparse` | 4 | 977.3 µs | 1000.3 µs | 1946.2 µs | 876.2 µs | 1219.8 µs |
+| `large_sparse` | 8 | 920.8 µs | 999.3 µs | 1756.5 µs | 846.5 µs | 1146.2 µs |
 
-### `large_sparse` (n=1000, \|E\|=2000)
+### Dense graphs
 
-| arity | TypeScript | Go        | Rust     | Zig      | C++      |
-|------:|-----------:|----------:|---------:|---------:|---------:|
-| d=2   | 3927.6 µs  | 1500.0 µs | 2338.9 µs| 9932.6 µs| 1444.4 µs|
-| d=4   | 2865.1 µs  | 1000.0 µs | 1884.6 µs| 8653.3 µs| 1111.1 µs|
-| d=8   | 1806.3 µs  |  999.9 µs | 1718.6 µs| 8058.0 µs| 1079.8 µs|
+| graph | arity | TypeScript | Go | Rust | Zig | C++ |
+|---|---:|---:|---:|---:|---:|---:|
+| `medium_dense` | 2 | 216.6 µs | 0.0 µs | 317.4 µs | 175.4 µs | 227.1 µs |
+| `medium_dense` | 4 | 226.0 µs | 0.0 µs | 273.5 µs | 167.5 µs | 175.0 µs |
+| `medium_dense` | 8 | 241.2 µs | 0.0 µs | 261.9 µs | 152.4 µs | 181.5 µs |
+| `large_dense` | 2 | 3461.5 µs | 3003.1 µs | 7293.4 µs | 3049.3 µs | 4365.9 µs |
+| `large_dense` | 4 | 3548.3 µs | 3000.8 µs | 6354.0 µs | 2883.8 µs | 4112.1 µs |
+| `large_dense` | 8 | 3031.2 µs | 3000.1 µs | 5987.4 µs | 2853.7 µs | 4014.9 µs |
 
-### `large_dense` (n=1000, \|E\|=31623, \|E\|≈\|V\|^1.5)
+### Grid graphs
 
-| arity | TypeScript | Go        | Rust     | Zig       | C++      |
-|------:|-----------:|----------:|---------:|----------:|---------:|
-| d=2   | 9641.5 µs  | 3001.2 µs | 6910.9 µs| 29304.1 µs| 4388.3 µs|
-| d=4   | 5512.8 µs  | 3500.8 µs | 6142.1 µs| 27287.0 µs| 3931.4 µs|
-| d=8   | 3790.1 µs  | 2510.6 µs | 5935.2 µs| 26766.2 µs| 3889.7 µs|
+| graph | arity | TypeScript | Go | Rust | Zig | C++ |
+|---|---:|---:|---:|---:|---:|---:|
+| `medium_grid` | 2 | 226.5 µs | 0.0 µs | 169.3 µs | 100.5 µs | 127.8 µs |
+| `medium_grid` | 4 | 212.7 µs | 0.0 µs | 170.2 µs | 97.8 µs | 118.9 µs |
+| `medium_grid` | 8 | 225.8 µs | 0.0 µs | 141.6 µs | 106.3 µs | 121.6 µs |
+| `large_grid` | 2 | 1245.1 µs | 1249.4 µs | 2499.9 µs | 998.1 µs | 1496.6 µs |
+| `large_grid` | 4 | 1055.5 µs | 1000.0 µs | 2145.8 µs | 938.9 µs | 1392.8 µs |
+| `large_grid` | 8 | 1065.0 µs | 1000.0 µs | 2114.1 µs | 898.5 µs | 1319.8 µs |
 
-This is the most informative table — `large_dense` exercises the regime where `decrease_priority` dominates, exactly where higher arity helps most. TypeScript drops 60% from d=2 to d=8; the four other languages show 7–14% improvement.
+### `huge_dense`
 
-### `large_grid` (32×32 lattice, \|V\|=1024, \|E\|=3968)
-
-| arity | TypeScript | Go        | Rust     | Zig       | C++      |
-|------:|-----------:|----------:|---------:|----------:|---------:|
-| d=2   | 4411.4 µs  | 1499.5 µs | 2557.7 µs| 10864.0 µs| 1466.6 µs|
-| d=4   | 3157.4 µs  | 1000.3 µs | 2115.3 µs|  9681.1 µs| 1293.7 µs|
-| d=8   | 1743.8 µs  | 1500.3 µs | 1973.4 µs|  9322.7 µs| 1274.1 µs|
-
-### `huge_dense` (n=2500, \|E\|=125000, \|E\|=\|V\|^1.5)
-
-| arity | TypeScript | Go         | Rust       | Zig         | C++        |
-|------:|-----------:|-----------:|-----------:|------------:|-----------:|
-| d=2   | 23674.5 µs | 11508.4 µs | 25367.4 µs | 105500.0 µs | 15813.3 µs |
-| d=4   | 25198.0 µs | 10516.6 µs | 24027.2 µs |  99648.3 µs | 14910.1 µs |
-| d=8   | 16351.2 µs | 10007.6 µs | 23253.5 µs |  98443.2 µs | 14868.4 µs |
-
-The largest committed graph (~6 MB JSON). At this scale runtime spread is unambiguous: Zig at ~98 ms is visibly separable from the other four (10–25 ms range), and the d=2 → d=8 progression is smooth enough to read as signal rather than noise. Two surprises worth flagging for Phase 2: **Go is the fastest of the five on every dense cell** (here, on `large_dense`, even on the noisier `large_sparse` if you discount the timer quantization), and **Rust is consistently slower than C++** (~1.6× here) — likely the SipHash-based DOS-resistant `std::collections::HashMap` versus C++'s non-cryptographic `std::unordered_map`. Phase 2 instrumentation will tell us how much of the gap is hashing vs. heap operations.
-
-**Caveats and to-investigate notes:**
-
-- **Go "(sub-res)"** — Go's `time.Since` on Windows quantizes around ~500 µs in single-shot timing, so the `medium_sparse` runs (which complete well below that) all measured 0.0 µs. The `large_sparse` and `large_grid` cells (1500.0 / 1000.0 / 999.9 / 1499.5 µs) also visibly snap to that grain. `large_dense` clears the resolution and reports honest microsecond-scale numbers. This is a measurement artifact, not a Go-performance fact; Phase 3's in-program iteration loops will amortize.
-- **Zig's `large_dense` is ~7× slower than C++** (~6.7× on `large_grid`, ~5.6× on `large_sparse`, ~6.9× on `medium_sparse`). The original suspicion was the per-string deep-copy out of the parsed-JSON arena, but refactoring the loader to `std.json.parseFromSliceLeaky` directly into `Graph` (with an `ArenaAllocator`) left the medians effectively unchanged — the dupe overhead lived in graph load, which the timer does not wrap. **The dense-graph data confirms the gap is inside `dijkstra()` itself, in the regime where `decrease_priority` dominates** — so the d-heap Zig binding's per-operation cost is the leading suspect, with `std.StringHashMap` performance and the "init all vertices to INFINITY" PQ seeding loop as runners-up. This is exactly the question Phase 2 instrumentation is designed to answer.
-- **TypeScript JIT noise** on the `medium_sparse` d=2/d=4 cells (where d=4 is *slower* than d=2 in the median) reflects warmup cost: the first arity carries the optimization tax. By d=8 the JIT has settled. The effect vanishes on the larger graphs.
-- **Run-to-run variance** of ~10–20% is typical for these single-shot measurements. The d=8 advantage on dense graphs (60% in TypeScript, 11% in C++, 14% in Rust on `large_dense`) survives the noise comfortably.
+| graph | arity | TypeScript | Go | Rust | Zig | C++ |
+|---|---:|---:|---:|---:|---:|---:|
+| `huge_dense` | 2 | 13939.3 µs | 11024.0 µs | 25490.8 µs | 13317.2 µs | 16110.2 µs |
+| `huge_dense` | 4 | 13375.2 µs | 11016.2 µs | 23749.0 µs | 13208.4 µs | 15528.2 µs |
+| `huge_dense` | 8 | 13444.1 µs | 11015.8 µs | 22454.9 µs | 12534.3 µs | 15141.5 µs |
 
 ### Cost per heap comparison (`huge_dense`, derived from `--stats`)
 
@@ -104,16 +95,16 @@ Phase 2 instrumentation lets us divide median wall time by total comparison coun
 
 Two findings:
 
-1. **d=8 cuts ns/cmp by 20–50% in every language.** The cache-locality story made quantitative: at d=8 the children of a heap node are 8 contiguous slots in the backing array — one cache line of dense access, where d=2 forces a separate cache line per level. Phase 3 micro-timing will pin this down inside the heap, but the five-language consistency of the drop is already strong evidence.
+1. **d=8 cuts ns/cmp by 20–50% in every language.** The cache-locality story made quantitative: at d=8 the children of a heap node are 8 contiguous slots in the backing array — one cache line of dense access, where d=2 forces a separate cache line per level. The five-language consistency of the drop is strong evidence for this even without per-section timing inside the heap.
 
-2. **Cross-language ratio at d=8 is Go : Zig : C++ : TypeScript : Rust ≈ 1.0 : 1.19 : 1.49 : 1.63 : 2.32.** Same operation counts, ~2.3× spread in time-per-operation. Leading suspects per language (to attribute in Phase 3):
+2. **Cross-language ratio at d=8 is Go : Zig : C++ : TypeScript : Rust ≈ 1.0 : 1.19 : 1.49 : 1.63 : 2.32.** Same operation counts, ~2.3× spread in time-per-operation. Leading suspects per language (attributed by Phase 3.5, see below):
    - **Go** (132 ns) — flat-bucket-of-8 `map`, AES-NI hashing for string keys.
    - **Zig** (157 ns) — `std.StringHashMap` with Wyhash; close to Go's profile (similar flat layout, similar hash cost), within ~19% — the AOT-compiled non-GC languages cluster together.
    - **C++** (196 ns) — chained-bucket `std::unordered_map` (MSVC); cache-locality cost vs. Go's / Zig's flat layout.
    - **TypeScript** (215 ns) — V8 JIT'd `Map<string, …>` matching C++ surprisingly closely; the JIT pays a per-call dispatch tax that the AOT-compiled languages don't.
    - **Rust** (306 ns) — SipHash-based DOS-resistant `std::collections::HashMap`; per-call `String` clones in the `positions: HashMap<T, Position>` lookup path.
 
-Caveat: this is *amortized* time, not "time inside the comparator". Phase 3 per-section timing (around hash lookups, comparator calls, and `Vec` indexing) is needed to attribute the gap precisely.
+Caveat: this is *amortized* time, not "time inside the comparator". This table predates Phase 3.5's per-section timers (hash lookups, comparator calls, `Vec` indexing, isolated); see [`results/SECTIONS.md`](results/SECTIONS.md) for the direct attribution — on the run captured there, the hashmap-cost hypothesis above is **not cleanly confirmed** (Rust's heap-only `pop` section showed a larger relative gap than its hashmap-heavy `relax` section), so treat the per-language "leading suspects" list above as a hypothesis this ns/cmp table motivated, not a settled conclusion.
 
 ## Phase 2 — Cross-language instrumentation
 
@@ -131,33 +122,31 @@ The four shipped implementations produce **byte-for-byte identical comparison co
 
 Operations to count: `insert`, `pop`, `decreasePriority`, `updatePriority`.
 
-## Phase 3 — Benchmark infrastructure (planned)
+## Phase 3 — Benchmark infrastructure ✅ Done (v2.7.0)
 
-Depends on Phase 2 — runners need instrumentation hooks.
+Delivered: per-language runners (`scripts/<Lang>/run.ps1`), the full 120-cell result matrix (`results/`), and the reproducibility protocol (`methodology.md` — warm-up runs, median of N=10 trials, hardware/compiler versions, statistical reporting). See "Cross-language wall-time (Phase 3)" above for the condensed tables and [`results/SUMMARY.md`](results/SUMMARY.md) for the full matrix.
 
-- `scripts/<lang>/` — per-language benchmark runners
-- `results/` — comparative timing + comparison-count data (d=2 vs d=4 vs d=8 across all 6 corpus graphs)
-- `methodology.md` — reproducibility protocol: warm-up runs, median of N trials, hardware/compiler versions, statistical reporting
-
-### Planned comparisons
-
-**Arity** — d=2 (baseline, simpler arithmetic but more `decrease_priority` calls), d=4 (expected sweet spot, shallower tree, cache-friendly), d=8 (`pop` becomes expensive).
-
-**Density** — sparse (`pop` dominates), dense (`decrease_priority` dominates), grid (regular access pattern, baseline).
-
-**Cross-language** — C++ / Rust / Zig (compiled, minimal runtime) vs Go (compiled, GC) vs TypeScript (JIT).
+Phase 3.5 then used this same infrastructure to attribute *why* the languages differ — see [`results/SECTIONS.md`](results/SECTIONS.md). The cross-language spread reflects each runtime's fundamentals: C++ / Rust / Zig (compiled, minimal runtime) vs Go (compiled, GC) vs TypeScript (JIT).
 
 ## Directory structure
 
 ```
 benchmarks/
-├── README.md          # this file
-├── graphs.toml        # canonical graph corpus declarations
+├── README.md              # this file
+├── methodology.md         # reproducibility protocol (Phase 3 + 3.5)
+├── graphs.toml             # canonical graph corpus declarations
 ├── scripts/
-│   └── graphgen/      # Rust generator + verifier (Phase 1)
-└── results/           # populated in Phase 3
+│   ├── graphgen/           # Rust generator + verifier (Phase 1)
+│   ├── aggregate/          # Rust tool: results/**/* -> README tables + SUMMARY.md + SECTIONS.md
+│   ├── env.ps1             # captures env-<Language>.json once per machine
+│   ├── env-<Language>.json # per-language machine/toolchain snapshot
+│   └── <Language>/run.ps1  # per-language 4-pass runner (wall-time, stats, RSS, per-section timing)
+└── results/
+    ├── SUMMARY.md          # full 120-cell wall-time matrix (Phase 3)
+    ├── SECTIONS.md         # per-section timing attribution (Phase 3.5)
+    └── <Language>/         # *.jsonl, *.stats.json, *.rss.json, *.profile.json
 ```
 
 ## Contributing
 
-Want to help shape Phase 2 instrumentation or Phase 3 methodology? Open an issue titled `[Benchmarks]` with your proposal.
+Want to help with Phase 3.5's open questions (the per-section attribution in [`results/SECTIONS.md`](results/SECTIONS.md) doesn't cleanly confirm the hashmap hypothesis on every run — see its Finding/Caveats) or a future benchmark cycle? Open an issue titled `[Benchmarks]` with your proposal.
