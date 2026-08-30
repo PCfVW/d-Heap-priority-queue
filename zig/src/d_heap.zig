@@ -754,14 +754,14 @@ pub fn DHeapWithStats(
             var buffer = std.ArrayList(u8).empty;
             errdefer buffer.deinit(self.allocator);
 
-            const writer = buffer.writer(self.allocator);
-            try writer.writeAll("{");
+            // Zig 0.16 removed ArrayList(u8).writer(); append directly instead.
+            try buffer.appendSlice(self.allocator, "{");
             for (self.container.items, 0..) |item, i| {
-                if (i != 0) try writer.writeAll(", ");
+                if (i != 0) try buffer.appendSlice(self.allocator, ", ");
                 // Use {f} to invoke the item's format method
-                try writer.print("{f}", .{item});
+                try buffer.print(self.allocator, "{f}", .{item});
             }
-            try writer.writeAll("}");
+            try buffer.appendSlice(self.allocator, "}");
             return buffer.toOwnedSlice(self.allocator);
         }
 

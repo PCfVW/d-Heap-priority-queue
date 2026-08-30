@@ -28,7 +28,7 @@ const DHeap = DHeapItem;
 // ============================================================================
 
 test "basic heap operations" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -62,7 +62,7 @@ test "basic heap operations" {
 // ============================================================================
 
 test "min heap ordering" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -90,7 +90,7 @@ test "min heap ordering" {
 }
 
 test "min heap with different arities" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -128,7 +128,7 @@ test "min heap with different arities" {
 // ============================================================================
 
 test "max heap ordering" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -160,7 +160,7 @@ test "max heap ordering" {
 // ============================================================================
 
 test "increase priority moves item up in min-heap" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -184,7 +184,7 @@ test "increase priority moves item up in min-heap" {
 }
 
 test "increase priority in max-heap" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -207,7 +207,7 @@ test "increase priority in max-heap" {
 }
 
 test "decrease priority moves item down in min-heap" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -229,7 +229,7 @@ test "decrease priority moves item down in min-heap" {
 }
 
 test "decrease priority in max-heap" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -255,7 +255,7 @@ test "decrease priority in max-heap" {
 // ============================================================================
 
 test "contains returns true for existing item" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -271,7 +271,7 @@ test "contains returns true for existing item" {
 }
 
 test "contains returns false for missing item" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -285,7 +285,7 @@ test "contains returns false for missing item" {
 }
 
 test "contains on empty heap" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -300,7 +300,7 @@ test "contains on empty heap" {
 // ============================================================================
 
 test "clear removes all items" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -321,7 +321,7 @@ test "clear removes all items" {
 }
 
 test "clear with new depth changes arity" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -342,7 +342,7 @@ test "clear with new depth changes arity" {
 // ============================================================================
 
 test "empty heap front returns null" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -353,7 +353,7 @@ test "empty heap front returns null" {
 }
 
 test "empty heap pop returns null" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -364,7 +364,7 @@ test "empty heap pop returns null" {
 }
 
 test "single item operations" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -392,7 +392,7 @@ test "single item operations" {
 // ============================================================================
 
 test "increase priority on missing item returns error" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -407,7 +407,7 @@ test "increase priority on missing item returns error" {
 }
 
 test "decrease priority on missing item returns error" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -421,7 +421,7 @@ test "decrease priority on missing item returns error" {
 }
 
 test "init with depth 0 returns error" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -430,7 +430,7 @@ test "init with depth 0 returns error" {
 }
 
 test "clear with depth 0 returns error" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -446,7 +446,7 @@ test "clear with depth 0 returns error" {
 // ============================================================================
 
 test "toString produces valid output" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -476,7 +476,7 @@ test "toString produces valid output" {
 // ============================================================================
 
 test "heap property maintained after mixed operations" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -528,7 +528,7 @@ test "heap property maintained after mixed operations" {
 // ============================================================================
 
 test "updatePriority moves item up when priority increases" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -551,7 +551,7 @@ test "updatePriority moves item up when priority increases" {
 }
 
 test "updatePriority moves item down when priority decreases" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -573,7 +573,7 @@ test "updatePriority moves item down when priority decreases" {
 }
 
 test "updatePriority on missing item returns error" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -587,7 +587,7 @@ test "updatePriority on missing item returns error" {
 }
 
 test "update_priority alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -607,7 +607,7 @@ test "update_priority alias works" {
 // ============================================================================
 
 test "getPosition returns correct position" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -632,7 +632,7 @@ test "getPosition returns correct position" {
 }
 
 test "getPosition returns null for missing item" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -645,7 +645,7 @@ test "getPosition returns null for missing item" {
 }
 
 test "get_position alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -664,7 +664,7 @@ test "get_position alias works" {
 // ============================================================================
 
 test "increasePriorityByIndex works correctly" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -687,7 +687,7 @@ test "increasePriorityByIndex works correctly" {
 }
 
 test "increasePriorityByIndex returns error on invalid index" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -701,7 +701,7 @@ test "increasePriorityByIndex returns error on invalid index" {
 }
 
 test "increase_priority_by_index alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -715,7 +715,7 @@ test "increase_priority_by_index alias works" {
 }
 
 test "decreasePriorityByIndex works correctly" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -737,7 +737,7 @@ test "decreasePriorityByIndex works correctly" {
 }
 
 test "decreasePriorityByIndex returns error on invalid index" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -751,7 +751,7 @@ test "decreasePriorityByIndex returns error on invalid index" {
 }
 
 test "decrease_priority_by_index alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -769,7 +769,7 @@ test "decrease_priority_by_index alias works" {
 // ============================================================================
 
 test "is_empty alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -783,7 +783,7 @@ test "is_empty alias works" {
 }
 
 test "increase_priority alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -799,7 +799,7 @@ test "increase_priority alias works" {
 }
 
 test "decrease_priority alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -819,7 +819,7 @@ test "decrease_priority alias works" {
 // ============================================================================
 
 test "insertMany inserts multiple items" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -854,7 +854,7 @@ test "insertMany inserts multiple items" {
 }
 
 test "insertMany with empty slice does nothing" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -869,7 +869,7 @@ test "insertMany with empty slice does nothing" {
 }
 
 test "insert_many alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -884,7 +884,7 @@ test "insert_many alias works" {
 }
 
 test "popMany returns multiple items in order" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -912,7 +912,7 @@ test "popMany returns multiple items in order" {
 }
 
 test "popMany with count greater than size returns all items" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -930,7 +930,7 @@ test "popMany with count greater than size returns all items" {
 }
 
 test "popMany on empty heap returns empty slice" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -943,7 +943,7 @@ test "popMany on empty heap returns empty slice" {
 }
 
 test "pop_many alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -965,7 +965,7 @@ test "pop_many alias works" {
 // ============================================================================
 
 test "toArray returns copy of heap contents" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -985,7 +985,7 @@ test "toArray returns copy of heap contents" {
 }
 
 test "toArray on empty heap returns empty slice" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -998,7 +998,7 @@ test "toArray on empty heap returns empty slice" {
 }
 
 test "to_array alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -1019,7 +1019,7 @@ test "to_array alias works" {
 // ============================================================================
 
 test "peek returns same as front" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -1037,7 +1037,7 @@ test "peek returns same as front" {
 }
 
 test "peek on empty heap returns null" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -1052,7 +1052,7 @@ test "peek on empty heap returns null" {
 // ============================================================================
 
 test "large heap maintains ordering" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -1087,7 +1087,7 @@ test "large heap maintains ordering" {
 // ============================================================================
 
 test "heap handles duplicate priority values" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -1114,7 +1114,7 @@ test "heap handles duplicate priority values" {
 // ============================================================================
 
 test "toString on empty heap returns braces" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -1128,7 +1128,7 @@ test "toString on empty heap returns braces" {
 }
 
 test "to_string alias works" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

@@ -28,6 +28,8 @@ extern "kernel32" fn GetCurrentProcess() callconv(.winapi) std.os.windows.HANDLE
 pub fn peakRssKb() ?u64 {
     var info: PROCESS_MEMORY_COUNTERS = undefined;
     info.cb = @sizeOf(PROCESS_MEMORY_COUNTERS);
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &info, info.cb) == 0) return null;
+    // Zig 0.16: Win32 BOOL is now the distinct enum-backed `Bool(c_int)`,
+    // not a raw c_int comparable with `== 0`; `.toBool()` converts it.
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), &info, info.cb).toBool()) return null;
     return @as(u64, info.PeakWorkingSetSize) / 1024;
 }

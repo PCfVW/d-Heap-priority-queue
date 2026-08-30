@@ -1,9 +1,9 @@
-![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-f7a41d.svg)
+![Zig 0.16.0](https://img.shields.io/badge/Zig-0.16.0-f7a41d.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (Zig 0.15.2) v2.6.0
+# d-Heap Priority Queue (Zig 0.16.0) v2.6.0
 
-**Wikipedia-standard d-ary heap (Zig 0.15.2)** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation via a comptime bool. Cross-language API parity with C++, Go, Rust, and TypeScript.
+**Wikipedia-standard d-ary heap (Zig 0.16.0)** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation via a comptime bool. Cross-language API parity with C++, Go, Rust, and TypeScript.
 
 ## 🎬 See it in action
 
@@ -38,7 +38,7 @@ If you already know you want a priority queue, here's what this module gives you
 - **Snake_case aliases**: `is_empty()`, `increase_priority()`, `decrease_priority()`, `update_priority()`, etc.
 - **Fixed `decreasePriority()`**: Now only moves down (was incorrectly calling both directions)
 - **Comprehensive tests**: 54 tests covering all functionality
-- **Zig 0.15.2 compatibility**: Updated for latest Zig API changes
+- **Zig 0.16.0 compatibility**: Updated for latest Zig API changes
 
 ## Quick Start (Using Built-in Item Type)
 
@@ -52,7 +52,7 @@ const MinByCost = d_heap.MinByCost;
 const Item = d_heap.Item;
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -124,7 +124,7 @@ const TaskHeap = d_heap.DHeap(
 const TaskComparator = d_heap.Comparator(Task){ .cmp = taskLessThan };
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -154,7 +154,7 @@ const ItemComparator = d_heap.ItemComparator;
 const MinByCost = d_heap.MinByCost;
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

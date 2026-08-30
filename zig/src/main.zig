@@ -22,7 +22,7 @@ fn printPQ(pq: *DHeapItem, allocator: std.mem.Allocator) !void {
 /// Main demonstration program.
 pub fn main() !void {
     // Setup allocator
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

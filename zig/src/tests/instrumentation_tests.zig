@@ -24,7 +24,7 @@ const InstrumentedItemHeap = InstrumentedDHeap(Item, ItemContext, ItemComparator
 // ============================================================================
 
 test "stats initial state" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -44,7 +44,7 @@ test "stats initial state" {
 // ============================================================================
 
 test "insert bucket isolation" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -62,7 +62,7 @@ test "insert bucket isolation" {
 }
 
 test "pop bucket isolation" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -87,7 +87,7 @@ test "pop bucket isolation" {
 }
 
 test "increase_priority bucket isolation" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -113,7 +113,7 @@ test "increase_priority bucket isolation" {
 }
 
 test "decrease_priority bucket isolation" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -136,7 +136,7 @@ test "decrease_priority bucket isolation" {
 }
 
 test "update_priority bucket isolation" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -162,7 +162,7 @@ test "update_priority bucket isolation" {
 // ============================================================================
 
 test "reset zeros counters but preserves heap" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -184,7 +184,7 @@ test "reset zeros counters but preserves heap" {
 }
 
 test "total equals sum of buckets" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
@@ -213,7 +213,7 @@ test "total equals sum of buckets" {
 // ============================================================================
 
 test "lockstep pop order" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 

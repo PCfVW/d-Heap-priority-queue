@@ -129,4 +129,4 @@ The implementation includes path reconstruction, showing not just the shortest d
 - Implements standard Dijkstra algorithm with priority update operations
 - Loads the shared test graph from `../graphs/small.json`
 - Custom `hash()` and `eql()` methods on `Vertex` enable O(1) priority updates based on vertex ID
-- Uses Zig 0.15.2 unmanaged ArrayList API for proper memory management
+- Uses Zig 0.16.0 unmanaged ArrayList API for proper memory management
