@@ -120,6 +120,7 @@ struct CliArgs {
     bool json = false;
     std::optional<std::string> env_file;
     bool report_rss = false;
+    bool profile_sections = false;
 };
 
 CliArgs parse_args(int argc, char* argv[]) {
@@ -155,10 +156,13 @@ CliArgs parse_args(int argc, char* argv[]) {
             args.json = true;
         } else if (arg == "--report-rss") {
             args.report_rss = true;
+        } else if (arg == "--profile-sections") {
+            args.profile_sections = true;
         } else {
             std::cerr << "unknown argument: " << arg << "\n"
                       << "usage: dijkstra [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] "
-                         "[--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss]\n";
+                         "[--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss] "
+                         "[--profile-sections]\n";
             std::exit(2);
         }
     }
@@ -255,6 +259,32 @@ int main(int argc, char* argv[]) {
             "{{\"schema_version\":1,\"language\":\"Cpp\",\"graph\":\"{}\","
             "\"arity\":{},\"peak_rss_kb\":{}}}\n",
             args.graph, d, peak_rss_kb());
+        return 0;
+    }
+
+    // --profile-sections: per-section timers, emit one JSON line per timed
+    // call (Phase 3.5 of methodology.md). Same K=2/N=10 warmup-then-repeat
+    // protocol as --json wall-time below, reused here after the first real
+    // Phase 3.5 run showed a single un-iterated call is too noisy to
+    // attribute cross-language gaps.
+    if (args.profile_sections) {
+        if (!args.arity) {
+            std::cerr << "error: --profile-sections requires --arity=<d>\n";
+            return 1;
+        }
+        const std::size_t d = *args.arity;
+        for (unsigned int i = 0; i < args.warmup; ++i) {
+            (void)dijkstra_profiled(graph, source, d);
+        }
+        for (unsigned int rep = 1; rep <= args.repetitions; ++rep) {
+            const auto [profiled_result, t] = dijkstra_profiled(graph, source, d);
+            (void)profiled_result;
+            std::cout << std::format(
+                "{{\"schema_version\":1,\"language\":\"Cpp\",\"graph\":\"{}\","
+                "\"arity\":{},\"rep\":{},\"section_us\":{{"
+                "\"setup\":{},\"pop\":{},\"relax\":{},\"inc_pri\":{},\"total\":{}}}}}\n",
+                args.graph, d, rep, t.setup_us, t.pop_us, t.relax_us, t.inc_pri_us, t.total());
+        }
         return 0;
     }
 

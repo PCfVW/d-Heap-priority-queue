@@ -4,7 +4,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { dijkstra, dijkstraInstrumented, reconstructPath } from './dijkstra.js';
+import { dijkstra, dijkstraInstrumented, dijkstraProfiled, reconstructPath } from './dijkstra.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 function parseArgs(argv) {
@@ -13,6 +13,7 @@ function parseArgs(argv) {
         quiet: false, stats: false,
         arity: 0, warmup: 0, repetitions: 1,
         json: false, envFile: null, reportRss: false,
+        profileSections: false,
     };
     for (const arg of argv.slice(2)) {
         if (arg.startsWith('--graph='))
@@ -37,9 +38,11 @@ function parseArgs(argv) {
             args.envFile = arg.slice('--env-file='.length);
         else if (arg === '--report-rss')
             args.reportRss = true;
+        else if (arg === '--profile-sections')
+            args.profileSections = true;
         else {
             console.error(`unknown argument: ${arg}`);
-            console.error('usage: node dist/index.js [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] [--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss]');
+            console.error('usage: node dist/index.js [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] [--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss] [--profile-sections]');
             process.exit(2);
         }
     }
@@ -138,6 +141,39 @@ function main() {
             peak_rss_kb: peakRssKb,
         };
         console.log(JSON.stringify(record));
+        return;
+    }
+    if (args.profileSections) {
+        if (args.arity === 0) {
+            console.error('error: --profile-sections requires --arity=<d>');
+            process.exit(1);
+        }
+        const d = args.arity;
+        // Same K=2/N=10 warmup-then-repeat protocol as the wall-time --json
+        // path below, reused here after the first real Phase 3.5 run showed a
+        // single un-iterated call is too noisy to attribute cross-language gaps
+        // (see benchmarks/methodology.md, "Phase 3.5").
+        for (let i = 0; i < args.warmup; i++) {
+            dijkstraProfiled(graph, source, d);
+        }
+        for (let rep = 1; rep <= args.repetitions; rep++) {
+            const { timings } = dijkstraProfiled(graph, source, d);
+            const record = {
+                schema_version: 1,
+                language: 'TypeScript',
+                graph: args.graph,
+                arity: d,
+                rep,
+                section_us: {
+                    setup: timings.setup,
+                    pop: timings.pop,
+                    relax: timings.relax,
+                    inc_pri: timings.incPri,
+                    total: timings.total,
+                },
+            };
+            console.log(JSON.stringify(record));
+        }
         return;
     }
     if (args.json) {

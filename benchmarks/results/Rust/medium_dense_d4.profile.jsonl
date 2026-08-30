@@ -1,0 +1,10 @@
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":1,"schema_version":1,"section_us":{"inc_pri":89.49999999999983,"pop":54.6,"relax":87.69999999999914,"setup":115.19999999999999,"total":346.9999999999989}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":2,"schema_version":1,"section_us":{"inc_pri":70.69999999999997,"pop":47.49999999999993,"relax":72.29999999999995,"setup":145.4,"total":335.89999999999986}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":3,"schema_version":1,"section_us":{"inc_pri":60.600000000000044,"pop":43.39999999999995,"relax":65.2000000000004,"setup":117.9,"total":287.10000000000036}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":4,"schema_version":1,"section_us":{"inc_pri":58.60000000000006,"pop":42.899999999999935,"relax":62.400000000000475,"setup":116.89999999999999,"total":280.80000000000047}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":5,"schema_version":1,"section_us":{"inc_pri":58.50000000000006,"pop":43.79999999999994,"relax":65.7000000000004,"setup":118.6,"total":286.60000000000036}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":6,"schema_version":1,"section_us":{"inc_pri":62.80000000000008,"pop":43.79999999999994,"relax":65.60000000000036,"setup":116.0,"total":288.2000000000004}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":7,"schema_version":1,"section_us":{"inc_pri":60.20000000000007,"pop":43.69999999999993,"relax":68.10000000000025,"setup":115.3,"total":287.30000000000024}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":8,"schema_version":1,"section_us":{"inc_pri":57.5000000000001,"pop":41.499999999999964,"relax":65.70000000000039,"setup":114.9,"total":279.6000000000005}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":9,"schema_version":1,"section_us":{"inc_pri":58.10000000000006,"pop":42.799999999999955,"relax":64.50000000000045,"setup":119.5,"total":284.9000000000005}}
+{"arity":4,"graph":"medium_dense","language":"Rust","rep":10,"schema_version":1,"section_us":{"inc_pri":60.50000000000004,"pop":42.99999999999994,"relax":66.20000000000036,"setup":120.5,"total":290.20000000000033}}

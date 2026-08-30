@@ -1,0 +1,10 @@
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":1,"schema_version":1,"section_us":{"inc_pri":33.99999999999999,"pop":35.89999999999996,"relax":28.800000000000047,"setup":48.300000000000004,"total":147.0}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":2,"schema_version":1,"section_us":{"inc_pri":33.49999999999997,"pop":35.59999999999997,"relax":29.20000000000005,"setup":51.8,"total":150.1}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":3,"schema_version":1,"section_us":{"inc_pri":40.200000000000024,"pop":34.9,"relax":28.600000000000033,"setup":47.9,"total":151.60000000000005}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":4,"schema_version":1,"section_us":{"inc_pri":35.100000000000016,"pop":35.29999999999998,"relax":29.30000000000004,"setup":48.5,"total":148.20000000000005}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":5,"schema_version":1,"section_us":{"inc_pri":32.79999999999998,"pop":35.39999999999997,"relax":28.80000000000004,"setup":47.4,"total":144.39999999999998}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":6,"schema_version":1,"section_us":{"inc_pri":33.900000000000006,"pop":34.79999999999998,"relax":28.40000000000004,"setup":47.5,"total":144.60000000000002}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":7,"schema_version":1,"section_us":{"inc_pri":32.99999999999999,"pop":34.79999999999998,"relax":28.500000000000046,"setup":47.3,"total":143.60000000000002}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":8,"schema_version":1,"section_us":{"inc_pri":33.29999999999999,"pop":33.99999999999998,"relax":29.100000000000044,"setup":47.1,"total":143.5}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":9,"schema_version":1,"section_us":{"inc_pri":33.199999999999996,"pop":34.699999999999996,"relax":29.600000000000055,"setup":47.0,"total":144.50000000000003}}
+{"arity":8,"graph":"medium_grid","language":"Rust","rep":10,"schema_version":1,"section_us":{"inc_pri":33.199999999999996,"pop":33.499999999999986,"relax":29.700000000000042,"setup":48.4,"total":144.8}}

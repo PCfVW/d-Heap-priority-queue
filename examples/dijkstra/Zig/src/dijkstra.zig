@@ -80,6 +80,169 @@ pub fn dijkstraInstrumented(
     return .{ .result = result, .stats = pq.stats };
 }
 
+/// Wall-clock time spent in each of Dijkstra's four algorithmic sections, as
+/// measured by `dijkstraProfiled` via `std.Io.Clock.Timestamp` (Zig 0.16
+/// removed `std.time.nanoTimestamp`; monotonic timing now goes through the
+/// process-wide `Io` implementation). All fields are microseconds.
+///
+/// `total()` is the sum of the four sections — a distinct number from the
+/// Phase 3 wall-time median (see `benchmarks/methodology.md`, "Phase 3.5"):
+/// this struct measures one un-iterated call including timer overhead, not a
+/// warmup + N-repetition steady state.
+///
+/// Cross-language equivalents:
+/// - C++: `SectionTimings` (dijkstra.h)
+/// - Go: `SectionTimings` (dijkstra.go)
+/// - Rust: `SectionTimings` (dijkstra.rs)
+/// - TypeScript: `SectionTimings` (dijkstra.ts)
+pub const SectionTimings = struct {
+    /// Adjacency-list build + distances/predecessors init + the initial
+    /// `insert` call per vertex. One-shot, before the main loop.
+    setup_us: f64 = 0,
+    /// Sum of every `pq.pop()` call inside the main loop. Heap-only.
+    pop_us: f64 = 0,
+    /// Sum of the per-edge distance computation, comparison against
+    /// `distances`, and (when improved) the writes to `distances` and
+    /// `predecessors`. Excludes the heap `contains`/`increasePriority` pair,
+    /// timed separately as `inc_pri_us`.
+    relax_us: f64 = 0,
+    /// Sum of the `contains` check and conditional `increasePriority` call,
+    /// timed only on edges where `relax_us` found a strictly shorter path.
+    inc_pri_us: f64 = 0,
+
+    /// Sum of all four sections. See the struct-level doc comment for why
+    /// this differs from the Phase 3 wall-time median.
+    pub fn total(self: SectionTimings) f64 {
+        return self.setup_us + self.pop_us + self.relax_us + self.inc_pri_us;
+    }
+};
+
+/// Returns a fresh monotonic timestamp on the `.awake` clock, via the
+/// process-wide `Io` implementation.
+fn nowTimestamp(io: std.Io) std.Io.Clock.Timestamp {
+    return std.Io.Clock.Timestamp.now(io, .awake);
+}
+
+/// Microseconds elapsed between `start` and now.
+fn elapsedUs(start: std.Io.Clock.Timestamp, io: std.Io) f64 {
+    const ns = start.untilNow(io).raw.nanoseconds;
+    return @as(f64, @floatFromInt(ns)) / 1000.0;
+}
+
+/// Like `dijkstra`, but instruments the four Phase 3.5 sections (`setup`,
+/// `pop`, `relax`, `inc_pri`) with `std.Io.Clock.Timestamp` and returns their
+/// timings alongside the result. Used only by the `--profile-sections`
+/// example flag — a dedicated function rather than threading instrumentation
+/// through `runDijkstra`, so the Phase 3 wall-time/`--stats` hot paths carry
+/// no extra branching from this instrumentation.
+///
+/// The section boundaries are the cross-language-consistent split documented
+/// in `benchmarks/methodology.md` ("Phase 3.5: per-section timing"): `relax`
+/// covers the edge-weight comparison and (when improved) the
+/// `distances`/`predecessors` writes; `inc_pri` covers the heap `contains`
+/// lookup and conditional `increasePriority` call that follows an improved
+/// edge — split via an explicit `improved` boolean rather than re-evaluating
+/// the comparison after `distances` has already been mutated. The
+/// stale-entry and unreachable-vertex `continue` checks between `pop` and
+/// the neighbor loop are not separately timed — a small, symmetric gap
+/// explicitly licensed by methodology.md's "mutually exclusive and (within
+/// rounding) exhaustive" framing.
+///
+/// `io` is the process-wide `std.Io` implementation the timer reads through.
+pub fn dijkstraProfiled(
+    graph: Graph,
+    source: []const u8,
+    d: usize,
+    allocator: std.mem.Allocator,
+    io: std.Io,
+) !struct { result: DijkstraResult, timings: SectionTimings } {
+    const PriorityQueue = d_heap.DHeap(Vertex, VertexContext, VertexComparator);
+    var pq = try PriorityQueue.init(d, .{ .cmp = minByDistance }, allocator);
+    defer pq.deinit();
+
+    var timings = SectionTimings{};
+    const setup_start = nowTimestamp(io);
+
+    // Build adjacency list for efficient neighbor lookup
+    const NeighborList = std.ArrayList(Neighbor);
+    var adjacency = std.StringHashMap(NeighborList).init(allocator);
+    defer {
+        var it = adjacency.valueIterator();
+        while (it.next()) |list| {
+            list.deinit(allocator);
+        }
+        adjacency.deinit();
+    }
+
+    for (graph.vertices) |vertex| {
+        try adjacency.put(vertex, NeighborList.empty);
+    }
+
+    for (graph.edges) |edge| {
+        var list = adjacency.getPtr(edge.from).?;
+        try list.append(allocator, .{ .to = edge.to, .weight = edge.weight });
+    }
+
+    // Initialize distances and predecessors
+    var distances = std.StringHashMap(i32).init(allocator);
+    var predecessors = std.StringHashMap(?[]const u8).init(allocator);
+
+    // Set initial distances and add to priority queue
+    for (graph.vertices) |vertex| {
+        const distance = if (std.mem.eql(u8, vertex, source)) 0 else INFINITY;
+        try distances.put(vertex, distance);
+        try predecessors.put(vertex, null);
+        try pq.insert(.{ .id = vertex, .distance = distance });
+    }
+    timings.setup_us = elapsedUs(setup_start, io);
+
+    // Main algorithm loop
+    while (!pq.isEmpty()) {
+        const pop_start = nowTimestamp(io);
+        const current = (try pq.pop()) orelse break;
+        timings.pop_us += elapsedUs(pop_start, io);
+
+        // Stale-entry / unreachable-vertex skip checks: not separately timed
+        // (see the function doc comment) — sub-100ns, symmetric across
+        // languages, folded into methodology.md's "within rounding" caveat.
+        if (current.distance > distances.get(current.id).?) {
+            continue;
+        }
+        if (current.distance == INFINITY) {
+            continue;
+        }
+
+        if (adjacency.get(current.id)) |neighbors| {
+            for (neighbors.items) |neighbor| {
+                const relax_start = nowTimestamp(io);
+                const new_distance = current.distance + neighbor.weight;
+                const improved = new_distance < distances.get(neighbor.to).?;
+                if (improved) {
+                    try distances.put(neighbor.to, new_distance);
+                    try predecessors.put(neighbor.to, current.id);
+                }
+                timings.relax_us += elapsedUs(relax_start, io);
+
+                if (improved) {
+                    const inc_pri_start = nowTimestamp(io);
+                    if (pq.contains(.{ .id = neighbor.to, .distance = 0 })) {
+                        try pq.increasePriority(.{ .id = neighbor.to, .distance = new_distance });
+                    }
+                    timings.inc_pri_us += elapsedUs(inc_pri_start, io);
+                }
+            }
+        }
+    }
+
+    return .{
+        .result = DijkstraResult{
+            .distances = distances,
+            .predecessors = predecessors,
+        },
+        .timings = timings,
+    };
+}
+
 /// Shared algorithm body, generic over the priority-queue type so both
 /// `dijkstra` (no stats) and `dijkstraInstrumented` (stats on) reuse it.
 /// `comptime PQ: type` is monomorphised by Zig — no runtime cost.

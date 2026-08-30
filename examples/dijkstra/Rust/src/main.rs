@@ -7,7 +7,7 @@ mod types;
 
 use clap::Parser;
 use d_ary_heap::StatsCollector;
-use dijkstra::{dijkstra, dijkstra_instrumented, reconstruct_path, INFINITY};
+use dijkstra::{dijkstra, dijkstra_instrumented, dijkstra_profiled, reconstruct_path, INFINITY};
 use std::fs;
 use std::hint::black_box;
 use std::path::PathBuf;
@@ -61,6 +61,12 @@ struct Args {
     /// Requires --arity=<d>. Output is one JSON object on stdout.
     #[arg(long)]
     report_rss: bool,
+
+    /// Run dijkstra once with per-section timers and emit a single JSON record
+    /// (Phase 3.5 of methodology.md). Requires --arity=<d>. Output is one JSON
+    /// object on stdout.
+    #[arg(long)]
+    profile_sections: bool,
 }
 
 #[cfg(windows)]
@@ -164,6 +170,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "peak_rss_kb": peak,
         });
         println!("{}", record);
+        return Ok(());
+    }
+
+    if args.profile_sections {
+        let d = args.arity.ok_or("--profile-sections requires --arity=<d>")?;
+        // Same K=2/N=10 warmup-then-repeat protocol as the wall-time --json
+        // path below, reused here after the first real Phase 3.5 run showed
+        // a single un-iterated call is too noisy to attribute cross-language
+        // gaps (see benchmarks/methodology.md, "Phase 3.5"). black_box on
+        // every call (warmup included) mirrors --report-rss's anti-elision
+        // guard.
+        for _ in 0..args.warmup {
+            let _ = black_box(dijkstra_profiled(&graph, &source, d));
+        }
+        for rep in 1..=args.repetitions {
+            let (_result, timings) = black_box(dijkstra_profiled(&graph, &source, d));
+            let record = serde_json::json!({
+                "schema_version": 1,
+                "language": "Rust",
+                "graph": args.graph,
+                "arity": d,
+                "rep": rep,
+                "section_us": {
+                    "setup": timings.setup_us,
+                    "pop": timings.pop_us,
+                    "relax": timings.relax_us,
+                    "inc_pri": timings.inc_pri_us,
+                    "total": timings.total_us(),
+                }
+            });
+            println!("{}", record);
+        }
         return Ok(());
     }
 

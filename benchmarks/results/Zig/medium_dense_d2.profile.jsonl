@@ -1,0 +1,10 @@
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":1,"section_us":{"setup":57.3,"pop":22.999999999999993,"relax":37.000000000000256,"inc_pri":16.599999999999973,"total":133.9000000000002}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":2,"section_us":{"setup":55.2,"pop":24.8,"relax":38.400000000000276,"inc_pri":17.299999999999986,"total":135.70000000000027}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":3,"section_us":{"setup":60.8,"pop":24.000000000000007,"relax":35.600000000000236,"inc_pri":17.899999999999988,"total":138.30000000000024}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":4,"section_us":{"setup":68.5,"pop":23.700000000000006,"relax":38.00000000000027,"inc_pri":17.49999999999998,"total":147.70000000000024}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":5,"section_us":{"setup":57.4,"pop":23.6,"relax":37.50000000000026,"inc_pri":17.499999999999982,"total":136.00000000000023}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":6,"section_us":{"setup":77.5,"pop":22.80000000000001,"relax":39.50000000000029,"inc_pri":18.5,"total":158.3000000000003}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":7,"section_us":{"setup":49.6,"pop":24,"relax":38.70000000000028,"inc_pri":17.69999999999998,"total":130.00000000000026}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":8,"section_us":{"setup":70.3,"pop":22.300000000000004,"relax":37.700000000000266,"inc_pri":17.599999999999984,"total":147.90000000000026}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":9,"section_us":{"setup":38.1,"pop":21.200000000000006,"relax":36.60000000000025,"inc_pri":16.49999999999997,"total":112.40000000000023}}
+{"schema_version":1,"language":"Zig","graph":"medium_dense","arity":2,"rep":10,"section_us":{"setup":52.2,"pop":24.9,"relax":34.30000000000022,"inc_pri":16.199999999999964,"total":127.60000000000016}}

@@ -4,6 +4,7 @@ package main
 
 import (
 	"math"
+	"time"
 
 	dheap "github.com/PCfVW/d-Heap-priority-queue/Go/v2/src"
 )
@@ -34,6 +35,147 @@ func DijkstraInstrumented(graph Graph, source string, d int) (DijkstraResult, *d
 	stats := &dheap.Stats{}
 	result := dijkstraImpl(graph, source, d, stats)
 	return result, stats
+}
+
+// SectionTimings holds the wall-clock time spent in each of Dijkstra's four
+// algorithmic sections, as measured by DijkstraProfiled via time.Now/time.Since.
+// All fields are microseconds.
+//
+// TotalUs (the sum of all four) is a distinct number from the Phase 3
+// wall-time median (see benchmarks/methodology.md, "Phase 3.5"): this struct
+// measures one un-iterated call including timer overhead, not a warmup +
+// N-repetition steady state.
+//
+// Cross-language equivalents:
+//   - C++: SectionTimings (dijkstra.h)
+//   - Rust: SectionTimings (dijkstra.rs)
+//   - Zig: SectionTimings (dijkstra.zig)
+//   - TypeScript: SectionTimings (dijkstra.ts)
+type SectionTimings struct {
+	// SetupUs is the adjacency-list build + distances/predecessors init +
+	// the initial Insert call per vertex. One-shot, before the main loop.
+	SetupUs float64
+	// PopUs is the sum of every pq.Pop() call inside the main loop. Heap-only.
+	PopUs float64
+	// RelaxUs is the sum of the per-edge distance computation, comparison
+	// against distances, and (when improved) the writes to distances and
+	// predecessors. Excludes the heap Contains/IncreasePriority pair, timed
+	// separately as IncPriUs.
+	RelaxUs float64
+	// IncPriUs is the sum of the Contains check and conditional
+	// IncreasePriority call, timed only on edges where RelaxUs found a
+	// strictly shorter path.
+	IncPriUs float64
+}
+
+// TotalUs returns the sum of all four sections. See the SectionTimings doc
+// comment for why this differs from the Phase 3 wall-time median.
+func (t SectionTimings) TotalUs() float64 {
+	return t.SetupUs + t.PopUs + t.RelaxUs + t.IncPriUs
+}
+
+// DijkstraProfiled is like Dijkstra, but instruments the four Phase 3.5
+// sections (setup, pop, relax, incPri) with time.Now/time.Since and returns
+// their timings alongside the result. Used only by the --profile-sections
+// example flag — a dedicated function rather than threading instrumentation
+// through dijkstraImpl, so the Phase 3 wall-time/--stats hot paths carry no
+// extra branching from this instrumentation.
+//
+// The section boundaries are the cross-language-consistent split documented
+// in benchmarks/methodology.md ("Phase 3.5: per-section timing"): relax
+// covers the edge-weight comparison and (when improved) the
+// distances/predecessors writes; incPri covers the heap Contains lookup and
+// conditional IncreasePriority call that follows an improved edge — split
+// via an explicit improved boolean rather than re-evaluating the comparison
+// after distances has already been mutated. The stale-entry and
+// unreachable-vertex skip checks between Pop and the neighbor loop are not
+// separately timed — a small, symmetric gap explicitly licensed by
+// methodology.md's "mutually exclusive and (within rounding) exhaustive"
+// framing.
+func DijkstraProfiled(graph Graph, source string, d int) (DijkstraResult, SectionTimings) {
+	var timings SectionTimings
+	setupStart := time.Now()
+
+	// Build adjacency list for efficient neighbor lookup
+	adjacency := make(map[string][]struct {
+		To     string
+		Weight int
+	})
+	for _, v := range graph.Vertices {
+		adjacency[v] = nil
+	}
+	for _, e := range graph.Edges {
+		adjacency[e.From] = append(adjacency[e.From], struct {
+			To     string
+			Weight int
+		}{To: e.To, Weight: e.Weight})
+	}
+
+	// Initialize distances and predecessors
+	distances := make(map[string]int)
+	predecessors := make(map[string]*string)
+
+	// Create priority queue with min-heap by distance (plain, no --stats
+	// instrumentation — Phase 3.5 profiles wall time, not comparison counts).
+	pq := dheap.New(dheap.Options[Vertex, string]{
+		D:            d,
+		Comparator:   dheap.MinBy(func(v Vertex) int { return v.Distance }),
+		KeyExtractor: func(v Vertex) string { return v.ID },
+	})
+
+	// Set initial distances and add to priority queue
+	for _, v := range graph.Vertices {
+		distance := Infinity
+		if v == source {
+			distance = 0
+		}
+		distances[v] = distance
+		predecessors[v] = nil
+		pq.Insert(Vertex{ID: v, Distance: distance})
+	}
+	timings.SetupUs = float64(time.Since(setupStart).Nanoseconds()) / 1000.0
+
+	// Main algorithm loop
+	for !pq.IsEmpty() {
+		popStart := time.Now()
+		current, _ := pq.Pop()
+		timings.PopUs += float64(time.Since(popStart).Nanoseconds()) / 1000.0
+
+		// Stale-entry / unreachable-vertex skip checks: not separately timed
+		// (see the function doc comment) — sub-100ns, symmetric across
+		// languages, folded into methodology.md's "within rounding" caveat.
+		if current.Distance > distances[current.ID] {
+			continue
+		}
+		if current.Distance == Infinity {
+			continue
+		}
+
+		for _, neighbor := range adjacency[current.ID] {
+			relaxStart := time.Now()
+			newDistance := current.Distance + neighbor.Weight
+			improved := newDistance < distances[neighbor.To]
+			if improved {
+				distances[neighbor.To] = newDistance
+				pred := current.ID
+				predecessors[neighbor.To] = &pred
+			}
+			timings.RelaxUs += float64(time.Since(relaxStart).Nanoseconds()) / 1000.0
+
+			if improved {
+				incPriStart := time.Now()
+				if pq.Contains(Vertex{ID: neighbor.To}) {
+					pq.IncreasePriority(Vertex{ID: neighbor.To, Distance: newDistance})
+				}
+				timings.IncPriUs += float64(time.Since(incPriStart).Nanoseconds()) / 1000.0
+			}
+		}
+	}
+
+	return DijkstraResult{
+		Distances:    distances,
+		Predecessors: predecessors,
+	}, timings
 }
 
 // dijkstraImpl is the shared algorithm body. When stats is nil, the heap runs

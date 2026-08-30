@@ -14,6 +14,9 @@ examples/dijkstra/Rust/target
 examples/dijkstra/Zig/.zig-cache
 examples/dijkstra/Zig/zig-out
 
+# v2.7.0 build artifacts (Phase 3.5 aggregator)
+benchmarks/scripts/aggregate/target
+
 # AIware 2026 paper artifact bundle source — preserved in the companion repo
 # at C:\Users\Eric JACOPIN\Documents\Writings\Conférences\AIware 2026\
 #   dheap-llm-codegen-aiware2026  (commit a96841f, has its own git history).

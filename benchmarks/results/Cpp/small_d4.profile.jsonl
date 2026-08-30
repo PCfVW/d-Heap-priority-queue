@@ -1,0 +1,10 @@
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":1,"section_us":{"setup":1.9,"pop":0.6,"relax":0.30000000000000004,"inc_pri":0.6,"total":3.4}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":2,"section_us":{"setup":1.9,"pop":0.6,"relax":0.30000000000000004,"inc_pri":0.5,"total":3.3}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":3,"section_us":{"setup":1.7,"pop":0.4,"relax":0.2,"inc_pri":0.5,"total":2.8000000000000003}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":4,"section_us":{"setup":1.7,"pop":0.4,"relax":0.2,"inc_pri":0.5,"total":2.8000000000000003}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":5,"section_us":{"setup":1.6,"pop":0.30000000000000004,"relax":0.1,"inc_pri":0.4,"total":2.4}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":6,"section_us":{"setup":1.7,"pop":0.5,"relax":0.2,"inc_pri":0.6,"total":3.0000000000000004}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":7,"section_us":{"setup":1.7,"pop":0.30000000000000004,"relax":0.2,"inc_pri":0.4,"total":2.6}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":8,"section_us":{"setup":1.7,"pop":0.5,"relax":0.30000000000000004,"inc_pri":0.5,"total":3}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":9,"section_us":{"setup":1.7,"pop":0.4,"relax":0.5,"inc_pri":0.5,"total":3.1}}
+{"schema_version":1,"language":"Cpp","graph":"small","arity":4,"rep":10,"section_us":{"setup":1.6,"pop":0.5,"relax":0.1,"inc_pri":0.6,"total":2.8000000000000003}}

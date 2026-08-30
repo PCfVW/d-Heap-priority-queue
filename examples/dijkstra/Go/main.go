@@ -60,6 +60,25 @@ type RssRecord struct {
 	PeakRssKb     uint64 `json:"peak_rss_kb"`
 }
 
+// SectionUs mirrors the four Phase 3.5 section fields plus their sum.
+type SectionUs struct {
+	Setup  float64 `json:"setup"`
+	Pop    float64 `json:"pop"`
+	Relax  float64 `json:"relax"`
+	IncPri float64 `json:"inc_pri"`
+	Total  float64 `json:"total"`
+}
+
+// ProfileRecord is one JSONL line emitted per timed --profile-sections call.
+type ProfileRecord struct {
+	SchemaVersion int       `json:"schema_version"`
+	Language      string    `json:"language"`
+	Graph         string    `json:"graph"`
+	Arity         int       `json:"arity"`
+	Rep           int       `json:"rep"`
+	SectionUs     SectionUs `json:"section_us"`
+}
+
 func loadGraph(name string) (Graph, error) {
 	filename := name + ".json"
 	candidates := []string{
@@ -118,6 +137,7 @@ func main() {
 	jsonFlag := flag.Bool("json", false, "emit JSONL records to stdout instead of human-readable output")
 	envFileFlag := flag.String("env-file", "", "path to env-Go.json; contents are inlined into each wall-time record")
 	reportRssFlag := flag.Bool("report-rss", false, "run dijkstra once and emit a single peak-RSS JSON record (requires --arity)")
+	profileSectionsFlag := flag.Bool("profile-sections", false, "run dijkstra once with per-section timers and emit a single JSON record (requires --arity)")
 	flag.Parse()
 
 	graph, err := loadGraph(*graphName)
@@ -182,6 +202,41 @@ func main() {
 		}
 		data, _ := json.Marshal(rec)
 		fmt.Println(string(data))
+		return
+	}
+
+	if *profileSectionsFlag {
+		if *arityFlag == 0 {
+			fmt.Fprintln(os.Stderr, "error: --profile-sections requires --arity=<d>")
+			os.Exit(1)
+		}
+		d := *arityFlag
+		// Same K=2/N=10 warmup-then-repeat protocol as the wall-time --json
+		// path below, reused here after the first real Phase 3.5 run showed
+		// a single un-iterated call is too noisy to attribute cross-language
+		// gaps (see benchmarks/methodology.md, "Phase 3.5").
+		for i := 0; i < *warmupFlag; i++ {
+			_, _ = DijkstraProfiled(graph, source, d)
+		}
+		for rep := 1; rep <= *repetitionsFlag; rep++ {
+			_, timings := DijkstraProfiled(graph, source, d)
+			rec := ProfileRecord{
+				SchemaVersion: 1,
+				Language:      "Go",
+				Graph:         *graphName,
+				Arity:         d,
+				Rep:           rep,
+				SectionUs: SectionUs{
+					Setup:  timings.SetupUs,
+					Pop:    timings.PopUs,
+					Relax:  timings.RelaxUs,
+					IncPri: timings.IncPriUs,
+					Total:  timings.TotalUs(),
+				},
+			}
+			data, _ := json.Marshal(rec)
+			fmt.Println(string(data))
+		}
 		return
 	}
 

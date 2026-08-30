@@ -1,0 +1,10 @@
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":1,"schema_version":1,"section_us":{"inc_pri":52.10000000000012,"pop":35.599999999999966,"relax":63.8000000000005,"setup":128.0,"total":279.50000000000057}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":2,"schema_version":1,"section_us":{"inc_pri":54.100000000000094,"pop":36.799999999999976,"relax":64.80000000000042,"setup":119.7,"total":275.4000000000005}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":3,"schema_version":1,"section_us":{"inc_pri":52.90000000000011,"pop":36.09999999999997,"relax":62.90000000000048,"setup":116.0,"total":267.90000000000055}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":4,"schema_version":1,"section_us":{"inc_pri":53.2000000000001,"pop":35.59999999999998,"relax":63.10000000000048,"setup":113.0,"total":264.90000000000055}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":5,"schema_version":1,"section_us":{"inc_pri":51.20000000000011,"pop":35.59999999999997,"relax":63.500000000000476,"setup":135.79999999999998,"total":286.10000000000053}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":6,"schema_version":1,"section_us":{"inc_pri":54.00000000000009,"pop":35.79999999999998,"relax":64.00000000000047,"setup":109.9,"total":263.70000000000056}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":7,"schema_version":1,"section_us":{"inc_pri":53.900000000000084,"pop":36.39999999999996,"relax":64.70000000000043,"setup":108.0,"total":263.0000000000005}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":8,"schema_version":1,"section_us":{"inc_pri":53.100000000000115,"pop":35.89999999999996,"relax":64.30000000000047,"setup":114.3,"total":267.60000000000053}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":9,"schema_version":1,"section_us":{"inc_pri":52.60000000000014,"pop":35.899999999999984,"relax":63.000000000000476,"setup":111.60000000000001,"total":263.10000000000065}}
+{"arity":8,"graph":"medium_dense","language":"Rust","rep":10,"schema_version":1,"section_us":{"inc_pri":53.70000000000006,"pop":36.49999999999997,"relax":66.10000000000035,"setup":105.1,"total":261.4000000000004}}

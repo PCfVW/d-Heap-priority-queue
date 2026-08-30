@@ -1,8 +1,8 @@
-# run.ps1 — Phase 3 C++ benchmark runner
-# Per benchmarks/methodology.md: 3-pass capture (wall-time, stats, RSS).
+# run.ps1 — Phase 3 + 3.5 C++ benchmark runner
+# Per benchmarks/methodology.md: 4-pass capture (wall-time, stats, RSS, per-section timing).
 #
 # Usage:
-#   pwsh -File benchmarks/scripts/Cpp/run.ps1             # full sweep (51 files)
+#   pwsh -File benchmarks/scripts/Cpp/run.ps1             # full sweep (75 files)
 #   pwsh -File benchmarks/scripts/Cpp/run.ps1 -SmokeTest  # one cell only (huge_dense × d=8)
 #   pwsh -File benchmarks/scripts/Cpp/run.ps1 -SkipBuild  # reuse existing build/Release/dijkstra.exe
 
@@ -118,11 +118,27 @@ foreach ($d in $rssArities) {
     if ($LASTEXITCODE -ne 0) { throw "binary failed on $rssGraph d=$d (RSS)" }
 }
 
+# --- Pass 4: per-section timing (Phase 3.5) ---
+Write-Host "`n=== Pass 4: per-section timing ==="
+$cell = 0
+foreach ($g in $graphs) {
+    foreach ($d in $arities) {
+        $cell++
+        $out = Join-Path $resultsDir "${g}_d${d}.profile.jsonl"
+        Write-Host ("  [{0}/{1}] {2} d={3} -> {4}" -f $cell, $cells, $g, $d, (Split-Path $out -Leaf))
+        & $binary --graph=$g --arity=$d --profile-sections --warmup=2 --repetitions=10 |
+            Set-Content -Path $out -Encoding utf8NoBOM
+        if ($LASTEXITCODE -ne 0) { throw "binary failed on $g d=$d (profile-sections)" }
+    }
+}
+
 # --- Summary ---
 Write-Host "`n=== Done ==="
-$jsonlCount = (Get-ChildItem -Path $resultsDir -Filter '*.jsonl').Count
-$statsCount = (Get-ChildItem -Path $resultsDir -Filter '*.stats.json').Count
-$rssCount   = (Get-ChildItem -Path $resultsDir -Filter '*.rss.json').Count
+$jsonlCount   = (Get-ChildItem -Path $resultsDir -Filter '*.jsonl' | Where-Object { $_.Name -notlike '*.profile.jsonl' }).Count
+$statsCount   = (Get-ChildItem -Path $resultsDir -Filter '*.stats.json').Count
+$rssCount     = (Get-ChildItem -Path $resultsDir -Filter '*.rss.json').Count
+$profileCount = (Get-ChildItem -Path $resultsDir -Filter '*.profile.jsonl').Count
 Write-Host "  Wall-time files: $jsonlCount"
 Write-Host "  Stats files:     $statsCount"
 Write-Host "  RSS files:       $rssCount"
+Write-Host "  Profile files:   $profileCount"

@@ -1,0 +1,10 @@
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":1,"schema_version":1,"section_us":{"inc_pri":39.7,"pop":39.39999999999996,"relax":30.00000000000004,"setup":50.2,"total":159.3}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":2,"schema_version":1,"section_us":{"inc_pri":39.499999999999986,"pop":39.69999999999995,"relax":28.600000000000033,"setup":51.1,"total":158.89999999999998}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":3,"schema_version":1,"section_us":{"inc_pri":37.40000000000002,"pop":44.09999999999996,"relax":27.800000000000047,"setup":47.5,"total":156.8}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":4,"schema_version":1,"section_us":{"inc_pri":37.400000000000006,"pop":38.29999999999996,"relax":27.800000000000033,"setup":47.7,"total":151.20000000000002}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":5,"schema_version":1,"section_us":{"inc_pri":37.000000000000014,"pop":37.29999999999996,"relax":28.70000000000004,"setup":51.199999999999996,"total":154.2}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":6,"schema_version":1,"section_us":{"inc_pri":37.800000000000026,"pop":37.399999999999956,"relax":28.50000000000003,"setup":47.5,"total":151.2}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":7,"schema_version":1,"section_us":{"inc_pri":37.0,"pop":37.29999999999997,"relax":28.00000000000004,"setup":46.9,"total":149.2}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":8,"schema_version":1,"section_us":{"inc_pri":38.90000000000001,"pop":37.99999999999997,"relax":28.200000000000024,"setup":47.7,"total":152.8}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":9,"schema_version":1,"section_us":{"inc_pri":37.20000000000001,"pop":37.499999999999964,"relax":27.700000000000045,"setup":47.1,"total":149.50000000000003}}
+{"arity":4,"graph":"medium_grid","language":"Rust","rep":10,"schema_version":1,"section_us":{"inc_pri":39.299999999999976,"pop":38.39999999999995,"relax":28.100000000000033,"setup":47.2,"total":152.99999999999997}}

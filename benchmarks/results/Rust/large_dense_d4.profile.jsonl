@@ -1,0 +1,10 @@
+{"arity":4,"graph":"large_dense","language":"Rust","rep":1,"schema_version":1,"section_us":{"inc_pri":879.3999999999947,"pop":683.7000000000041,"relax":1962.2999999993285,"setup":3235.1,"total":6760.499999999328}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":2,"schema_version":1,"section_us":{"inc_pri":883.0999999999931,"pop":689.6000000000049,"relax":2000.199999999301,"setup":3061.7000000000003,"total":6634.599999999299}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":3,"schema_version":1,"section_us":{"inc_pri":859.6999999999958,"pop":687.4000000000042,"relax":1973.7999999993278,"setup":3070.6000000000004,"total":6591.499999999329}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":4,"schema_version":1,"section_us":{"inc_pri":861.9999999999974,"pop":686.0000000000045,"relax":1980.7999999993124,"setup":3218.4,"total":6747.199999999314}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":5,"schema_version":1,"section_us":{"inc_pri":863.8999999999965,"pop":684.7000000000054,"relax":1965.6999999993186,"setup":3292.0,"total":6806.299999999321}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":6,"schema_version":1,"section_us":{"inc_pri":860.0999999999974,"pop":682.3000000000044,"relax":1959.2999999993233,"setup":3338.2,"total":6839.899999999325}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":7,"schema_version":1,"section_us":{"inc_pri":881.8999999999957,"pop":689.5000000000045,"relax":1966.499999999316,"setup":3020.7,"total":6558.599999999316}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":8,"schema_version":1,"section_us":{"inc_pri":852.0999999999955,"pop":675.500000000005,"relax":1917.9999999993595,"setup":3066.2,"total":6511.79999999936}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":9,"schema_version":1,"section_us":{"inc_pri":853.3000000000009,"pop":672.3000000000053,"relax":1948.4999999993374,"setup":3072.3,"total":6546.399999999344}}
+{"arity":4,"graph":"large_dense","language":"Rust","rep":10,"schema_version":1,"section_us":{"inc_pri":849.899999999996,"pop":677.3000000000046,"relax":1938.599999999344,"setup":3105.1,"total":6570.899999999345}}

@@ -1,0 +1,10 @@
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":1,"schema_version":1,"section_us":{"inc_pri":3301.9000000002,"pop":3175.5999999999767,"relax":8319.100000012559,"setup":12243.1,"total":27039.700000012737}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":2,"schema_version":1,"section_us":{"inc_pri":3300.400000000193,"pop":3227.9999999999914,"relax":8399.700000013054,"setup":12360.8,"total":27288.90000001324}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":3,"schema_version":1,"section_us":{"inc_pri":3218.800000000136,"pop":3176.699999999982,"relax":8263.900000012503,"setup":12537.599999999999,"total":27197.00000001262}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":4,"schema_version":1,"section_us":{"inc_pri":3263.9000000001547,"pop":3193.7999999999865,"relax":8145.000000012062,"setup":11788.9,"total":26391.6000000122}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":5,"schema_version":1,"section_us":{"inc_pri":3348.8000000001675,"pop":3218.3999999999946,"relax":8476.90000001309,"setup":12677.7,"total":27721.800000013252}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":6,"schema_version":1,"section_us":{"inc_pri":3236.6000000001773,"pop":3183.3999999999887,"relax":8107.2000000118815,"setup":12047.1,"total":26574.30000001205}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":7,"schema_version":1,"section_us":{"inc_pri":3224.700000000159,"pop":3187.199999999983,"relax":8135.000000012047,"setup":11470.2,"total":26017.100000012186}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":8,"schema_version":1,"section_us":{"inc_pri":3234.600000000165,"pop":3199.39999999999,"relax":8161.100000012104,"setup":11453.2,"total":26048.300000012263}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":9,"schema_version":1,"section_us":{"inc_pri":3275.6000000001904,"pop":3221.199999999994,"relax":8338.000000012757,"setup":12327.0,"total":27161.800000012943}}
+{"arity":2,"graph":"huge_dense","language":"Rust","rep":10,"schema_version":1,"section_us":{"inc_pri":3090.3000000000816,"pop":3019.9999999999654,"relax":7705.500000010456,"setup":11120.9,"total":24936.700000010504}}

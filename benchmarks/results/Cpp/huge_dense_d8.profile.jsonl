@@ -1,0 +1,10 @@
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":1,"section_us":{"setup":9781,"pop":730.2000000000033,"relax":4998.30000000062,"inc_pri":1174.2000000000808,"total":16683.700000000703}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":2,"section_us":{"setup":9737.7,"pop":744.8000000000005,"relax":5064.200000000925,"inc_pri":1172.3000000000893,"total":16719.000000001015}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":3,"section_us":{"setup":9899.7,"pop":735.7000000000021,"relax":5045.700000000847,"inc_pri":1219.4000000000674,"total":16900.500000000917}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":4,"section_us":{"setup":9655.7,"pop":729.700000000005,"relax":4948.60000000048,"inc_pri":1152.8000000000848,"total":16486.80000000057}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":5,"section_us":{"setup":9787.4,"pop":736.2000000000022,"relax":5027.000000000769,"inc_pri":1170.2000000000871,"total":16720.800000000858}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":6,"section_us":{"setup":10011.9,"pop":743.5000000000011,"relax":5138.500000001127,"inc_pri":1183.2000000000833,"total":17077.100000001214}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":7,"section_us":{"setup":9632.6,"pop":732.6000000000014,"relax":5010.000000000709,"inc_pri":1184.9000000000717,"total":16560.100000000784}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":8,"section_us":{"setup":10003.6,"pop":739.0999999999991,"relax":5100.100000001025,"inc_pri":1186.9000000000733,"total":17029.7000000011}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":9,"section_us":{"setup":9505.9,"pop":743.2000000000016,"relax":4991.600000000625,"inc_pri":1157.6000000000915,"total":16398.30000000072}}
+{"schema_version":1,"language":"Cpp","graph":"huge_dense","arity":8,"rep":10,"section_us":{"setup":9765.6,"pop":739.6000000000005,"relax":4985.600000000628,"inc_pri":1164.5000000000894,"total":16655.30000000072}}
