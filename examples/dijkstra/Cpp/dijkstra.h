@@ -142,6 +142,7 @@ inline std::pair<DijkstraResult, SectionTimings> dijkstra_profiled(
         auto pop_start = Clock::now();
         auto current = pq.pop_front();
         timings.pop_us += std::chrono::duration<double, std::micro>(Clock::now() - pop_start).count();
+        ++timings.pop_count;
         if (!current) break;
 
         // Stale-entry / unreachable-vertex skip checks: not separately timed
@@ -163,6 +164,7 @@ inline std::pair<DijkstraResult, SectionTimings> dijkstra_profiled(
                 predecessors[neighbor_id] = current->id;
             }
             timings.relax_us += std::chrono::duration<double, std::micro>(Clock::now() - relax_start).count();
+            ++timings.relax_count;
 
             if (improved) {
                 auto inc_pri_start = Clock::now();

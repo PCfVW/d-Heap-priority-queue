@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <optional>
 #include <functional>
+#include <cstdint>
 
 /// Graph represents a weighted directed graph.
 struct Graph {
@@ -90,6 +91,14 @@ struct SectionTimings {
     /// call, timed only on edges where `relax_us` found a strictly shorter
     /// path.
     double inc_pri_us = 0.0;
+    /// Number of `pq.pop_front()` calls in the main loop — a plain counter
+    /// (no timer), added to verify the `pop_us`/`relax_us` call-count
+    /// assumption (~`|V|`/`|E|`) used when reasoning about per-language
+    /// timer overhead.
+    std::uint64_t pop_count = 0;
+    /// Number of neighbor-loop iterations (`relax` attempts) across the
+    /// whole run — plain counter, no timer.
+    std::uint64_t relax_count = 0;
 
     /// Sum of all four sections. See the struct-level doc comment for why
     /// this differs from the Phase 3 wall-time median.

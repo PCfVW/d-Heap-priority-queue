@@ -56,6 +56,10 @@ export interface SectionTimings {
     incPri: number;
     /** Sum of the four sections above. See the interface doc comment for why this differs from the Phase 3 wall-time median. */
     total: number;
+    /** Number of `pq.pop()` calls in the main loop — plain counter (no timer), added to verify the `pop`/`relax` call-count assumption (~`|V|`/`|E|`) used when reasoning about per-language timer overhead. */
+    popCount: number;
+    /** Number of neighbor-loop iterations (`relax` attempts) across the whole run — plain counter, no timer. */
+    relaxCount: number;
 }
 /**
  * Like {@link dijkstra}, but instruments the four Phase 3.5 sections

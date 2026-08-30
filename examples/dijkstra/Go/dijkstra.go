@@ -66,6 +66,14 @@ type SectionTimings struct {
 	// IncreasePriority call, timed only on edges where RelaxUs found a
 	// strictly shorter path.
 	IncPriUs float64
+	// PopCount is the number of pq.Pop() calls in the main loop — a plain
+	// counter (no timer), added to verify the PopUs/RelaxUs call-count
+	// assumption (~|V|/|E|) used when reasoning about per-language timer
+	// overhead.
+	PopCount uint64
+	// RelaxCount is the number of neighbor-loop iterations (relax attempts)
+	// across the whole run — plain counter, no timer.
+	RelaxCount uint64
 }
 
 // TotalUs returns the sum of all four sections. See the SectionTimings doc
@@ -140,6 +148,7 @@ func DijkstraProfiled(graph Graph, source string, d int) (DijkstraResult, Sectio
 		popStart := time.Now()
 		current, _ := pq.Pop()
 		timings.PopUs += float64(time.Since(popStart).Nanoseconds()) / 1000.0
+		timings.PopCount++
 
 		// Stale-entry / unreachable-vertex skip checks: not separately timed
 		// (see the function doc comment) — sub-100ns, symmetric across
@@ -161,6 +170,7 @@ func DijkstraProfiled(graph Graph, source string, d int) (DijkstraResult, Sectio
 				predecessors[neighbor.To] = &pred
 			}
 			timings.RelaxUs += float64(time.Since(relaxStart).Nanoseconds()) / 1000.0
+			timings.RelaxCount++
 
 			if improved {
 				incPriStart := time.Now()

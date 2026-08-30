@@ -69,6 +69,13 @@ pub struct SectionTimings {
     /// Sum of the `contains` check and conditional `increase_priority` call,
     /// timed only on edges where `relax_us` found a strictly shorter path.
     pub inc_pri_us: f64,
+    /// Number of `pq.pop()` calls in the main loop — a plain counter (no
+    /// timer), added to verify the `pop_us`/`relax_us` call-count assumption
+    /// (~`|V|`/`|E|`) used when reasoning about per-language timer overhead.
+    pub pop_count: u64,
+    /// Number of neighbor-loop iterations (`relax` attempts) across the
+    /// whole run — plain counter, no timer.
+    pub relax_count: u64,
 }
 
 impl SectionTimings {
@@ -136,6 +143,7 @@ pub fn dijkstra_profiled(graph: &Graph, source: &str, d: usize) -> (DijkstraResu
         let pop_start = Instant::now();
         let current = pq.pop().unwrap();
         timings.pop_us += pop_start.elapsed().as_secs_f64() * 1_000_000.0;
+        timings.pop_count += 1;
 
         // Stale-entry / unreachable-vertex skip checks: not separately timed
         // (see the function doc comment) — sub-100ns, symmetric across
@@ -157,6 +165,7 @@ pub fn dijkstra_profiled(graph: &Graph, source: &str, d: usize) -> (DijkstraResu
                     predecessors.insert(neighbor_id.clone(), Some(current.id.clone()));
                 }
                 timings.relax_us += relax_start.elapsed().as_secs_f64() * 1_000_000.0;
+                timings.relax_count += 1;
 
                 if improved {
                     let inc_pri_start = Instant::now();

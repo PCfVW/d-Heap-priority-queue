@@ -226,6 +226,8 @@ function main(): void {
         graph: args.graph,
         arity: d,
         rep,
+        pop_count: timings.popCount,
+        relax_count: timings.relaxCount,
         section_us: {
           setup: timings.setup,
           pop: timings.pop,

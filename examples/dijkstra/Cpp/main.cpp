@@ -314,9 +314,9 @@ int main(int argc, char* argv[]) {
             (void)profiled_result;
             std::cout << std::format(
                 "{{\"schema_version\":1,\"language\":\"Cpp\",\"graph\":\"{}\","
-                "\"arity\":{},\"rep\":{},\"section_us\":{{"
+                "\"arity\":{},\"rep\":{},\"pop_count\":{},\"relax_count\":{},\"section_us\":{{"
                 "\"setup\":{},\"pop\":{},\"relax\":{},\"inc_pri\":{},\"total\":{}}}}}\n",
-                args.graph, d, rep, t.setup_us, t.pop_us, t.relax_us, t.inc_pri_us, t.total());
+                args.graph, d, rep, t.pop_count, t.relax_count, t.setup_us, t.pop_us, t.relax_us, t.inc_pri_us, t.total());
         }
         return 0;
     }

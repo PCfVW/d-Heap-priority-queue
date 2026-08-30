@@ -109,6 +109,13 @@ pub const SectionTimings = struct {
     /// Sum of the `contains` check and conditional `increasePriority` call,
     /// timed only on edges where `relax_us` found a strictly shorter path.
     inc_pri_us: f64 = 0,
+    /// Number of `pq.pop()` calls in the main loop — a plain counter (no
+    /// timer), added to verify the `pop_us`/`relax_us` call-count assumption
+    /// (~`|V|`/`|E|`) used when reasoning about per-language timer overhead.
+    pop_count: u64 = 0,
+    /// Number of neighbor-loop iterations (`relax` attempts) across the
+    /// whole run — plain counter, no timer.
+    relax_count: u64 = 0,
 
     /// Sum of all four sections. See the struct-level doc comment for why
     /// this differs from the Phase 3 wall-time median.
@@ -201,6 +208,7 @@ pub fn dijkstraProfiled(
         const pop_start = nowTimestamp(io);
         const current = (try pq.pop()) orelse break;
         timings.pop_us += elapsedUs(pop_start, io);
+        timings.pop_count += 1;
 
         // Stale-entry / unreachable-vertex skip checks: not separately timed
         // (see the function doc comment) — sub-100ns, symmetric across
@@ -222,6 +230,7 @@ pub fn dijkstraProfiled(
                     try predecessors.put(neighbor.to, current.id);
                 }
                 timings.relax_us += elapsedUs(relax_start, io);
+                timings.relax_count += 1;
 
                 if (improved) {
                     const inc_pri_start = nowTimestamp(io);

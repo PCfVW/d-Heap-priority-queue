@@ -62,7 +62,15 @@ export function dijkstraProfiled(graph, source, d = 4) {
         comparator: minBy((v) => v.distance),
         keyExtractor: (v) => v.id,
     });
-    const timings = { setup: 0, pop: 0, relax: 0, incPri: 0, total: 0 };
+    const timings = {
+        setup: 0,
+        pop: 0,
+        relax: 0,
+        incPri: 0,
+        total: 0,
+        popCount: 0,
+        relaxCount: 0,
+    };
     const setupStart = performance.now();
     // Build adjacency list for efficient neighbor lookup
     const adjacency = new Map();
@@ -88,6 +96,7 @@ export function dijkstraProfiled(graph, source, d = 4) {
         const popStart = performance.now();
         const current = pq.pop(); // INDEX: the while-condition just proved the heap non-empty
         timings.pop += (performance.now() - popStart) * 1000;
+        timings.popCount++;
         // Stale-entry / unreachable-vertex skip checks: not separately timed
         // (see the function doc comment) — sub-100ns, symmetric across
         // languages, folded into methodology.md's "within rounding" caveat.
@@ -107,6 +116,7 @@ export function dijkstraProfiled(graph, source, d = 4) {
                 predecessors[to] = current.id;
             }
             timings.relax += (performance.now() - relaxStart) * 1000;
+            timings.relaxCount++;
             if (improved) {
                 const incPriStart = performance.now();
                 if (pq.contains({ id: to, distance: 0 })) {

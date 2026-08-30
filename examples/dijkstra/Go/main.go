@@ -76,6 +76,8 @@ type ProfileRecord struct {
 	Graph         string    `json:"graph"`
 	Arity         int       `json:"arity"`
 	Rep           int       `json:"rep"`
+	PopCount      uint64    `json:"pop_count"`
+	RelaxCount    uint64    `json:"relax_count"`
 	SectionUs     SectionUs `json:"section_us"`
 }
 
@@ -273,6 +275,8 @@ func main() {
 				Graph:         *graphName,
 				Arity:         d,
 				Rep:           rep,
+				PopCount:      timings.PopCount,
+				RelaxCount:    timings.RelaxCount,
 				SectionUs: SectionUs{
 					Setup:  timings.SetupUs,
 					Pop:    timings.PopUs,

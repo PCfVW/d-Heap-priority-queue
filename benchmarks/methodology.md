@@ -311,6 +311,29 @@ Output schema: one JSON line per trial at `benchmarks/results/<lang>/timer_overh
 
 **Finding**: Go's timer read is cheapest; TypeScript's is priciest, at roughly an order of magnitude more per call (see `results/SECTIONS.md` for the current run's exact medians and ratios). At nanoseconds per call against the Finding's microsecond-to-millisecond section totals, this confound is one to two orders of magnitude too small to be the primary explanation for the Rust-vs-Go gap on its own — real and non-zero, but not the root cause.
 
+### Call-count verification
+
+Motivation: the timer-overhead reasoning above relates a per-bracket cost (nanoseconds) to a bracket *count* (`~|V|` for `pop`, `~|E|` for `relax`) that had only ever been assumed, never measured. A `pop_count`/`relax_count` plain counter (no timer, no `Instant`/`time.Now`/etc. — a simple `+= 1` at the same point the existing `pop`/`relax` timer brackets already close) added to `--profile-sections` in all 5 languages checks that assumption directly instead of trusting it.
+
+Output schema: `pop_count` and `relax_count` are sibling fields on every existing `.profile.jsonl` line (alongside `rep`, before `section_us`):
+
+```json
+{
+  "schema_version": 1,
+  "language":       "Rust",
+  "graph":          "huge_dense",
+  "arity":          8,
+  "rep":            6,
+  "pop_count":      2500,
+  "relax_count":    125000,
+  "section_us": { "...": "..." }
+}
+```
+
+`benchmarks/scripts/aggregate/` enforces a new invariant (`check_call_count_invariant`, mirroring the Phase 2 comparison-count check in spirit): `pop_count`/`relax_count` must be identical across all N=10 reps of a cell (the algorithm is deterministic on a fixed graph — no timer jitter can leak into a plain increment) *and* identical across all 5 languages for the same `(graph, arity)` cell (same graph, same algorithm, same counts regardless of language). A divergence is a bug, not benchmark variance, and the aggregator exits non-zero on one. `results/SECTIONS.md`'s "Call-count-based overhead attribution" table then uses the confirmed counts together with the timer-overhead medians to test how much of the measured `pop`/`relax` gap a naive "per-bracket cost × bracket count" model would predict.
+
+**Finding**: the assumption was exactly right — `pop_count`=2,500, `relax_count`=125,000 on `huge_dense × d=8`, confirmed identical across every rep and every language. The attribution built on top of that confirmed count is itself inconclusive, not a clean answer: for `pop`, the predicted instrumentation-only contribution is too small to interpret against a measured gap whose sign varies run to run at that magnitude; for `relax`, the same per-bracket difference extrapolated linearly over 125,000 calls *overshoots* the actual measured gap, meaning `--timer-overhead`'s isolated, back-to-back measurement does not transfer linearly to a timer call interleaved with real hashmap/heap work at this call volume. See `results/SECTIONS.md` for the current run's exact table, and `CHANGELOG.md` for the further observation that regenerating this data also flipped the Finding's qualitative relax-vs-pop answer versus the previous capture — direct evidence that a single capture in this shared, non-quiesced sandbox is directional, not settled.
+
 ### Out of scope for Phase 3.5
 
 - CPU performance counters (cache misses, branch mispredicts). Use `perf` directly when needed.
@@ -352,3 +375,4 @@ Phase 3 implementation tracks against this list. Each item is a concrete deliver
 - [x] `benchmarks/results/SECTIONS.md` — cross-language attribution tables at `huge_dense × d=8`
 - [x] `CHANGELOG.md` entry + the answer to "where does the extra time go?" — revised from a single-call design (result looked like noise) to K=2/N=10 repetition (median + IQR); the answer held under the more rigorous measurement: not cleanly `relax` — see `SECTIONS.md`'s Finding/Caveats
 - [x] `--timer-overhead` flag in all 5 Dijkstra examples + `benchmarks/results/<lang>/timer_overhead.jsonl` (10 trials each) — quantifies the instrument-floor confound named in Phase 3.5's Caveats; see `SECTIONS.md`'s "Timer call overhead" table
+- [x] `pop_count`/`relax_count` plain counters in all 5 languages' `--profile-sections` output + `check_call_count_invariant` in `aggregate` — confirms the `~|V|`/`~|E|` bracket-count assumption exactly; see `SECTIONS.md`'s "Call-count-based overhead attribution" table and `CHANGELOG.md` for the run-to-run Finding-flip this regeneration surfaced

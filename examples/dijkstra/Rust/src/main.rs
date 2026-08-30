@@ -238,6 +238,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "graph": args.graph,
                 "arity": d,
                 "rep": rep,
+                "pop_count": timings.pop_count,
+                "relax_count": timings.relax_count,
                 "section_us": {
                     "setup": timings.setup_us,
                     "pop": timings.pop_us,

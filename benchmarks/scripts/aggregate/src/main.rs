@@ -22,6 +22,10 @@ fn main() -> Result<()> {
         .context("Phase 2 comparison-count invariant check failed")?;
     println!("comparison-count invariant: OK (all cells agree across 5 languages)");
 
+    collect::check_call_count_invariant(&dataset)
+        .context("Phase 3.5 call-count invariant check failed")?;
+    println!("call-count invariant: OK (all cells agree across 5 languages and all reps)");
+
     let readme_path = benchmarks_dir.join("README.md");
     report::update_readme(&dataset, &readme_path)?;
     println!("wrote {}", readme_path.display());

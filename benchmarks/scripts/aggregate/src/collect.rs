@@ -61,6 +61,8 @@ struct ProfileRecord {
     language: String,
     graph: String,
     arity: u32,
+    pop_count: u64,
+    relax_count: u64,
     section_us: SectionUs,
 }
 
@@ -103,6 +105,11 @@ pub struct Dataset {
     pub rss_kb: BTreeMap<(String, u32), u64>,
     /// `(graph, arity) -> language -> the 10 section-timing samples` (Phase 3.5).
     pub sections: BTreeMap<CellKey, BTreeMap<String, Vec<SectionUs>>>,
+    /// `(graph, arity) -> language -> the 10 (pop_count, relax_count) samples`
+    /// (Phase 3.5 call-count check — a plain counter, not a timer, added to
+    /// verify the `~|V|`/`~|E|` assumption used when reasoning about
+    /// per-language timer overhead).
+    pub call_counts: BTreeMap<CellKey, BTreeMap<String, Vec<(u64, u64)>>>,
     /// `language -> the 10 per-trial per-call-µs samples` from
     /// `--timer-overhead` (graph/arity-independent, so no [`CellKey`]).
     pub timer_overhead_us: BTreeMap<String, Vec<f64>>,
@@ -171,6 +178,12 @@ pub fn collect(results_dir: &Path) -> Result<Dataset> {
                         .entry(rec.language.clone())
                         .or_default()
                         .push(rec.section_us);
+                    ds.call_counts
+                        .entry((rec.graph.clone(), rec.arity))
+                        .or_default()
+                        .entry(rec.language.clone())
+                        .or_default()
+                        .push((rec.pop_count, rec.relax_count));
                 }
             } else if name.ends_with(".jsonl") {
                 let text = std::fs::read_to_string(&path)
@@ -255,6 +268,83 @@ pub fn check_comparison_invariant(ds: &Dataset) -> Result<()> {
     } else {
         bail!(
             "comparison-count invariant violated on {} cell(s):\n  {}",
+            problems.len(),
+            problems.join("\n  ")
+        );
+    }
+}
+
+/// Verifies the Phase 3.5 call-count invariant: `pop_count`/`relax_count` are
+/// plain counters (no timer), added to check the `~|V|`/`~|E|` assumption
+/// used when reasoning about per-language timer overhead. Two things must
+/// hold, for the same reason `check_comparison_invariant` holds for Phase 2 —
+/// a divergence is a bug, not benchmark variance:
+/// - **Within a language**: all N reps of the same `(graph, arity)` cell must
+///   report identical counts (the algorithm is deterministic on a fixed
+///   graph — no timer jitter can leak into a plain increment).
+/// - **Across languages**: for the same `(graph, arity)` cell, every language
+///   walks the same graph with the same algorithm, so all five must agree.
+///
+/// # Errors
+/// Returns an error listing every `(graph, arity)` cell where either check
+/// fails, or where a language's data is missing for a cell that has data
+/// from at least one other language.
+pub fn check_call_count_invariant(ds: &Dataset) -> Result<()> {
+    let mut problems = Vec::new();
+
+    for (key, by_lang) in &ds.call_counts {
+        let mut canonical: Vec<(&String, (u64, u64))> = Vec::with_capacity(by_lang.len());
+
+        for (lang, samples) in by_lang {
+            let first = samples[0];
+            if samples.iter().any(|&s| s != first) {
+                let detail = samples
+                    .iter()
+                    .map(|(pop, relax)| format!("(pop={pop}, relax={relax})"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                problems.push(format!(
+                    "{}/d={}/{lang}: pop_count/relax_count varies across reps: {detail}",
+                    key.0, key.1
+                ));
+                continue;
+            }
+            canonical.push((lang, first));
+        }
+        canonical.sort();
+
+        let missing: Vec<&str> = LANGUAGES
+            .iter()
+            .filter(|l| !by_lang.contains_key(**l))
+            .copied()
+            .collect();
+        if !missing.is_empty() {
+            problems.push(format!(
+                "{}/d={}: missing call-count data for {}",
+                key.0,
+                key.1,
+                missing.join(", ")
+            ));
+            continue;
+        }
+
+        if let Some((_, first)) = canonical.first() {
+            if canonical.iter().any(|(_, c)| c != first) {
+                let detail = canonical
+                    .iter()
+                    .map(|(l, (pop, relax))| format!("{l}=(pop={pop}, relax={relax})"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                problems.push(format!("{}/d={}: {}", key.0, key.1, detail));
+            }
+        }
+    }
+
+    if problems.is_empty() {
+        Ok(())
+    } else {
+        bail!(
+            "call-count invariant violated on {} cell(s):\n  {}",
             problems.len(),
             problems.join("\n  ")
         );

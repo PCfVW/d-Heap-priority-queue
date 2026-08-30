@@ -358,6 +358,133 @@ fn write_timer_overhead(out: &mut String, ds: &Dataset) -> Result<()> {
     Ok(())
 }
 
+/// Appends `SECTIONS.md`'s "## Call-count-based overhead attribution"
+/// section: uses the plain (non-timer) `pop_count`/`relax_count` counters —
+/// verified identical across all 10 reps and all 5 languages by
+/// [`crate::collect::check_call_count_invariant`] — alongside the
+/// `--timer-overhead` medians to test, with measured numbers instead of the
+/// `~|V|`/`~|E|` guess, how much of the Rust-vs-Go `pop`/`relax` gap a naive
+/// "per-bracket timer cost × bracket count" model would predict.
+///
+/// # Errors
+/// Returns an error if `huge_dense × d=8` call-count or timer-overhead data
+/// is missing for Rust or Go.
+fn write_overhead_attribution(
+    out: &mut String,
+    ds: &Dataset,
+    by_lang: &std::collections::BTreeMap<String, crate::collect::SectionUs>,
+) -> Result<()> {
+    let key = ("huge_dense".to_string(), 8u32);
+    let (pop_count, relax_count) = ds
+        .call_counts
+        .get(&key)
+        .and_then(|by_lang| by_lang.get("Rust"))
+        .and_then(|samples| samples.first())
+        .copied()
+        .context("no Phase 3.5 call-count data found for Rust on huge_dense × d=8")?;
+
+    let rust_per_call_us = ds
+        .timer_overhead_us
+        .get("Rust")
+        .map(|s| compute(s).median)
+        .context("no --timer-overhead data for Rust")?;
+    let go_per_call_us = ds
+        .timer_overhead_us
+        .get("Go")
+        .map(|s| compute(s).median)
+        .context("no --timer-overhead data for Go")?;
+    let per_bracket_diff_us = (rust_per_call_us - go_per_call_us) * 2.0;
+
+    // Call counts are bounded by this project's graph corpus (≤125,000, `huge_dense`'s edge
+    // count) — nowhere near f64's 52-bit mantissa limit, so the precision-loss lint is a false
+    // positive here.
+    #[allow(clippy::cast_precision_loss)]
+    let predicted_us = |count: u64| per_bracket_diff_us * count as f64;
+    let pct_of_gap = |predicted: f64, actual: f64| {
+        if actual > 0.0 {
+            format!("{:.0}%", predicted / actual * 100.0)
+        } else {
+            "n/a".to_string()
+        }
+    };
+
+    let rust = &by_lang["Rust"];
+    let go = &by_lang["Go"];
+    let pop_gap_us = rust.pop - go.pop;
+    let relax_gap_us = rust.relax - go.relax;
+    let pop_predicted_us = predicted_us(pop_count);
+    let relax_predicted_us = predicted_us(relax_count);
+    let pop_pct_str = pct_of_gap(pop_predicted_us, pop_gap_us);
+    let relax_pct_str = pct_of_gap(relax_predicted_us, relax_gap_us);
+
+    let _ = writeln!(
+        out,
+        "## Call-count-based overhead attribution\n\n\
+         `pop_count`/`relax_count` are plain counters (no timer) recorded alongside every \
+         `--profile-sections` rep specifically to check the `~|V|`/`~|E|` guess used when relating \
+         the timer-overhead table above to the `pop`/`relax` gap — confirmed exact and identical \
+         across all 10 reps and all 5 languages: `pop_count`={pop_count}, `relax_count`={relax_count} \
+         on `huge_dense × d=8`. The table below asks: if the entire Rust-vs-Go gap in a section came \
+         from Rust's timer read costing {:.1} ns more per bracket than Go's (from the table above), \
+         how much of the *measured* gap would that predict?\n",
+        per_bracket_diff_us * 1000.0,
+    );
+    let _ = writeln!(out, "| Section | Bracket count | Predicted overhead-only gap (µs) | Actual measured gap (µs) | Overhead as % of gap |");
+    let _ = writeln!(out, "|---|---:|---:|---:|---:|");
+    let _ = writeln!(
+        out,
+        "| pop | {pop_count} | {} | {} | {} |",
+        fmt_us(pop_predicted_us),
+        fmt_us(pop_gap_us),
+        pct_of_gap(pop_predicted_us, pop_gap_us)
+    );
+    let _ = writeln!(
+        out,
+        "| relax | {relax_count} | {} | {} | {} |",
+        fmt_us(relax_predicted_us),
+        fmt_us(relax_gap_us),
+        pct_of_gap(relax_predicted_us, relax_gap_us)
+    );
+
+    let pop_sentence = if pop_gap_us > 0.0 {
+        format!(
+            "For `pop`'s ~2,500 brackets, the instrumentation asymmetry alone predicts {pop_pct_str} \
+             of the measured gap."
+        )
+    } else {
+        format!(
+            "For `pop`, Go's own median was {} µs slower than Rust's on this run — a negative gap \
+             the {}-µs predicted instrumentation asymmetry can't be sensibly compared against; at \
+             ~2,500 brackets the effect is small enough that run-to-run noise can flip its sign \
+             (see the measurement-environment note above)."
+        , fmt_us(-pop_gap_us), fmt_us(pop_predicted_us))
+    };
+    let relax_sentence = if relax_gap_us > 0.0 {
+        format!(
+            "For `relax`'s ~125,000 brackets, the same per-bracket difference, extrapolated \
+             linearly, predicts {relax_pct_str} of the measured gap — {} it, which means the \
+             isolated, back-to-back `--timer-overhead` benchmark does not transfer linearly to a \
+             timer call interleaved with real hashmap/heap work at this call volume.",
+            if relax_predicted_us > relax_gap_us { "overshooting" } else { "undershooting" }
+        )
+    } else {
+        format!(
+            "For `relax`, Go's own median was {} µs slower than Rust's on this run, so the \
+             instrumentation-asymmetry model has no positive gap to attribute against.",
+            fmt_us(-relax_gap_us)
+        )
+    };
+
+    let _ = writeln!(
+        out,
+        "\n{pop_sentence} {relax_sentence} Whatever is producing either section's actual gap on a \
+         given run, this linear model cannot cleanly subtract out the instrumentation confound, and \
+         the hashmap-cost hypothesis is neither confirmed nor ruled out by this table alone.\n"
+    );
+
+    Ok(())
+}
+
 /// Writes `benchmarks/results/SECTIONS.md`: the Phase 3.5 headline tables at
 /// `huge_dense × d=8` (percentage of total time per section, and absolute
 /// µs per section), plus a short honest note on the measurement environment
@@ -448,6 +575,7 @@ pub fn write_sections(ds: &Dataset, out_path: &Path, env_note: &str) -> Result<(
 
     write_finding(&mut out, by_lang, samples_by_lang, rep_count);
     write_timer_overhead(&mut out, ds)?;
+    write_overhead_attribution(&mut out, ds, by_lang)?;
 
     std::fs::write(out_path, out).with_context(|| format!("writing {}", out_path.display()))?;
     Ok(())

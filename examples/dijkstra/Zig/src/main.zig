@@ -313,7 +313,7 @@ pub fn main(init: std.process.Init) !void {
         }
         const d: usize = @as(usize, args.arity);
         const stdout = std.Io.File.stdout();
-        var buf: [512]u8 = undefined;
+        var buf: [576]u8 = undefined;
 
         var i: u32 = 0;
         while (i < args.warmup) : (i += 1) {
@@ -329,8 +329,8 @@ pub fn main(init: std.process.Init) !void {
             const t = r.timings;
             const line = try std.fmt.bufPrint(
                 &buf,
-                "{{\"schema_version\":1,\"language\":\"Zig\",\"graph\":\"{s}\",\"arity\":{d},\"rep\":{d},\"section_us\":{{\"setup\":{d},\"pop\":{d},\"relax\":{d},\"inc_pri\":{d},\"total\":{d}}}}}\n",
-                .{ args.graph, d, rep, t.setup_us, t.pop_us, t.relax_us, t.inc_pri_us, t.total() },
+                "{{\"schema_version\":1,\"language\":\"Zig\",\"graph\":\"{s}\",\"arity\":{d},\"rep\":{d},\"pop_count\":{d},\"relax_count\":{d},\"section_us\":{{\"setup\":{d},\"pop\":{d},\"relax\":{d},\"inc_pri\":{d},\"total\":{d}}}}}\n",
+                .{ args.graph, d, rep, t.pop_count, t.relax_count, t.setup_us, t.pop_us, t.relax_us, t.inc_pri_us, t.total() },
             );
             try stdout.writeStreamingAll(io, line);
         }

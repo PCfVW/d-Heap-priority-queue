@@ -81,6 +81,10 @@ export interface SectionTimings {
   incPri: number;
   /** Sum of the four sections above. See the interface doc comment for why this differs from the Phase 3 wall-time median. */
   total: number;
+  /** Number of `pq.pop()` calls in the main loop — plain counter (no timer), added to verify the `pop`/`relax` call-count assumption (~`|V|`/`|E|`) used when reasoning about per-language timer overhead. */
+  popCount: number;
+  /** Number of neighbor-loop iterations (`relax` attempts) across the whole run — plain counter, no timer. */
+  relaxCount: number;
 }
 
 /**
@@ -114,7 +118,15 @@ export function dijkstraProfiled(
     keyExtractor: (v: Vertex) => v.id,
   });
 
-  const timings: SectionTimings = { setup: 0, pop: 0, relax: 0, incPri: 0, total: 0 };
+  const timings: SectionTimings = {
+    setup: 0,
+    pop: 0,
+    relax: 0,
+    incPri: 0,
+    total: 0,
+    popCount: 0,
+    relaxCount: 0,
+  };
 
   const setupStart = performance.now();
 
@@ -145,6 +157,7 @@ export function dijkstraProfiled(
     const popStart = performance.now();
     const current = pq.pop()!; // INDEX: the while-condition just proved the heap non-empty
     timings.pop += (performance.now() - popStart) * 1000;
+    timings.popCount++;
 
     // Stale-entry / unreachable-vertex skip checks: not separately timed
     // (see the function doc comment) — sub-100ns, symmetric across
@@ -166,6 +179,7 @@ export function dijkstraProfiled(
         predecessors[to] = current.id;
       }
       timings.relax += (performance.now() - relaxStart) * 1000;
+      timings.relaxCount++;
 
       if (improved) {
         const incPriStart = performance.now();
