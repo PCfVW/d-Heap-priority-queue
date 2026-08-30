@@ -1,0 +1,10 @@
+{"schema_version":1,"language":"Cpp","trial":1,"iterations":1000000,"per_call_us":0.0189912,"per_bracket_us":0.0379824}
+{"schema_version":1,"language":"Cpp","trial":2,"iterations":1000000,"per_call_us":0.018909099999999998,"per_bracket_us":0.037818199999999996}
+{"schema_version":1,"language":"Cpp","trial":3,"iterations":1000000,"per_call_us":0.0187365,"per_bracket_us":0.037473}
+{"schema_version":1,"language":"Cpp","trial":4,"iterations":1000000,"per_call_us":0.0187593,"per_bracket_us":0.0375186}
+{"schema_version":1,"language":"Cpp","trial":5,"iterations":1000000,"per_call_us":0.0186744,"per_bracket_us":0.0373488}
+{"schema_version":1,"language":"Cpp","trial":6,"iterations":1000000,"per_call_us":0.0187156,"per_bracket_us":0.0374312}
+{"schema_version":1,"language":"Cpp","trial":7,"iterations":1000000,"per_call_us":0.0186103,"per_bracket_us":0.0372206}
+{"schema_version":1,"language":"Cpp","trial":8,"iterations":1000000,"per_call_us":0.018947,"per_bracket_us":0.037894}
+{"schema_version":1,"language":"Cpp","trial":9,"iterations":1000000,"per_call_us":0.0199571,"per_bracket_us":0.0399142}
+{"schema_version":1,"language":"Cpp","trial":10,"iterations":1000000,"per_call_us":0.0200745,"per_bracket_us":0.040149}

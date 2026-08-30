@@ -1,0 +1,10 @@
+{"schema_version":1,"language":"TypeScript","trial":1,"iterations":1000000,"per_call_us":0.047469300000000006,"per_bracket_us":0.09493860000000001}
+{"schema_version":1,"language":"TypeScript","trial":2,"iterations":1000000,"per_call_us":0.046539,"per_bracket_us":0.093078}
+{"schema_version":1,"language":"TypeScript","trial":3,"iterations":1000000,"per_call_us":0.042824699999999986,"per_bracket_us":0.08564939999999997}
+{"schema_version":1,"language":"TypeScript","trial":4,"iterations":1000000,"per_call_us":0.042899499999999986,"per_bracket_us":0.08579899999999997}
+{"schema_version":1,"language":"TypeScript","trial":5,"iterations":1000000,"per_call_us":0.04305429999999998,"per_bracket_us":0.08610859999999997}
+{"schema_version":1,"language":"TypeScript","trial":6,"iterations":1000000,"per_call_us":0.04325039999999996,"per_bracket_us":0.08650079999999992}
+{"schema_version":1,"language":"TypeScript","trial":7,"iterations":1000000,"per_call_us":0.04314619999999997,"per_bracket_us":0.08629239999999994}
+{"schema_version":1,"language":"TypeScript","trial":8,"iterations":1000000,"per_call_us":0.043416599999999965,"per_bracket_us":0.08683319999999993}
+{"schema_version":1,"language":"TypeScript","trial":9,"iterations":1000000,"per_call_us":0.0434135,"per_bracket_us":0.086827}
+{"schema_version":1,"language":"TypeScript","trial":10,"iterations":1000000,"per_call_us":0.04320210000000003,"per_bracket_us":0.08640420000000006}

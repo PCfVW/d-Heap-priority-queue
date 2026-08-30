@@ -13,7 +13,7 @@ function parseArgs(argv) {
         quiet: false, stats: false,
         arity: 0, warmup: 0, repetitions: 1,
         json: false, envFile: null, reportRss: false,
-        profileSections: false,
+        profileSections: false, timerOverhead: false,
     };
     for (const arg of argv.slice(2)) {
         if (arg.startsWith('--graph='))
@@ -40,9 +40,11 @@ function parseArgs(argv) {
             args.reportRss = true;
         else if (arg === '--profile-sections')
             args.profileSections = true;
+        else if (arg === '--timer-overhead')
+            args.timerOverhead = true;
         else {
             console.error(`unknown argument: ${arg}`);
-            console.error('usage: node dist/index.js [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] [--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss] [--profile-sections]');
+            console.error('usage: node dist/index.js [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] [--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss] [--profile-sections] [--timer-overhead]');
             process.exit(2);
         }
     }
@@ -108,8 +110,38 @@ function runJSON(graph, source, target, d, graphName, stats, warmup, repetitions
         console.log(JSON.stringify(record));
     }
 }
+/** Back-to-back calls to `performance.now()` timed as a batch and divided
+ * down for one `--timer-overhead` trial — timing a single call directly
+ * would be dominated by the very timer resolution being measured. */
+const TIMER_OVERHEAD_ITERATIONS = 1_000_000;
+/** Independent trials, so the aggregator can report median/IQR the same way
+ * it does for every other measurement in this project (methodology.md's
+ * "Reported summary statistics"). */
+const TIMER_OVERHEAD_TRIALS = 10;
 function main() {
     const args = parseArgs(process.argv);
+    // --timer-overhead: no graph/arity involved, handled before the
+    // (otherwise-unconditional) graph load below.
+    if (args.timerOverhead) {
+        for (let trial = 1; trial <= TIMER_OVERHEAD_TRIALS; trial++) {
+            const start = performance.now();
+            for (let i = 0; i < TIMER_OVERHEAD_ITERATIONS; i++) {
+                performance.now();
+            }
+            const totalUs = (performance.now() - start) * 1000;
+            const perCallUs = totalUs / TIMER_OVERHEAD_ITERATIONS;
+            const record = {
+                schema_version: 1,
+                language: 'TypeScript',
+                trial,
+                iterations: TIMER_OVERHEAD_ITERATIONS,
+                per_call_us: perCallUs,
+                per_bracket_us: perCallUs * 2,
+            };
+            console.log(JSON.stringify(record));
+        }
+        return;
+    }
     const graph = loadGraph(args.graph);
     // Default endpoints: textbook A→F for small; v0→v(N-1) otherwise.
     const source = args.source ?? (args.graph === 'small' ? 'A' : graph.vertices[0]);

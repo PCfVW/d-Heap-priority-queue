@@ -132,9 +132,16 @@ foreach ($g in $graphs) {
     }
 }
 
+# --- Pass 5: timer-call overhead (instrument floor) ---
+Write-Host "`n=== Pass 5: timer-call overhead ==="
+$timerOut = Join-Path $resultsDir 'timer_overhead.jsonl'
+& $binary --timer-overhead |
+    Set-Content -Path $timerOut -Encoding utf8NoBOM
+if ($LASTEXITCODE -ne 0) { throw "binary failed on --timer-overhead" }
+
 # --- Summary ---
 Write-Host "`n=== Done ==="
-$jsonlCount   = (Get-ChildItem -Path $resultsDir -Filter '*.jsonl' | Where-Object { $_.Name -notlike '*.profile.jsonl' }).Count
+$jsonlCount   = (Get-ChildItem -Path $resultsDir -Filter '*.jsonl' | Where-Object { $_.Name -notlike '*.profile.jsonl' -and $_.Name -ne 'timer_overhead.jsonl' }).Count
 $statsCount   = (Get-ChildItem -Path $resultsDir -Filter '*.stats.json').Count
 $rssCount     = (Get-ChildItem -Path $resultsDir -Filter '*.rss.json').Count
 $profileCount = (Get-ChildItem -Path $resultsDir -Filter '*.profile.jsonl').Count
@@ -142,3 +149,4 @@ Write-Host "  Wall-time files: $jsonlCount"
 Write-Host "  Stats files:     $statsCount"
 Write-Host "  RSS files:       $rssCount"
 Write-Host "  Profile files:   $profileCount"
+Write-Host "  Timer-overhead:  $(if (Test-Path $timerOut) { 'ok' } else { 'MISSING' })"

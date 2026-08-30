@@ -32,7 +32,17 @@ const CliArgs = struct {
     env_file: ?[]const u8 = null,
     report_rss: bool = false,
     profile_sections: bool = false,
+    timer_overhead: bool = false,
 };
+
+/// Back-to-back calls to `std.Io.Clock.Timestamp.now` timed as a batch and
+/// divided down for one `--timer-overhead` trial — timing a single call
+/// directly would be dominated by the very timer resolution being measured.
+const timer_overhead_iterations: u32 = 1_000_000;
+/// Independent trials, so the aggregator can report median/IQR the same way
+/// it does for every other measurement in this project (methodology.md's
+/// "Reported summary statistics").
+const timer_overhead_trials: u32 = 10;
 
 fn parseArgs(allocator: std.mem.Allocator, process_args: std.process.Args) !CliArgs {
     var args = CliArgs{ .graph = try allocator.dupe(u8, "small") };
@@ -74,9 +84,11 @@ fn parseArgs(allocator: std.mem.Allocator, process_args: std.process.Args) !CliA
             args.report_rss = true;
         } else if (std.mem.eql(u8, arg, "--profile-sections")) {
             args.profile_sections = true;
+        } else if (std.mem.eql(u8, arg, "--timer-overhead")) {
+            args.timer_overhead = true;
         } else {
             std.debug.print("unknown argument: {s}\n", .{arg});
-            std.debug.print("usage: zig build run -- [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] [--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss] [--profile-sections]\n", .{});
+            std.debug.print("usage: zig build run -- [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] [--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss] [--profile-sections] [--timer-overhead]\n", .{});
             std.process.exit(2);
         }
     }
@@ -222,6 +234,30 @@ pub fn main(init: std.process.Init) !void {
     defer if (args.source) |s| allocator.free(s);
     defer if (args.target) |t| allocator.free(t);
     defer if (args.env_file) |e| allocator.free(e);
+
+    // --timer-overhead: no graph/arity involved, handled before the
+    // (otherwise-unconditional) graph load below.
+    if (args.timer_overhead) {
+        const stdout = std.Io.File.stdout();
+        var buf: [256]u8 = undefined;
+        var trial: u32 = 1;
+        while (trial <= timer_overhead_trials) : (trial += 1) {
+            const start = std.Io.Clock.Timestamp.now(io, .awake);
+            var i: u32 = 0;
+            while (i < timer_overhead_iterations) : (i += 1) {
+                _ = std.Io.Clock.Timestamp.now(io, .awake);
+            }
+            const total_ns = start.untilNow(io).raw.nanoseconds;
+            const per_call_us = @as(f64, @floatFromInt(total_ns)) / 1000.0 / @as(f64, @floatFromInt(timer_overhead_iterations));
+            const line = try std.fmt.bufPrint(
+                &buf,
+                "{{\"schema_version\":1,\"language\":\"Zig\",\"trial\":{d},\"iterations\":{d},\"per_call_us\":{d},\"per_bracket_us\":{d}}}\n",
+                .{ trial, timer_overhead_iterations, per_call_us, per_call_us * 2.0 },
+            );
+            try stdout.writeStreamingAll(io, line);
+        }
+        return;
+    }
 
     var graph_arena = std.heap.ArenaAllocator.init(allocator);
     defer graph_arena.deinit();

@@ -294,6 +294,70 @@ fn median_section(samples: &[crate::collect::SectionUs]) -> crate::collect::Sect
     }
 }
 
+/// Appends `SECTIONS.md`'s "## Timer call overhead" section: one row per
+/// language, sorted cheapest-first, with a ratio column normalized to the
+/// cheapest (1.00×) — directly answers "could Phase 3.5's cross-language
+/// section differences be explained by differing instrumentation cost
+/// rather than real algorithmic differences?"
+///
+/// # Errors
+/// Returns an error if any of the five languages has no `--timer-overhead`
+/// data collected.
+fn write_timer_overhead(out: &mut String, ds: &Dataset) -> Result<()> {
+    let mut rows: Vec<(&str, crate::stats::CellStats)> = Vec::with_capacity(crate::collect::LANGUAGES.len());
+    for lang in crate::collect::LANGUAGES {
+        let samples = ds
+            .timer_overhead_us
+            .get(lang)
+            .with_context(|| format!("no --timer-overhead data found for {lang}"))?;
+        rows.push((lang, compute(samples)));
+    }
+    rows.sort_by(|a, b| a.1.median.partial_cmp(&b.1.median).expect("per_call_us is never NaN"));
+    let cheapest_us = rows[0].1.median;
+
+    let _ = writeln!(
+        out,
+        "## Timer call overhead (instrument floor)\n\n\
+         Median per-call cost of this process's own native monotonic-timer read, from 10 \
+         independent batches of 1,000,000 back-to-back `--timer-overhead` calls. Every Phase 3.5 \
+         section pays roughly one \"bracket\" (2 calls: start + elapsed) per section per main-loop \
+         iteration, so this is the floor beneath every number in the tables above — it answers \
+         whether the cross-language section differences could be an artifact of differing \
+         instrumentation cost rather than real algorithmic differences.\n"
+    );
+    let _ = writeln!(out, "| Language | Median per-call (ns) | Ratio | Median per-bracket (ns) | IQR (ns) |");
+    let _ = writeln!(out, "|---|---:|---:|---:|---:|");
+    for (lang, stats) in &rows {
+        let ratio = stats.median / cheapest_us;
+        let _ = writeln!(
+            out,
+            "| {lang} | {:.1} | {:.2}× | {:.1} | {:.1} |",
+            stats.median * 1000.0,
+            ratio,
+            stats.median * 1000.0 * 2.0,
+            stats.iqr * 1000.0,
+        );
+    }
+
+    let fastest = rows[0].0;
+    let slowest = &rows[rows.len() - 1];
+    let _ = writeln!(
+        out,
+        "\n{fastest}'s timer read is the cheapest of the five; {}'s is {:.1}× more expensive per \
+         call. On `huge_dense × d=8` the main loop pays on the order of 10⁵ brackets total across \
+         `setup`/`pop`/`relax`/`inc_pri` combined (`pop`/`relax` alone are bounded by \\|V\\|=2500 and \
+         \\|E\\|=125000 respectively), so even this small a per-call difference compounds to a real, \
+         non-zero, systematic offset between languages — but at nanoseconds per call against the \
+         Finding's microseconds-to-milliseconds section totals, it is one to two orders of magnitude \
+         too small to be the primary explanation for the Rust-vs-Go gap on its own. It is a genuine \
+         confound this document does not correct for.\n",
+        slowest.0,
+        slowest.1.median / cheapest_us,
+    );
+
+    Ok(())
+}
+
 /// Writes `benchmarks/results/SECTIONS.md`: the Phase 3.5 headline tables at
 /// `huge_dense × d=8` (percentage of total time per section, and absolute
 /// µs per section), plus a short honest note on the measurement environment
@@ -383,6 +447,7 @@ pub fn write_sections(ds: &Dataset, out_path: &Path, env_note: &str) -> Result<(
     );
 
     write_finding(&mut out, by_lang, samples_by_lang, rep_count);
+    write_timer_overhead(&mut out, ds)?;
 
     std::fs::write(out_path, out).with_context(|| format!("writing {}", out_path.display()))?;
     Ok(())

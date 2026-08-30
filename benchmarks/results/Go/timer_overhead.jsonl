@@ -1,0 +1,10 @@
+{"schema_version":1,"language":"Go","trial":1,"iterations":1000000,"per_call_us":0.0046584,"per_bracket_us":0.0093168}
+{"schema_version":1,"language":"Go","trial":2,"iterations":1000000,"per_call_us":0.0041558,"per_bracket_us":0.0083116}
+{"schema_version":1,"language":"Go","trial":3,"iterations":1000000,"per_call_us":0.0047319,"per_bracket_us":0.0094638}
+{"schema_version":1,"language":"Go","trial":4,"iterations":1000000,"per_call_us":0.0046742,"per_bracket_us":0.0093484}
+{"schema_version":1,"language":"Go","trial":5,"iterations":1000000,"per_call_us":0.005202399999999999,"per_bracket_us":0.010404799999999999}
+{"schema_version":1,"language":"Go","trial":6,"iterations":1000000,"per_call_us":0.0041949,"per_bracket_us":0.0083898}
+{"schema_version":1,"language":"Go","trial":7,"iterations":1000000,"per_call_us":0.004878,"per_bracket_us":0.009756}
+{"schema_version":1,"language":"Go","trial":8,"iterations":1000000,"per_call_us":0.0045067,"per_bracket_us":0.0090134}
+{"schema_version":1,"language":"Go","trial":9,"iterations":1000000,"per_call_us":0.004506,"per_bracket_us":0.009012}
+{"schema_version":1,"language":"Go","trial":10,"iterations":1000000,"per_call_us":0.0039993,"per_bracket_us":0.0079986}

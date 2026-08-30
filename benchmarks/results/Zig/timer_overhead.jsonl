@@ -1,0 +1,10 @@
+{"schema_version":1,"language":"Zig","trial":1,"iterations":1000000,"per_call_us":0.0238679,"per_bracket_us":0.0477358}
+{"schema_version":1,"language":"Zig","trial":2,"iterations":1000000,"per_call_us":0.0240901,"per_bracket_us":0.0481802}
+{"schema_version":1,"language":"Zig","trial":3,"iterations":1000000,"per_call_us":0.023517200000000002,"per_bracket_us":0.047034400000000004}
+{"schema_version":1,"language":"Zig","trial":4,"iterations":1000000,"per_call_us":0.0238668,"per_bracket_us":0.0477336}
+{"schema_version":1,"language":"Zig","trial":5,"iterations":1000000,"per_call_us":0.023675599999999998,"per_bracket_us":0.047351199999999996}
+{"schema_version":1,"language":"Zig","trial":6,"iterations":1000000,"per_call_us":0.0241689,"per_bracket_us":0.0483378}
+{"schema_version":1,"language":"Zig","trial":7,"iterations":1000000,"per_call_us":0.023640599999999998,"per_bracket_us":0.047281199999999995}
+{"schema_version":1,"language":"Zig","trial":8,"iterations":1000000,"per_call_us":0.023657900000000003,"per_bracket_us":0.047315800000000005}
+{"schema_version":1,"language":"Zig","trial":9,"iterations":1000000,"per_call_us":0.0235897,"per_bracket_us":0.0471794}
+{"schema_version":1,"language":"Zig","trial":10,"iterations":1000000,"per_call_us":0.023700099999999998,"per_bracket_us":0.047400199999999997}

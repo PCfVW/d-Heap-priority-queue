@@ -64,6 +64,12 @@ struct ProfileRecord {
     section_us: SectionUs,
 }
 
+#[derive(Deserialize)]
+struct TimerOverheadRecord {
+    language: String,
+    per_call_us: f64,
+}
+
 /// One `--profile-sections` record's four timed sections plus their sum, in
 /// microseconds — one rep out of the K=2 warmup / N=10 repeated protocol
 /// (`benchmarks/methodology.md`, "Phase 3.5"). Field names mirror
@@ -97,6 +103,9 @@ pub struct Dataset {
     pub rss_kb: BTreeMap<(String, u32), u64>,
     /// `(graph, arity) -> language -> the 10 section-timing samples` (Phase 3.5).
     pub sections: BTreeMap<CellKey, BTreeMap<String, Vec<SectionUs>>>,
+    /// `language -> the 10 per-trial per-call-µs samples` from
+    /// `--timer-overhead` (graph/arity-independent, so no [`CellKey`]).
+    pub timer_overhead_us: BTreeMap<String, Vec<f64>>,
 }
 
 /// Reads every result file under `results_dir/<Language>/` for each of the
@@ -134,7 +143,21 @@ pub fn collect(results_dir: &Path) -> Result<Dataset> {
             // this project's own tooling with a fixed lowercase suffix, so
             // case-insensitivity buys nothing.
             #[allow(clippy::case_sensitive_file_extension_comparisons)]
-            if name.ends_with(".profile.jsonl") {
+            if name == "timer_overhead.jsonl" {
+                // Graph/arity-independent (one file per language, not per
+                // cell) — checked before the plain `.jsonl` arm below, which
+                // it would otherwise also match.
+                let text = std::fs::read_to_string(&path)
+                    .with_context(|| format!("reading {}", path.display()))?;
+                for line in text.lines().filter(|l| !l.trim().is_empty()) {
+                    let rec: TimerOverheadRecord = serde_json::from_str(line)
+                        .with_context(|| format!("parsing a line of {}", path.display()))?;
+                    ds.timer_overhead_us
+                        .entry(rec.language.clone())
+                        .or_default()
+                        .push(rec.per_call_us);
+                }
+            } else if name.ends_with(".profile.jsonl") {
                 // Must be checked before the plain `.jsonl` arm below —
                 // `.profile.jsonl` ends with `.jsonl` too.
                 let text = std::fs::read_to_string(&path)

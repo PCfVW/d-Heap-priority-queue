@@ -1,0 +1,10 @@
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.050785,"per_call_us":0.0253925,"schema_version":1,"trial":1}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.050639,"per_call_us":0.0253195,"schema_version":1,"trial":2}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.0505744,"per_call_us":0.0252872,"schema_version":1,"trial":3}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.0504162,"per_call_us":0.0252081,"schema_version":1,"trial":4}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.0505588,"per_call_us":0.0252794,"schema_version":1,"trial":5}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.0508328,"per_call_us":0.0254164,"schema_version":1,"trial":6}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.050523,"per_call_us":0.0252615,"schema_version":1,"trial":7}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.0509768,"per_call_us":0.0254884,"schema_version":1,"trial":8}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.0507818,"per_call_us":0.0253909,"schema_version":1,"trial":9}
+{"iterations":1000000,"language":"Rust","per_bracket_us":0.0504604,"per_call_us":0.0252302,"schema_version":1,"trial":10}

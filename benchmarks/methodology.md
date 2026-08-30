@@ -280,10 +280,36 @@ The `relax` row is where the hashmap-attribution story should be most visible. I
 
 ### Caveats
 
-- **Timer overhead at sub-µs scale.** Four timer pairs add ~50–200 ns per main-loop iteration. On `huge_dense` (~63 710 pop iterations) that's milliseconds of overhead — non-negligible but symmetric across languages. We report it; we don't try to subtract it. Repeating the call K+N times (per the revised Mechanism above) reduces *cross-rep* noise; it does not reduce or reveal this per-language timer-call overhead itself, which remains an undocumented, unmeasured variable.
+- **Timer overhead at sub-µs scale.** Four timer pairs add ~50–200 ns per main-loop iteration. On `huge_dense` (~63 710 pop iterations) that's milliseconds of overhead — non-negligible but symmetric across languages. We report it; we don't try to subtract it. Repeating the call K+N times (per the revised Mechanism above) reduces *cross-rep* noise; it does not reduce this per-language timer-call overhead itself — see **Timer-call overhead measurement** below, which quantifies rather than merely flags this variable.
 - **What this can't measure**: allocator-internal time (Go's GC, Rust's malloc), cache-miss attribution, instruction-cache vs data-cache effects. CPU-counter-grade profiling (`perf` / VTune / ETW) is the right tool for those questions; Phase 3.5 stays in user-mode wall time.
 - **Multiplicative aliasing.** `pop` and `inc_pri` each contain a small `compareTo` callback inside the heap. Timing them at the call site folds the comparator cost into the heap section — intentional, since the comparator is part of the heap path.
 - **Go's Windows timer-resolution floor** (documented for Phase 3 wall-time above) applies to individual section-timing reps too: a single rep's `inc_pri` (or, less often, another section) can read `0` when the real cost is simply below what `time.Since` resolves on this OS. The median across N=10 reps reduces this but does not eliminate it if more than half the reps land on the same quantized value.
+
+### Timer-call overhead measurement
+
+Motivation: after the K=2/N=10 revision above, the hashmap-cost hypothesis (SipHash + `String`-clone in `relax` explaining Rust's wall-time gap vs. Go) was still not confirmed — `relax`'s ratio wasn't clearly larger than `pop`'s. One remaining candidate explanation is instrumentation itself: if one language's native timer read costs meaningfully more than another's, that asymmetry could bleed into the section numbers independent of any real algorithmic difference. This measures that floor directly instead of leaving it as an unquantified caveat.
+
+A `--timer-overhead` flag in each example binary:
+- Graph/arity-independent — no `--graph`/`--arity` required.
+- 10 independent trials, each 1,000,000 back-to-back calls to the same native monotonic-timer primitive used for section timing above (`Instant::now` / `time.Now` / `performance.now` / `std.Io.Clock.Timestamp.now` / `chrono::high_resolution_clock::now`).
+- Per-call cost = a trial's total elapsed time ÷ 1,000,000 iterations. Per-bracket cost = per-call × 2, since each Phase 3.5 section timer pays two clock reads per section per main-loop iteration (one at bracket-start, one folded into the elapsed/duration computation at bracket-end).
+
+Output schema: one JSON line per trial at `benchmarks/results/<lang>/timer_overhead.jsonl` (10 lines; no `graph`/`arity` fields, since the measurement is independent of both):
+
+```json
+{
+  "schema_version": 1,
+  "language":       "Rust",
+  "trial":          6,
+  "iterations":     1000000,
+  "per_call_us":    0.0253,
+  "per_bracket_us": 0.0506
+}
+```
+
+`benchmarks/scripts/aggregate/` reduces the 10 trials to one median `per_call_us` (and IQR) per language via the same `stats::compute` method used for wall-time and section medians, and renders `results/SECTIONS.md`'s "Timer call overhead (instrument floor)" table — sorted cheapest-first, with a Ratio column normalized so the fastest language reads 1.00×.
+
+**Finding**: Go's timer read is cheapest; TypeScript's is priciest, at roughly an order of magnitude more per call (see `results/SECTIONS.md` for the current run's exact medians and ratios). At nanoseconds per call against the Finding's microsecond-to-millisecond section totals, this confound is one to two orders of magnitude too small to be the primary explanation for the Rust-vs-Go gap on its own — real and non-zero, but not the root cause.
 
 ### Out of scope for Phase 3.5
 
@@ -322,6 +348,7 @@ Phase 3 implementation tracks against this list. Each item is a concrete deliver
 ### Phase 3.5 (v2.7.0)
 - [x] `--profile-sections` flag in all 5 Dijkstra examples
 - [x] Per-section timers (`setup`/`pop`/`relax`/`inc_pri`) in each example's `dijkstra` implementation
-- [x] `benchmarks/scripts/<Lang>/run.ps1` Pass 4 — `.profile.json` for all 120 cells
+- [x] `benchmarks/scripts/<Lang>/run.ps1` Pass 4 — `.profile.jsonl` for all 120 cells (10 lines each, K=2/N=10 revision)
 - [x] `benchmarks/results/SECTIONS.md` — cross-language attribution tables at `huge_dense × d=8`
 - [x] `CHANGELOG.md` entry + the answer to "where does the extra time go?" — revised from a single-call design (result looked like noise) to K=2/N=10 repetition (median + IQR); the answer held under the more rigorous measurement: not cleanly `relax` — see `SECTIONS.md`'s Finding/Caveats
+- [x] `--timer-overhead` flag in all 5 Dijkstra examples + `benchmarks/results/<lang>/timer_overhead.jsonl` (10 trials each) — quantifies the instrument-floor confound named in Phase 3.5's Caveats; see `SECTIONS.md`'s "Timer call overhead" table

@@ -121,7 +121,18 @@ struct CliArgs {
     std::optional<std::string> env_file;
     bool report_rss = false;
     bool profile_sections = false;
+    bool timer_overhead = false;
 };
+
+// Back-to-back calls to std::chrono::high_resolution_clock::now() timed as a
+// batch and divided down for one --timer-overhead trial — timing a single
+// call directly would be dominated by the very timer resolution being
+// measured.
+constexpr unsigned int TIMER_OVERHEAD_ITERATIONS = 1'000'000;
+// Independent trials, so the aggregator can report median/IQR the same way
+// it does for every other measurement in this project (methodology.md's
+// "Reported summary statistics").
+constexpr unsigned int TIMER_OVERHEAD_TRIALS = 10;
 
 CliArgs parse_args(int argc, char* argv[]) {
     CliArgs args;
@@ -158,11 +169,13 @@ CliArgs parse_args(int argc, char* argv[]) {
             args.report_rss = true;
         } else if (arg == "--profile-sections") {
             args.profile_sections = true;
+        } else if (arg == "--timer-overhead") {
+            args.timer_overhead = true;
         } else {
             std::cerr << "unknown argument: " << arg << "\n"
                       << "usage: dijkstra [--graph=NAME] [--source=ID] [--target=ID] [--quiet] [--stats] "
                          "[--arity=D] [--warmup=K] [--repetitions=N] [--json] [--env-file=PATH] [--report-rss] "
-                         "[--profile-sections]\n";
+                         "[--profile-sections] [--timer-overhead]\n";
             std::exit(2);
         }
     }
@@ -207,6 +220,26 @@ static void run_json(const Graph& graph, const std::string& source, const std::s
 
 int main(int argc, char* argv[]) {
     CliArgs args = parse_args(argc, argv);
+
+    // --timer-overhead: no graph/arity involved, handled before the
+    // (otherwise-unconditional) graph load below.
+    if (args.timer_overhead) {
+        for (unsigned int trial = 1; trial <= TIMER_OVERHEAD_TRIALS; ++trial) {
+            auto start = std::chrono::high_resolution_clock::now();
+            for (unsigned int i = 0; i < TIMER_OVERHEAD_ITERATIONS; ++i) {
+                auto t = std::chrono::high_resolution_clock::now();
+                (void)t;
+            }
+            auto elapsed = std::chrono::high_resolution_clock::now() - start;
+            const double total_us = std::chrono::duration<double, std::micro>(elapsed).count();
+            const double per_call_us = total_us / static_cast<double>(TIMER_OVERHEAD_ITERATIONS);
+            std::cout << std::format(
+                "{{\"schema_version\":1,\"language\":\"Cpp\",\"trial\":{},"
+                "\"iterations\":{},\"per_call_us\":{},\"per_bracket_us\":{}}}\n",
+                trial, TIMER_OVERHEAD_ITERATIONS, per_call_us, per_call_us * 2.0);
+        }
+        return 0;
+    }
 
     Graph graph;
     try {

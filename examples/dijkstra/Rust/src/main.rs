@@ -62,12 +62,33 @@ struct Args {
     #[arg(long)]
     report_rss: bool,
 
-    /// Run dijkstra once with per-section timers and emit a single JSON record
-    /// (Phase 3.5 of methodology.md). Requires --arity=<d>. Output is one JSON
-    /// object on stdout.
+    /// Run dijkstra with per-section timers (Phase 3.5 of methodology.md).
+    /// Requires --arity=<d>. Reuses --warmup/--repetitions; emits one JSON
+    /// line per timed repetition.
     #[arg(long)]
     profile_sections: bool,
+
+    /// Measure this process's own timer-call overhead: TRIALS independent
+    /// batches of ITERATIONS back-to-back native-timer reads, reporting the
+    /// amortized per-call cost. Graph/arity-independent (no --graph/--arity
+    /// needed). Used to check whether Phase 3.5's cross-language section
+    /// timings could be explained by differing instrumentation cost rather
+    /// than real algorithmic differences — see methodology.md, "Phase 3.5:
+    /// per-section timing" / "Timer call overhead". Emits one JSON line per
+    /// trial.
+    #[arg(long)]
+    timer_overhead: bool,
 }
+
+/// One independent trial's worth of native-timer-call overhead, in
+/// microseconds. `ITERATIONS` back-to-back calls to `Instant::now()` are
+/// timed as a batch and divided down — timing a single call directly would
+/// be dominated by the very timer resolution being measured.
+const TIMER_OVERHEAD_ITERATIONS: u32 = 1_000_000;
+/// Independent trials, so the aggregator can report median/IQR the same way
+/// it does for every other measurement in this project (methodology.md's
+/// "Reported summary statistics").
+const TIMER_OVERHEAD_TRIALS: u32 = 10;
 
 #[cfg(windows)]
 fn peak_rss_kb() -> Option<u64> {
@@ -130,6 +151,31 @@ fn format_results(distances: &std::collections::HashMap<String, i32>, source: &s
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+
+    // --timer-overhead: no graph/arity involved, so it's handled before the
+    // (otherwise-unconditional) graph load below.
+    if args.timer_overhead {
+        for trial in 1..=TIMER_OVERHEAD_TRIALS {
+            let start = Instant::now();
+            for _ in 0..TIMER_OVERHEAD_ITERATIONS {
+                let _ = black_box(Instant::now());
+            }
+            let elapsed = start.elapsed();
+            let total_us = elapsed.as_secs_f64() * 1_000_000.0;
+            let per_call_us = total_us / f64::from(TIMER_OVERHEAD_ITERATIONS);
+            let record = serde_json::json!({
+                "schema_version": 1,
+                "language": "Rust",
+                "trial": trial,
+                "iterations": TIMER_OVERHEAD_ITERATIONS,
+                "per_call_us": per_call_us,
+                "per_bracket_us": per_call_us * 2.0,
+            });
+            println!("{}", record);
+        }
+        return Ok(());
+    }
+
     let graph = load_graph(&args.graph)?;
 
     let source = args.source.clone().unwrap_or_else(|| {

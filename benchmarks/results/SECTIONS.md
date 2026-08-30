@@ -33,3 +33,17 @@ Repeated sampling (K=2 warmup / N=10) was adopted specifically because Phase 3.5
 - Phase 3.5 timer overhead (~50–200 ns per main-loop iteration, per methodology.md) is symmetric across languages but not subtracted from any number above, and repeated sampling doesn't change that — it reduces cross-rep noise, not the overhead itself.
 - Section-timing medians are still not directly comparable to `results/SUMMARY.md`'s `huge_dense` wall-time medians — the section timers themselves add overhead the plain wall-time measurement doesn't pay.
 
+## Timer call overhead (instrument floor)
+
+Median per-call cost of this process's own native monotonic-timer read, from 10 independent batches of 1,000,000 back-to-back `--timer-overhead` calls. Every Phase 3.5 section pays roughly one "bracket" (2 calls: start + elapsed) per section per main-loop iteration, so this is the floor beneath every number in the tables above — it answers whether the cross-language section differences could be an artifact of differing instrumentation cost rather than real algorithmic differences.
+
+| Language | Median per-call (ns) | Ratio | Median per-bracket (ns) | IQR (ns) |
+|---|---:|---:|---:|---:|
+| Go | 4.6 | 1.00× | 9.2 | 0.5 |
+| Cpp | 18.8 | 4.11× | 37.7 | 0.3 |
+| Zig | 23.7 | 5.17× | 47.4 | 0.2 |
+| Rust | 25.3 | 5.52× | 50.6 | 0.1 |
+| TypeScript | 43.2 | 9.43× | 86.5 | 0.4 |
+
+Go's timer read is the cheapest of the five; TypeScript's is 9.4× more expensive per call. On `huge_dense × d=8` the main loop pays on the order of 10⁵ brackets total across `setup`/`pop`/`relax`/`inc_pri` combined (`pop`/`relax` alone are bounded by \|V\|=2500 and \|E\|=125000 respectively), so even this small a per-call difference compounds to a real, non-zero, systematic offset between languages — but at nanoseconds per call against the Finding's microseconds-to-milliseconds section totals, it is one to two orders of magnitude too small to be the primary explanation for the Rust-vs-Go gap on its own. It is a genuine confound this document does not correct for.
+

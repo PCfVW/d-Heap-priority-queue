@@ -79,6 +79,27 @@ type ProfileRecord struct {
 	SectionUs     SectionUs `json:"section_us"`
 }
 
+// timerOverheadIterations back-to-back calls to time.Now() are timed as a
+// batch and divided down for one --timer-overhead trial — timing a single
+// call directly would be dominated by the very timer resolution being
+// measured.
+const timerOverheadIterations = 1_000_000
+
+// timerOverheadTrials independent trials, so the aggregator can report
+// median/IQR the same way it does for every other measurement in this
+// project (methodology.md's "Reported summary statistics").
+const timerOverheadTrials = 10
+
+// TimerOverheadRecord is one JSONL line emitted per --timer-overhead trial.
+type TimerOverheadRecord struct {
+	SchemaVersion int     `json:"schema_version"`
+	Language      string  `json:"language"`
+	Trial         int     `json:"trial"`
+	Iterations    int     `json:"iterations"`
+	PerCallUs     float64 `json:"per_call_us"`
+	PerBracketUs  float64 `json:"per_bracket_us"`
+}
+
 func loadGraph(name string) (Graph, error) {
 	filename := name + ".json"
 	candidates := []string{
@@ -137,8 +158,34 @@ func main() {
 	jsonFlag := flag.Bool("json", false, "emit JSONL records to stdout instead of human-readable output")
 	envFileFlag := flag.String("env-file", "", "path to env-Go.json; contents are inlined into each wall-time record")
 	reportRssFlag := flag.Bool("report-rss", false, "run dijkstra once and emit a single peak-RSS JSON record (requires --arity)")
-	profileSectionsFlag := flag.Bool("profile-sections", false, "run dijkstra once with per-section timers and emit a single JSON record (requires --arity)")
+	profileSectionsFlag := flag.Bool("profile-sections", false, "run dijkstra with per-section timers, reusing --warmup/--repetitions (requires --arity)")
+	timerOverheadFlag := flag.Bool("timer-overhead", false, "measure this process's own timer-call overhead (graph/arity-independent)")
 	flag.Parse()
+
+	// --timer-overhead: no graph/arity involved, handled before the
+	// (otherwise-unconditional) graph load below.
+	if *timerOverheadFlag {
+		for trial := 1; trial <= timerOverheadTrials; trial++ {
+			start := time.Now()
+			for i := 0; i < timerOverheadIterations; i++ {
+				_ = time.Now()
+			}
+			elapsed := time.Since(start)
+			totalUs := float64(elapsed.Nanoseconds()) / 1000.0
+			perCallUs := totalUs / float64(timerOverheadIterations)
+			rec := TimerOverheadRecord{
+				SchemaVersion: 1,
+				Language:      "Go",
+				Trial:         trial,
+				Iterations:    timerOverheadIterations,
+				PerCallUs:     perCallUs,
+				PerBracketUs:  perCallUs * 2,
+			}
+			data, _ := json.Marshal(rec)
+			fmt.Println(string(data))
+		}
+		return
+	}
 
 	graph, err := loadGraph(*graphName)
 	if err != nil {
