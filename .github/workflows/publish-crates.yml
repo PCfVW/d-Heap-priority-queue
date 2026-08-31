@@ -1,8 +1,10 @@
 name: Publish crates.io Package
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read

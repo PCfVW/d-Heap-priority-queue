@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`publish-npm.yml`/`publish-crates.yml` never actually ran on release**: discovered immediately during the v2.7.0 ship — both were triggered by `release: types: [published]`, but `create-release.yml` creates that Release using the default `GITHUB_TOKEN`, and GitHub's anti-recursion rule blocks a `GITHUB_TOKEN`-authored event from triggering other workflows (silently — no failure, no red X, just nothing happens). Re-pointed both at `push: tags: v*` — the same trigger `create-release.yml` itself uses successfully, since that fires from a real, human-authored push — plus `workflow_dispatch` as a manual escape hatch. v2.7.0 itself had to be published to crates.io/npm via a manual `workflow_dispatch` run after the fix landed, since the original tag push predates it.
+
 ## [2.7.0] - 2026-08-31
 
 **Released to [crates.io](https://crates.io/crates/d-ary-heap) (Rust), [npm](https://www.npmjs.com/package/d-ary-heap) (TypeScript), and [pkg.go.dev](https://pkg.go.dev/github.com/PCfVW/d-Heap-priority-queue/Go/v2) (Go) via the new `create-release.yml`/`publish-*.yml` automation this same release introduces; C++ and Zig distribute via the GitHub repo source and git tag.**
