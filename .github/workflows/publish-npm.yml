@@ -8,6 +8,12 @@ on:
 
 permissions:
   contents: read
+  # OIDC trusted publishing (npmjs.com package Settings -> Trusted Publisher):
+  # npm exchanges this job's OIDC token for a short-lived publish token at
+  # publish time, so no NPM_TOKEN secret is needed at all. Requires npm CLI
+  # >= 11.5.0, hence the explicit upgrade step below (Node 20's bundled npm
+  # is too old).
+  id-token: write
 
 jobs:
   publish:
@@ -27,6 +33,9 @@ jobs:
           cache: 'npm'
           cache-dependency-path: TypeScript/package-lock.json
 
+      - name: Update npm (OIDC trusted publishing needs >= 11.5.0)
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
 
@@ -44,8 +53,8 @@ jobs:
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # No NODE_AUTH_TOKEN here: OIDC trusted publishing supplies auth via
+      # the id-token permission above once the npmjs.com side is configured.
       - name: Publish to npm
         if: steps.guard.outputs.should_publish == 'true'
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

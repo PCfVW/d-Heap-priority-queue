@@ -233,6 +233,10 @@ The methodology section is already drafted in [`benchmarks/methodology.md`](benc
 | Workflow | Status | Purpose |
 |----------|--------|---------|
 | `deploy-demo.yml` | ✅ Active | Deploy React Flow demo to GitHub Pages |
+| `ci.yml` | ✅ Active | Preflight: build + lint + test all 5 languages on every push/PR to `master`, plus a weekly canary for toolchain drift. Added post-v2.7.0 — the release automation above shipped with no preflight gate, and both bugs it hit (the `GITHUB_TOKEN` recursion block, missing registry secrets) were release-time discoveries this would not have caught, but a broken commit sitting undetected until the *next* tag is exactly what it's for. |
+| `create-release.yml` | ✅ Active | On `v*` tag push: GitHub Release + `Go/vX.Y.Z` tag + module-proxy nudge |
+| `publish-npm.yml` | ✅ Active | On `v*` tag push (or manual dispatch): npm publish via OIDC trusted publishing |
+| `publish-crates.yml` | ✅ Active | On `v*` tag push (or manual dispatch): crates.io publish via `CARGO_REGISTRY_TOKEN` |
 
 ---
 

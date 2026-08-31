@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`.github/workflows/ci.yml`**: preflight build + lint + test for all 5 languages (Rust: `cargo fmt --check` + `clippy::pedantic` + `cargo test`; Go: `gofmt` + `go vet` + `go test`; TypeScript: `eslint` + `tsc --noEmit` + `vitest`; Zig: `zig fmt --check` + `zig build test`; C++: GCC 13 + CTest), on every push/PR to `master` plus a weekly cron canary for toolchain drift. Added post-v2.7.0 — the release automation shipped in that same cycle with no preflight gate, and while it wouldn't have caught either bug below directly (both are release-time-only failure modes), a broken commit sitting undetected until the next tag is exactly the gap this closes.
+
+### Changed
+
+- **`publish-npm.yml`**: switched from a static `NPM_TOKEN` secret to npm's OIDC **trusted publishing** (`permissions: id-token: write`, an explicit `npm install -g npm@latest` since trusted publishing needs npm CLI ≥ 11.5.0 and Node 20's bundled npm predates that) — no publish secret to leak or rotate. Configured on npmjs.com's package Settings → Trusted Publisher, pointing at this repo's `publish-npm.yml`.
+
 ### Fixed
 
 - **`publish-npm.yml`/`publish-crates.yml` never actually ran on release**: discovered immediately during the v2.7.0 ship — both were triggered by `release: types: [published]`, but `create-release.yml` creates that Release using the default `GITHUB_TOKEN`, and GitHub's anti-recursion rule blocks a `GITHUB_TOKEN`-authored event from triggering other workflows (silently — no failure, no red X, just nothing happens). Re-pointed both at `push: tags: v*` — the same trigger `create-release.yml` itself uses successfully, since that fires from a real, human-authored push — plus `workflow_dispatch` as a manual escape hatch. v2.7.0 itself had to be published to crates.io/npm via a manual `workflow_dispatch` run after the fix landed, since the original tag push predates it.

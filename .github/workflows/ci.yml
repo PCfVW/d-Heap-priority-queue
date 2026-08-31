@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    # Weekly canary: catches toolchain drift (a new stable compiler/runtime
+    # breaking a lint or build) between pushes, so it surfaces here instead
+    # of ambushing the next release tag.
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC
+  workflow_dispatch: # run the canary on demand
+
+jobs:
+  rust:
+    name: Rust
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Rust
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Clippy (pedantic)
+        run: cargo clippy --all-targets -- -W clippy::pedantic
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Test
+        run: cargo test --release
+
+  go:
+    name: Go
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Go
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Check formatting (gofmt)
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt found unformatted files:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+  typescript:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: TypeScript
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: TypeScript/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+  zig:
+    name: Zig
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: zig
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: '0.16.0'
+
+      - name: Check formatting
+        run: zig fmt --check src/
+
+      - name: Build
+        run: zig build
+
+      - name: Test
+        run: zig build test
+
+  cpp:
+    name: C++
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Cpp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install GCC 13 and CMake
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-13 cmake
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-13
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
