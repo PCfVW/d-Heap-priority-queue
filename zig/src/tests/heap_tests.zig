@@ -15,10 +15,10 @@ const testing = std.testing;
 
 // Import types from d_heap module (via build.zig imports)
 const d_heap = @import("d_heap");
-const DHeapItem = d_heap.DHeapItem;  // Pre-configured type for default Item
+const DHeapItem = d_heap.DHeapItem; // Pre-configured type for default Item
 const MinByCost = d_heap.MinByCost;
 const MaxByCost = d_heap.MaxByCost;
-const Item = d_heap.Item;  // Re-exported from d_heap module
+const Item = d_heap.Item; // Re-exported from d_heap module
 
 // Alias for convenience in tests
 const DHeap = DHeapItem;
