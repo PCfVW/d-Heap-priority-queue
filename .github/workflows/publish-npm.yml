@@ -11,8 +11,9 @@ permissions:
   # OIDC trusted publishing (npmjs.com package Settings -> Trusted Publisher):
   # npm exchanges this job's OIDC token for a short-lived publish token at
   # publish time, so no NPM_TOKEN secret is needed at all. Requires npm CLI
-  # >= 11.5.0, hence the explicit upgrade step below (Node 20's bundled npm
-  # is too old).
+  # >= 11.5.0, hence the explicit upgrade step below -- which in turn needs
+  # Node 22.22.2+/24.15.0+/26+ (current npm@latest's own engines field), so
+  # Node 20 (this job's default elsewhere in the repo) isn't enough here.
   id-token: write
 
 jobs:
@@ -28,7 +29,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
           cache-dependency-path: TypeScript/package-lock.json
