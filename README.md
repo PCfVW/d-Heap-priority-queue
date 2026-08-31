@@ -1,4 +1,4 @@
-# Min/Max d-Heap Priority Queues (C++, Go, Rust, Zig, and TypeScript) v2.6.0
+# Min/Max d-Heap Priority Queues (C++, Go, Rust, Zig, and TypeScript) v2.7.0
 
 This repository contains generic d-ary heap (d-heap) priority queue implementations with O(1) lookup for item updates and configurable arity d.
 
@@ -251,9 +251,15 @@ Choose extensions based on your specific use case—core functionality remains i
 
 ## Version Information
 
-**Current Version: 2.6.0** — Instrumentation & Benchmarks
+**Current Version: 2.7.0** — Automation & Per-Section Timing
 
-**What's New in 2.6.0:**
+**What's New in 2.7.0:**
+- 🤖 **CI/CD release automation**: pushing a `v*` tag now creates a GitHub Release from the matching `CHANGELOG.md` section, tags the Go module (`Go/vX.Y.Z`) and nudges pkg.go.dev, and publishes to npm/crates.io — each publish step skips gracefully (no red X) if that language's version is already live on its registry.
+- ⚠️ **Zig 0.16.0 required** (breaking toolchain bump from 0.15.2): `std.heap.GeneralPurposeAllocator` → `DebugAllocator`, `std.time.nanoTimestamp` removed in favor of `std.Io.Clock.Timestamp`, filesystem calls moved from `std.fs` to `std.Io.Dir`/`std.Io.File`. All 64 Zig library tests re-verified.
+- 🎯 **Phase 3.5 — per-section timing**: a `--profile-sections` flag in all 5 Dijkstra examples attributes wall time to `setup`/`pop`/`relax`/`inc_pri`, aiming to explain Phase 2's puzzle (why is Rust slower than Go on `huge_dense`?). Two follow-up measurements — `--timer-overhead` (per-language instrumentation cost) and plain `pop_count`/`relax_count` counters — ruled out two candidate explanations without settling the question: the honest finding is that a single capture's answer flips direction between runs on a shared, non-quiesced machine. See [`benchmarks/results/SECTIONS.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/results/SECTIONS.md) and [`benchmarks/methodology.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md) for the full writeup.
+- 📚 **`CONVENTIONS.md` for all 5 languages**: Rust's existing conventions doc gets Go/C++/Zig/TypeScript siblings, each grounded in that language's actual source rather than a generic copy.
+
+**Previous in 2.6.0:**
 - 🎯 **Comparison-count instrumentation** (Phase 2): Opt-in per-operation comparison counters across all 5 languages, each with its idiomatic zero-cost mechanism — template policy + `[[no_unique_address]]` in C++, generic over `StatsCollector` trait in Rust, nil-pointer pattern in Go, comptime bool parameter in Zig, callback hooks in TypeScript.
 - 🎯 **Cross-language benchmark harness** (Phase 3): 255 result files (51 per language × 5: 24 wall-time `.jsonl` + 24 stats + 3 RSS, on 8 graphs × 3 arities). [`benchmarks/methodology.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md) documents the 3-pass reproducibility protocol (warmup + median-of-10 with IQR).
 - ✅ **5-way Phase 2 invariant verified**: All 5 languages produce byte-for-byte identical `total` comparison counts across all 24 (graph, arity) cells — five very different hash-map implementations (Rust SipHash, Go flat-bucket, V8 `Map`, Zig Wyhash, MSVC `std::unordered_map`) agreeing exactly.
@@ -339,7 +345,7 @@ Explore the language-specific implementations:
 | ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg) | [Cpp/README.md](Cpp/README.md) |
 | ![Go 1.21](https://img.shields.io/badge/Go-1.21-00ADD8.svg) | [Go/README.md](Go/README.md) |
 | ![Rust Edition 2021](https://img.shields.io/badge/Rust-Edition_2021-orange.svg) | [Rust/README.md](Rust/README.md) |
-| ![Zig 0.15.2](https://img.shields.io/badge/Zig-0.15.2-f7a41d.svg) | [zig/README.md](zig/README.md) |
+| ![Zig 0.16.0](https://img.shields.io/badge/Zig-0.16.0-f7a41d.svg) | [zig/README.md](zig/README.md) |
 | ![TypeScript 5.3](https://img.shields.io/badge/TypeScript-5.3-blue.svg) | [TypeScript/README.md](TypeScript/README.md) |
 
 ## License

@@ -199,7 +199,7 @@ TypeScript instrumentation shipped in v2.4.0 (the `instrumentComparator` / `onBe
 
 ---
 
-## v2.7.0 — Automation & Per-Section Timing
+## v2.7.0 — Automation & Per-Section Timing ✅
 
 > *Why now?*
 

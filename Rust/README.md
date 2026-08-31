@@ -3,7 +3,7 @@
 ![crates.io](https://img.shields.io/crates/v/d-ary-heap.svg)
 ![docs.rs](https://docs.rs/d-ary-heap/badge.svg)
 
-# d-ary Heap Priority Queue (Rust) v2.6.0
+# d-ary Heap Priority Queue (Rust) v2.7.0
 
 **Wikipedia-standard d-ary heap** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation. Cross-language API parity with C++, Go, TypeScript, and Zig.
 

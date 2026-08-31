@@ -1,7 +1,7 @@
 ![Zig 0.16.0](https://img.shields.io/badge/Zig-0.16.0-f7a41d.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (Zig 0.16.0) v2.6.0
+# d-Heap Priority Queue (Zig 0.16.0) v2.7.0
 
 **Wikipedia-standard d-ary heap (Zig 0.16.0)** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation via a comptime bool. Cross-language API parity with C++, Go, Rust, and TypeScript.
 
@@ -22,13 +22,18 @@ If you already know you want a priority queue, here's what this module gives you
 - **Cross-language API parity** with C++, Go, Rust, and TypeScript — byte-for-byte identical comparison counts on shared benchmarks (verified across 24 cells × 5 languages).
 - **Published numbers**: see [`benchmarks/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks). Zig leads on `large_*` cells at d=8 (846 µs sparse / 899 µs grid / 2854 µs dense on AMD Ryzen 9 5950X, ReleaseFast). Full [methodology](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
 
-## What's New in v2.6.0
+## What's New in v2.7.0
+
+- **Zig 0.16.0 compatibility** (breaking toolchain bump — minimum Zig raised from 0.15.2 to 0.16.0): `std.heap.GeneralPurposeAllocator` → `DebugAllocator`; `std.time.nanoTimestamp` removed, replaced by `std.Io.Clock.Timestamp`; every filesystem call migrated from `std.fs`/`std.fs.File` to `std.Io.Dir`/`std.Io.File` with an explicit `io: std.Io` parameter; `std.mem.trimRight` renamed to `trimEnd`. All 64 library tests re-verified against the new toolchain.
+- **Cross-language per-section timing benchmarks** (Phase 3.5): `examples/dijkstra/Zig/` gains a `--profile-sections` flag attributing wall time to `setup`/`pop`/`relax`/`inc_pri`, plus a `--timer-overhead` flag quantifying the instrumentation's own cost. See [`benchmarks/results/SECTIONS.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/results/SECTIONS.md) for the cross-language attribution and its caveats.
+
+### What's New in v2.6.0
 
 - **Comparison-count instrumentation**: comptime-bool parameter `collect_stats: bool` on the new `DHeapWithStats(T, Context, Comparator, comptime collect_stats: bool)`. Convenience alias `InstrumentedDHeap` for the `collect_stats=true` variant. The `stats` field is typed `if (collect_stats) ComparisonStats else void` — zero bytes when disabled via Zig's `void` field collapse (the language analog of Rust's ZST and C++'s `[[no_unique_address]]`).
 - **Cross-language parity for instrumentation**: byte-for-byte identical comparison counts with the C++, Go, Rust, and TypeScript implementations (verified across 24 (graph, arity) cells).
 - **Phase 3 benchmark harness**: `examples/dijkstra/Zig/` runs the cross-language Dijkstra sweep with `ReleaseFast`; see [`benchmarks/methodology.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
 
-### What's New in v2.5.0
+#### What's New in v2.5.0
 
 - **`updatePriority()`**: New method for when priority change direction is unknown
 - **`getPosition()`**: O(1) lookup of item's index in the heap array
@@ -199,7 +204,7 @@ Add to your `build.zig.zon`:
 ```zig
 .dependencies = .{
     .d_heap = .{
-        .url = "https://github.com/PCfVW/d-Heap-priority-queue/archive/refs/tags/v2.5.0.tar.gz",
+        .url = "https://github.com/PCfVW/d-Heap-priority-queue/archive/refs/tags/v2.7.0.tar.gz",
         .hash = "...",
     },
 },

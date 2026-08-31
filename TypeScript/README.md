@@ -1,7 +1,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (TypeScript) v2.6.0
+# d-Heap Priority Queue (TypeScript) v2.7.0
 
 **Wikipedia-standard d-ary heap** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation. Cross-language API parity with C++, Go, Rust, and Zig.
 

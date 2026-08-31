@@ -1,7 +1,7 @@
 ![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 
-# d-Heap Priority Queue (C++23) v2.6.0
+# d-Heap Priority Queue (C++23) v2.7.0
 
 **Wikipedia-standard d-ary heap (C++23)** with configurable arity, O(1) item lookup, modern `std::expected` error handling, and zero-cost comparison-count instrumentation. Cross-language API parity with Go, Rust, TypeScript, and Zig.
 
@@ -22,13 +22,18 @@ If you already know you want a priority queue, here's what this header-only libr
 - **Cross-language API parity** with Rust, Go, TypeScript, and Zig — byte-for-byte identical comparison counts on shared benchmarks (verified across 24 cells × 5 languages).
 - **Published numbers**: see [`benchmarks/`](https://github.com/PCfVW/d-Heap-priority-queue/tree/master/benchmarks). C++ runs `huge_dense × d=8` at **15.1 ms / ~199 ns/cmp** on AMD Ryzen 9 5950X (MSVC 19.44, Release `/O2 /utf-8`). Full [methodology](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
 
-## What's New in v2.6.0
+## What's New in v2.7.0
+
+- **`front()`'s UB-on-empty behavior now formally documented** with the project's `UB:` comment convention (no functional change).
+- **Cross-language per-section timing benchmarks** (Phase 3.5): `examples/dijkstra/Cpp/` gains a `--profile-sections` flag attributing wall time to `setup`/`pop`/`relax`/`inc_pri`, plus a `--timer-overhead` flag quantifying the instrumentation's own cost. See [`benchmarks/results/SECTIONS.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/results/SECTIONS.md) for the cross-language attribution and its caveats.
+
+### What's New in v2.6.0
 
 - **Comparison-count instrumentation**: 5th defaulted template parameter `TStats = NoOpStats` on `PriorityQueue<T, …>`. New `InstrumentedPriorityQueue<T, …>` alias for the `ComparisonStats` variant. Zero-bytes elision via `[[no_unique_address]]` / `[[msvc::no_unique_address]]`; `sizeof(InstrumentedPriorityQueue<int>) - sizeof(PriorityQueue<int>) == sizeof(ComparisonStats)` is `static_assert`-checked.
 - **Cross-language parity for instrumentation**: byte-for-byte identical comparison counts with the Rust, Go, TypeScript, and Zig implementations (verified across 24 (graph, arity) cells).
 - **Phase 3 benchmark harness**: `examples/dijkstra/Cpp/` runs the cross-language Dijkstra sweep; see [`benchmarks/methodology.md`](https://github.com/PCfVW/d-Heap-priority-queue/blob/master/benchmarks/methodology.md).
 
-### What's New in v2.5.0
+#### What's New in v2.5.0
 
 - **C++23 `std::expected` error handling**: Safe, expressive error propagation for all fallible operations
 - **New Error enum**: `InvalidArity`, `ItemNotFound`, `IndexOutOfBounds`, `EmptyQueue`

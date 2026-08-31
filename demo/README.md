@@ -66,4 +66,4 @@ The demo is automatically deployed to GitHub Pages on push to master. See `.gith
 
 ---
 
-Part of the [d-Heap Priority Queue](https://github.com/eric-jacopin/Priority-Queues) project v2.5.0.
+Part of the [d-Heap Priority Queue](https://github.com/PCfVW/d-Heap-priority-queue) project v2.7.0.

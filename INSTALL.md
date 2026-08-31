@@ -24,7 +24,7 @@
 ### Install
 
 ```bash
-go get github.com/PCfVW/d-Heap-priority-queue/Go/src@v2.5.0
+go get github.com/PCfVW/d-Heap-priority-queue/Go/v2/src@v2.7.0
 ```
 
 ### Usage
@@ -34,7 +34,7 @@ package main
 
 import (
     "fmt"
-    dheap "github.com/PCfVW/d-Heap-priority-queue/Go/src"
+    dheap "github.com/PCfVW/d-Heap-priority-queue/Go/v2/src"
 )
 
 type Task struct {
@@ -130,7 +130,7 @@ pq.to_string()
 ## Zig Installation
 
 ### Prerequisites
-- **Zig 0.15.2** or later
+- **Zig 0.16.0** or later
 - Git (for dependency management)
 
 ### Using as a Dependency
@@ -143,7 +143,7 @@ pq.to_string()
     .version = "0.1.0",
     .dependencies = .{
         .d_heap = .{
-            .url = "https://github.com/PCfVW/d-Heap-priority-queue/archive/refs/tags/v2.5.0.tar.gz",
+            .url = "https://github.com/PCfVW/d-Heap-priority-queue/archive/refs/tags/v2.7.0.tar.gz",
             .hash = "1220abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
         },
     },
@@ -311,17 +311,16 @@ int main() {
 
 ```toml
 [dependencies]
-# If published to crates.io (not recommended based on analysis)
-# rust_priority_queue = "2.5.0"
+d-ary-heap = "2.7.0"
 
 # Or use git dependency
-rust_priority_queue = { git = "https://github.com/PCfVW/priority-queues", tag = "v2.5.0" }
+# d-ary-heap = { git = "https://github.com/PCfVW/d-Heap-priority-queue", tag = "v2.7.0" }
 ```
 
 ### Usage
 
 ```rust
-use priority_queue::{PriorityQueue, MinBy};
+use d_ary_heap::{PriorityQueue, MinBy};
 
 fn main() {
     let mut pq = PriorityQueue::new(3, MinBy(|x: &i32| *x));
@@ -354,8 +353,8 @@ Different languages follow their respective naming conventions:
 ### Clone the repository
 
 ```bash
-git clone https://github.com/PCfVW/priority-queues.git
-cd priority-queues
+git clone https://github.com/PCfVW/d-Heap-priority-queue.git
+cd d-Heap-priority-queue
 ```
 
 ### Go
@@ -449,7 +448,8 @@ error: hash mismatch: expected 1220abc..., found 1220def...
 Copy the "found" hash to your `build.zig.zon`.
 
 ### Zig Version Compatibility
-- **v2.5.0+**: Requires Zig 0.15.2+
+- **v2.7.0+**: Requires Zig 0.16.0+ (breaking bump — `std.heap.GeneralPurposeAllocator`, `std.time.nanoTimestamp`, and several `std.fs` APIs used by earlier versions no longer exist in 0.16)
+- **v2.5.0-v2.6.0**: Requires Zig 0.15.2+
 - **v2.0.0-v2.4.0**: Requires Zig 0.15.2+
 - **v1.x**: For older Zig versions, use v1.1.0
 
@@ -457,6 +457,8 @@ Copy the "found" hash to your `build.zig.zon`.
 
 | Package Version | Go | Zig | C++ | Rust | TypeScript | Node.js |
 |----------------|-----|-----|-----|------|------------|---------|
+| **v2.7.0** | 1.21+ | 0.16.0+ | C++23+ | 2021+ | 5.0+ | 18+ |
+| **v2.6.0** | 1.21+ | 0.15.2+ | C++23+ | 2021+ | 5.0+ | 18+ |
 | **v2.5.0** | 1.21+ | 0.15.2+ | C++23+ | 2021+ | 5.0+ | 18+ |
 | **v2.4.0** | 1.21+ | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |
 | **v2.3.0** | 1.21+ | 0.15.2+ | C++17+ | 2021+ | 5.0+ | 18+ |

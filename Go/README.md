@@ -2,7 +2,7 @@
 ![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)
 ![pkg.go.dev](https://pkg.go.dev/badge/github.com/PCfVW/d-Heap-priority-queue/Go.svg)
 
-# d-ary Heap Priority Queue (Go) v2.6.0
+# d-ary Heap Priority Queue (Go) v2.7.0
 
 **Wikipedia-standard d-ary heap** with configurable arity, O(1) item lookup, and zero-cost comparison-count instrumentation. Cross-language API parity with C++, Rust, TypeScript, and Zig.
 
@@ -26,7 +26,7 @@ If you already know you want a priority queue, here's what `d-Heap-priority-queu
 ## Installation
 
 ```bash
-go get github.com/PCfVW/d-Heap-priority-queue/Go/src
+go get github.com/PCfVW/d-Heap-priority-queue/Go/v2/src
 ```
 
 ## Quick Start
@@ -36,7 +36,7 @@ package main
 
 import (
     "fmt"
-    dheap "github.com/PCfVW/d-Heap-priority-queue/Go/src"
+    dheap "github.com/PCfVW/d-Heap-priority-queue/Go/v2/src"
 )
 
 type Task struct {
@@ -78,7 +78,7 @@ func main() {
 ### Basic Operations
 
 ```go
-import dheap "github.com/PCfVW/d-Heap-priority-queue/Go/src"
+import dheap "github.com/PCfVW/d-Heap-priority-queue/Go/v2/src"
 
 pq := dheap.New(dheap.Options[int, int]{
     D:            3,

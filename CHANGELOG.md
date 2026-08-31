@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_(v2.7.0 development cycle. Per the cadence convention above, lines land here as changes ship.)_
+## [2.7.0] - 2026-08-31
+
+**Released to [crates.io](https://crates.io/crates/d-ary-heap) (Rust), [npm](https://www.npmjs.com/package/d-ary-heap) (TypeScript), and [pkg.go.dev](https://pkg.go.dev/github.com/PCfVW/d-Heap-priority-queue/Go/v2) (Go) via the new `create-release.yml`/`publish-*.yml` automation this same release introduces; C++ and Zig distribute via the GitHub repo source and git tag.**
+
+*Automation & Per-Section Timing.* CI/CD workflows automate the ship steps v2.6.0 still did by hand; Phase 3.5 attempts to attribute Phase 2's Rust-vs-Go wall-time gap to a specific section of `dijkstra()`, and is honest that a shared, non-quiesced sandbox couldn't settle the question.
 
 ### Added
 
