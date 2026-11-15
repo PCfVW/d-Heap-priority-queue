@@ -39,12 +39,18 @@ jobs:
         id: guard
         run: |
           LOCAL_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' "https://crates.io/api/v1/crates/d-ary-heap/$LOCAL_VERSION")
+          # crates.io's API answers 403 to a request without a User-Agent: name this workflow.
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' \
+            -A "d-Heap-priority-queue publish guard (https://github.com/PCfVW/d-Heap-priority-queue)" \
+            "https://crates.io/api/v1/crates/d-ary-heap/$LOCAL_VERSION")
           if [ "$STATUS" = "200" ]; then
             echo "d-ary-heap $LOCAL_VERSION is already on crates.io; skipping publish."
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
-          else
+          elif [ "$STATUS" = "404" ]; then
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::crates.io answered HTTP $STATUS for d-ary-heap $LOCAL_VERSION; not guessing whether it is published"
+            exit 1
           fi
 
       - name: Publish to crates.io
