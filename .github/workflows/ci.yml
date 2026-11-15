@@ -20,7 +20,7 @@ jobs:
       run:
         working-directory: Rust
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -45,7 +45,7 @@ jobs:
       run:
         working-directory: Go
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-go@v5
         with:
@@ -73,7 +73,7 @@ jobs:
       run:
         working-directory: TypeScript
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -103,7 +103,7 @@ jobs:
       run:
         working-directory: zig
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: mlugg/setup-zig@v2
         with:
@@ -125,7 +125,7 @@ jobs:
       run:
         working-directory: Cpp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install GCC 13 and CMake
         run: |
