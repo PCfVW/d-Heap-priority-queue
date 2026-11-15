@@ -11,7 +11,7 @@ See the sibling `Rust/CONVENTIONS.md`, `Go/CONVENTIONS.md`, `Cpp/CONVENTIONS.md`
 | You are about to... | Check these rules |
 |---|---|
 | Write `: any` or `<any>` | [No Type Escape Hatches](#no-type-escape-hatches) — banned, `eslint` errors on it |
-| Write `value!` (non-null assertion) | [Justified Non-Null Assertions](#justified-non-null-assertions) — not banned, but requires an `// INDEX:` comment |
+| Write `value!` (non-null assertion) | [Justified Non-Null Assertions](#justified-non-null-assertions) — not banned, but requires an `// eslint-disable-line ... -- INDEX:` comment |
 | Write `value as T` | [Justified Type Assertions](#justified-type-assertions) — not banned, but requires an `// ASSERT:` comment |
 | Declare a new exported `function` | [Explicit Return Types](#explicit-return-types) |
 | Index into an array/object with a computed key | [Safe Index Access](#safe-index-access) — already enforced by `tsconfig.json` |
@@ -47,19 +47,19 @@ function isUser(value: unknown): value is User {
 
 Terse Rule 1 bans non-null assertions (`value!`) outright, on the reasoning that a `!` usually papers over a case the type checker correctly flagged as possibly-`null`/`undefined`. This package does **not** adopt a hard ban: `noUncheckedIndexedAccess` (see [Safe Index Access](#safe-index-access) below) makes every `container[i]` read `T | undefined`, and the hot-path heap operations (`swap`, `moveUp`, `moveDown`, `bestChildPosition`, `pop`, `insertMany`) index at positions whose validity is proven by the algorithm's own loop bounds, not by a redundant runtime check on every access — exactly the tension Rust's `Rust/CONVENTIONS.md` `INDEX:` annotation exists to resolve, applied here to TypeScript's structurally-identical problem.
 
-`@typescript-eslint/no-non-null-assertion` is set to `'warn'` (visible, does not fail `npm run lint`), and every `!` in `src/` must carry a trailing `// INDEX: <why this index is provably in bounds>` comment — the same annotation name and shape as Rust's, so the convention transfers directly for anyone reading both codebases:
+`@typescript-eslint/no-non-null-assertion` is set to `'warn'`, and every `!` in `src/` must carry a trailing `// eslint-disable-line @typescript-eslint/no-non-null-assertion -- INDEX: <why this index is provably in bounds>` comment. The `INDEX:` justification is the same annotation name and shape as Rust's, so the convention transfers directly for anyone reading both codebases; written as the directive's `--` description, it also silences the warning for that line only:
 
 ```typescript
 private swap(i: number, j: number): void {
   const container = this.container;
-  const temp = container[i]!; // INDEX: i, j are always caller-supplied valid heap positions
-  container[i] = container[j]!; // INDEX: see above
+  const temp = container[i]!; // eslint-disable-line @typescript-eslint/no-non-null-assertion -- INDEX: i, j are always caller-supplied valid heap positions
+  container[i] = container[j]!; // eslint-disable-line @typescript-eslint/no-non-null-assertion -- INDEX: see above
   container[j] = temp;
   ...
 }
 ```
 
-All 13 non-null assertions in `src/PriorityQueue.ts` carry this annotation as of this document — a new one without an `// INDEX:` comment should be treated as a review-blocking gap, not accepted on the assumption that the pattern is "obviously fine because the rest of the file does it." If a future case genuinely can't prove the index in bounds, don't reach for `!` — check explicitly (Terse's original intent) instead of annotating around a real bug.
+So `npm run lint` is silent while every assertion is justified, and a new `!` without the directive shows up as a warning (in CI too, as an annotation), instead of drowning among the justified ones. All 13 non-null assertions in `src/PriorityQueue.ts` (on 10 lines) carry the directive as of this document — a new one without it should be treated as a review-blocking gap, not accepted on the assumption that the pattern is "obviously fine because the rest of the file does it." If a future case genuinely can't prove the index in bounds, don't reach for `!` — check explicitly (Terse's original intent) instead of annotating around a real bug.
 
 ### Justified Type Assertions
 
