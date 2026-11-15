@@ -50,6 +50,8 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version: '1.21'
+          # go.mod lives in Go/, not at the repo root where setup-go looks by default.
+          cache-dependency-path: Go/go.mod
 
       - name: Check formatting (gofmt)
         run: |

@@ -59,6 +59,8 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: '1.21'
+          # This job only asks the module proxy for the new tag: nothing to cache.
+          cache: false
 
       - name: Trigger Go module proxy
         env:
