@@ -12,6 +12,12 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Matches the crates.io Trusted Publishing config of d-ary-heap (PCfVW/d-Heap-priority-queue,
+    # this filename, environment crates-io): the filename publish-crates.yml is load-bearing.
+    environment: crates-io
+    permissions:
+      id-token: write # OIDC token for Trusted Publishing
+      contents: read
     defaults:
       run:
         working-directory: Rust
@@ -21,6 +27,13 @@ jobs:
 
       - name: Run tests
         run: cargo test --locked
+
+      # Before the version check, so that a run with nothing to publish (workflow_dispatch on an
+      # already published version) still proves crates.io accepts this workflow. The token is
+      # short-lived and the action revokes it when the job ends.
+      - name: Authenticate with crates.io (Trusted Publishing)
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
 
       - name: Check if this version is already published
         id: guard
@@ -38,4 +51,4 @@ jobs:
         if: steps.guard.outputs.should_publish == 'true'
         run: cargo publish
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
